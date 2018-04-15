@@ -1,5 +1,5 @@
 # RDFSharp.RDFStore
-RDFSharp extensions to back RDF data on common SQL relational databases. Actual implementation provide support for: 
+<b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions to back RDF data on common SQL relational databases. Actual implementation provides support for: 
 <ul>
     <li>SQLite</li>
     <li>Firebird</li>
