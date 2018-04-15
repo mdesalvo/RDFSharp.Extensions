@@ -14,7 +14,7 @@ There are many ways that you can contribute to the RDFSharp.RDFStore project:
     <li>Submit a code fix for a bug</li>  
     <li>Submit a feature request</li>
     <li>Submit code for a feature request</li>
-    <li>Tell others about the RDFSharp.RDFStore project :)</li>
+    <li>Tell others about the RDFSharp.Stores project :)</li>
 </ul>
 <hr>
 RDFSharp.Stores is also available on <b><a href="http://www.nuget.org/packages?q=rdfsharp">NuGet</a></b>!
