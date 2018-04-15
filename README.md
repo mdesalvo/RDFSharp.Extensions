@@ -1,5 +1,5 @@
-# RDFSharp.RDFStore
-<b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions to back RDF data on SQL stores. Actual implementation provides support for: 
+# RDFSharp.Stores
+<b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions for SQL storage of RDF data. Actual implementation provides support for: 
 <ul>
     <li>SQLite</li>
     <li>Firebird</li>
@@ -7,7 +7,7 @@
     <li>PostgreSQL</li>
 </ul>
 <hr>
-There are many ways that you can contribute to the RDFSharp.RDFStore project: 
+There are many ways that you can contribute to the RDFSharp.Stores project: 
 
 <ul>
     <li>Submit a bug</li> 
