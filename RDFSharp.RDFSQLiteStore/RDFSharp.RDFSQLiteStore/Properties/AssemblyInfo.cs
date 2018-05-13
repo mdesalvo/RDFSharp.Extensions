@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2017 Marco De Salvo
+   Copyright 2012-2018 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,6 +24,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Marco De Salvo")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("1.0.1")]
+[assembly: AssemblyVersion("1.0.2")]
 [assembly: ComVisible(false)]
 [assembly: Guid("5C96900F-2B4B-446A-B02F-32BB289E21E0")]

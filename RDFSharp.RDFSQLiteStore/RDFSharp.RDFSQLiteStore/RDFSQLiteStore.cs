@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2017 Marco De Salvo
+   Copyright 2012-2018 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace RDFSharp.Store
     /// <summary>
     /// RDFSQLiteStore represents a store backed on SQLite engine
     /// </summary>
-    public class RDFSQLiteStore: RDFStore {
+    public sealed class RDFSQLiteStore: RDFStore {
 
         #region Properties
         /// <summary>
