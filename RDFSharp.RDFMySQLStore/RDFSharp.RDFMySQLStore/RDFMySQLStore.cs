@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2017 Marco De Salvo
+   Copyright 2012-2018 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace RDFSharp.Store {
     /// <summary>
     /// RDFMySQLStore represents a store backed on MySQL engine
     /// </summary>
-    public class RDFMySQLStore: RDFStore {
+    public sealed class RDFMySQLStore: RDFStore {
 
         #region Properties
         /// <summary>
