@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
   <!-- Project Properties -->
   <PropertyGroup>
     <ProductVersion>9.0.30729</ProductVersion>
@@ -11,7 +10,6 @@
     <RootNamespace>RDFSharp.Store</RootNamespace>
     <AssemblyName>RDFSharp.RDFSQLiteStore</AssemblyName>
   </PropertyGroup>
-
   <!-- Build Configurations -->
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
@@ -36,9 +34,12 @@
     <NoWarn>1591</NoWarn>
     <DocumentationFile>bin\Release\RDFSharp.RDFSQLiteStore.xml</DocumentationFile>
   </PropertyGroup>
-
   <!-- Assembly References -->
   <ItemGroup>
+    <Reference Include="RDFSharp, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RDFSharp.1.0.2\lib\net40\RDFSharp.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -46,12 +47,7 @@
       <HintPath>..\packages\System.Data.SQLite.Core.1.0.108.0\lib\net40\System.Data.SQLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RDFSharp, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RDFSharp.1.0.1\lib\net40\RDFSharp.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
-
   <!-- Project Sources -->
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -60,7 +56,6 @@
       <Visible>False</Visible>
     </EmbeddedResource>
   </ItemGroup>
-  
   <!-- NuGet Configurations -->
   <ItemGroup>
     <None Include="packages.config" />
@@ -73,5 +68,4 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\System.Data.SQLite.Core.1.0.108.0\build\net40\System.Data.SQLite.Core.targets'))" />
   </Target>
-
 </Project>
