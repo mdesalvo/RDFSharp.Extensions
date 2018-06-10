@@ -50,18 +50,18 @@
       <HintPath>..\packages\Npgsql.2.2.7\lib\net40\Npgsql.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RDFSharp, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RDFSharp.1.0.1\lib\net40\RDFSharp.dll</HintPath>
+    <Reference Include="RDFSharp, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RDFSharp.1.0.2\lib\net40\RDFSharp.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
-  
+
   <!-- Project Source -->
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RDFPostgreSQLStore.cs" />
   </ItemGroup>
-  
+
   <!-- NuGet Configurations -->
   <ItemGroup>
     <None Include="packages.config" />
