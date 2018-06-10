@@ -46,8 +46,8 @@
       <HintPath>..\packages\MySql.Data.6.9.12\lib\net40\MySql.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="RDFSharp, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RDFSharp.1.0.1\lib\net40\RDFSharp.dll</HintPath>
+	<Reference Include="RDFSharp, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RDFSharp.1.0.2\lib\net40\RDFSharp.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
@@ -57,7 +57,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RDFMySQLStore.cs" />
   </ItemGroup>
-  
+
   <!-- NuGet Configurations -->
   <ItemGroup>
     <None Include="packages.config" />
