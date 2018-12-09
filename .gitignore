@@ -1,0 +1,8 @@
+﻿################################################################################
+# Il file gitignore è stato creato automaticamente da Microsoft(R) Visual Studio.
+################################################################################
+
+/RDFSharp.RDFFirebirdStore/.vs/RDFSharp.RDFFirebirdStore/v15
+/RDFSharp.RDFFirebirdStore/packages
+/RDFSharp.RDFFirebirdStore/RDFSharp.RDFFirebirdStore/bin
+/RDFSharp.RDFFirebirdStore/RDFSharp.RDFFirebirdStore/obj
