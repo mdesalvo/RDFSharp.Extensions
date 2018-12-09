@@ -10,3 +10,7 @@
 /RDFSharp.RDFMySQLStore/packages
 /RDFSharp.RDFMySQLStore/RDFSharp.RDFMySQLStore/bin
 /RDFSharp.RDFMySQLStore/RDFSharp.RDFMySQLStore/obj
+/RDFSharp.RDFPostgreSQLStore/.vs/RDFSharp.RDFPostgreSQLStore/v15
+/RDFSharp.RDFPostgreSQLStore/packages
+/RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/bin
+/RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/obj
