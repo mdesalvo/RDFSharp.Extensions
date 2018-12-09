@@ -168,7 +168,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
 					RDFStoreEvents.RaiseOnQuadrupleAdded(String.Format("Quadruples of Graph '{0}' have been merged to the Store '{1}'.", graph, this));
+
                 }
                 catch (Exception ex) {
 
@@ -238,7 +240,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleAdded(String.Format("Quadruple '{0}' has been added to the Store '{1}'.", quadruple, this));
+
                 }
                 catch (Exception ex) {
 
@@ -292,7 +296,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruple '{0}' has been removed from the Store '{1}'.", quadruple, this));
+
                 }
                 catch (Exception ex) {
 
@@ -344,7 +350,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' have been removed from the Store '{1}'.", contextResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -396,7 +404,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' have been removed from the Store '{1}'.", subjectResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -448,7 +458,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Predicate '{0}' have been removed from the Store '{1}'.", predicateResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -502,7 +514,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Object '{0}' have been removed from the Store '{1}'.", objectResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -556,7 +570,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Literal '{0}' have been removed from the Store '{1}'.", literalObject, this));
+
                 }
                 catch (Exception ex) {
 
@@ -603,7 +619,9 @@ namespace RDFSharp.Store
                 //Close connection
                 this.Connection.Close();
 
+                //Raise event
                 RDFStoreEvents.RaiseOnStoreCleared(String.Format("Store '{0}' has been cleared.", this));
+
             }
             catch (Exception ex) {
 
@@ -1020,7 +1038,9 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnStoreInitialized(String.Format("Store '{0}' has been initialized with the Quadruples table.", this));
+
                 }
                 catch (Exception ex) {
 
@@ -1035,7 +1055,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the database
             else if (check     == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource) {
-                throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the database.");
+                throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the given datasource.");
             }
         }
         #endregion		

@@ -57,7 +57,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RDFFirebirdStore.cs" />
     <EmbeddedResource Include="Template\RDFFirebirdTemplate.fdb">
-      <Visible>False</Visible>
+      <Visible>True</Visible>
     </EmbeddedResource>
   </ItemGroup>
 
