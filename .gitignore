@@ -14,3 +14,7 @@
 /RDFSharp.RDFPostgreSQLStore/packages
 /RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/bin
 /RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/obj
+/RDFSharp.RDFSQLiteStore/.vs/RDFSharp.RDFSQLiteStore/v15
+/RDFSharp.RDFSQLiteStore/packages
+/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/bin
+/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/obj
