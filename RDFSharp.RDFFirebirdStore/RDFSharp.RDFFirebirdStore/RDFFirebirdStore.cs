@@ -938,6 +938,9 @@ namespace RDFSharp.Store
                 //Prepare command
                 command.Prepare();
 
+                //Set command timeout (3min)
+                command.CommandTimeout = 180;
+
                 //Execute command
                 using  (var quadruples = command.ExecuteReader()) {
                     if (quadruples.HasRows) {
