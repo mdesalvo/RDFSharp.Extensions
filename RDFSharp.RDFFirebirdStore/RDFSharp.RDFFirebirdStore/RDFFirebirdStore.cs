@@ -44,16 +44,16 @@ namespace RDFSharp.Store
             if (!String.IsNullOrEmpty(firebirdConnectionString)) {                
 
                 //Initialize store structures
-                this.StoreType    = "FIREBIRD";
-                this.Connection   = new FbConnection(firebirdConnectionString);
-                this.StoreID      = RDFModelUtilities.CreateHash(this.ToString());
+                this.StoreType  = "FIREBIRD";
+                this.Connection = new FbConnection(firebirdConnectionString);
+                this.StoreID    = RDFModelUtilities.CreateHash(this.ToString());
 
                 //Clone internal store template
                 if(!File.Exists(this.Connection.Database)) {
                     try {
-                        Assembly firebird        = Assembly.GetExecutingAssembly();
-                        using (var templateDB    = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplate.fdb")) {
-                            using (var targetDB  = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite)) {
+                        Assembly firebird       = Assembly.GetExecutingAssembly();
+                        using (var templateDB   = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplate.fdb")) {
+                            using (var targetDB = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite)) {
                                 templateDB.CopyTo(targetDB);
                             }
                         }
