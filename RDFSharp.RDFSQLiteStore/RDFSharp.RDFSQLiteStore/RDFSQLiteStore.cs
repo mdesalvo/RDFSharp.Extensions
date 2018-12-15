@@ -41,15 +41,14 @@ namespace RDFSharp.Store
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a SQLite store instance at the given path
+        /// Default-ctor to build a SQLite store instance
         /// </summary>
         public RDFSQLiteStore(String sqliteDbPath) {
             if(!String.IsNullOrEmpty(sqliteDbPath)) {
 
                 //Initialize store structures
                 this.StoreType  = "SQLITE";
-                this.Connection = new SQLiteConnection(@"Data Source=" + sqliteDbPath +
-                                                        ";Version=3;FailIfMissing=False;");
+                this.Connection = new SQLiteConnection(@"Data Source=" + sqliteDbPath + ";Version=3;FailIfMissing=False;");
                 this.StoreID    = RDFModelUtilities.CreateHash(this.ToString());
 
                 //Clone internal store template
