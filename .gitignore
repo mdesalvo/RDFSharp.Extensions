@@ -1,0 +1,20 @@
+﻿################################################################################
+# Il file gitignore è stato creato automaticamente da Microsoft(R) Visual Studio.
+################################################################################
+
+/RDFSharp.RDFFirebirdStore/.vs/RDFSharp.RDFFirebirdStore/v15
+/RDFSharp.RDFFirebirdStore/packages
+/RDFSharp.RDFFirebirdStore/RDFSharp.RDFFirebirdStore/bin
+/RDFSharp.RDFFirebirdStore/RDFSharp.RDFFirebirdStore/obj
+/RDFSharp.RDFMySQLStore/.vs/RDFSharp.RDFMySQLStore/v15
+/RDFSharp.RDFMySQLStore/packages
+/RDFSharp.RDFMySQLStore/RDFSharp.RDFMySQLStore/bin
+/RDFSharp.RDFMySQLStore/RDFSharp.RDFMySQLStore/obj
+/RDFSharp.RDFPostgreSQLStore/.vs/RDFSharp.RDFPostgreSQLStore/v15
+/RDFSharp.RDFPostgreSQLStore/packages
+/RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/bin
+/RDFSharp.RDFPostgreSQLStore/RDFSharp.RDFPostgreSQLStore/obj
+/RDFSharp.RDFSQLiteStore/.vs/RDFSharp.RDFSQLiteStore/v15
+/RDFSharp.RDFSQLiteStore/packages
+/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/bin
+/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/obj

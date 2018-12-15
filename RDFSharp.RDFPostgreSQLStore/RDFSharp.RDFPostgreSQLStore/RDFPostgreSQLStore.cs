@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2018 Marco De Salvo
+   Copyright 2012-2019 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -39,44 +39,22 @@ namespace RDFSharp.Store {
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a PostgreSQL store instance with the given credentials
+        /// Default-ctor to build a PostgreSQL store instance
         /// </summary>
-        public RDFPostgreSQLStore(String pgsqlInstance,
-                                  String pgsqlDatabase,
-                                  String pgsqlUser,
-                                  String pgsqlPassword) {
-            if (pgsqlInstance              != null) {
-                if (pgsqlDatabase          != null) {
-                    if (pgsqlUser          != null) {
-                        if (pgsqlPassword  != null) {
+        public RDFPostgreSQLStore(String pgsqlConnectionString) {
+            if(!String.IsNullOrEmpty(pgsqlConnectionString)) {
 
-                            //Initialize store structures
-                            this.StoreType  = "POSTGRESQL";
-                            this.Connection = new NpgsqlConnection(@"Server="    + pgsqlInstance +
-                                                                    ";Database=" + pgsqlDatabase +
-                                                                    ";User Id="  + pgsqlUser     +
-                                                                    ";Password=" + pgsqlPassword +
-                                                                    ";Port=5432;");
-                            this.StoreID    = RDFModelUtilities.CreateHash(this.ToString());
+                //Initialize store structures
+                this.StoreType  = "POSTGRESQL";
+                this.Connection = new NpgsqlConnection(pgsqlConnectionString);
+                this.StoreID    = RDFModelUtilities.CreateHash(this.ToString());
 
-                            //Perform initial diagnostics
-                            this.PrepareStore();
+                //Perform initial diagnostics
+                this.PrepareStore();
 
-                        }
-                        else {
-                            throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlPassword\" parameter is null.");
-                        }
-                    }
-                    else {
-                        throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlUser\" parameter is null.");
-                    }
-                }
-                else {
-                    throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlDatabase\" parameter is null.");
-                }
             }
             else {
-                throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlInstance\" parameter is null.");
+                throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlConnectionString\" parameter is null or empty.");
             }
         }
         #endregion
@@ -152,7 +130,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
 					RDFStoreEvents.RaiseOnQuadrupleAdded(String.Format("Quadruples of Graph '{0}' have been merged to the Store '{1}'.", graph, this));
+
                 }
                 catch (Exception ex) {
 
@@ -222,7 +202,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleAdded(String.Format("Quadruple '{0}' has been added to the Store '{1}'.", quadruple, this));
+
                 }
                 catch (Exception ex) {
 
@@ -276,7 +258,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruple '{0}' has been removed from the Store '{1}'.", quadruple, this));
+
                 }
                 catch (Exception ex) {
 
@@ -328,7 +312,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' have been removed from the Store '{1}'.", contextResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -380,7 +366,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' have been removed from the Store '{1}'.", subjectResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -432,7 +420,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Predicate '{0}' have been removed from the Store '{1}'.", predicateResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -486,7 +476,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Object '{0}' have been removed from the Store '{1}'.", objectResource, this));
+
                 }
                 catch (Exception ex) {
 
@@ -540,7 +532,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Literal '{0}' have been removed from the Store '{1}'.", literalObject, this));
+
                 }
                 catch (Exception ex) {
 
@@ -587,7 +581,9 @@ namespace RDFSharp.Store {
                 //Close connection
                 this.Connection.Close();
 
+                //Raise event
                 RDFStoreEvents.RaiseOnStoreCleared(String.Format("Store '{0}' has been cleared.", this));
+
             }
             catch (Exception ex) {
 
@@ -904,6 +900,9 @@ namespace RDFSharp.Store {
                 //Prepare command
                 command.Prepare();
 
+                //Set command timeout (3min)
+                command.CommandTimeout = 180;
+
                 //Execute command
                 using  (var quadruples = command.ExecuteReader()) {
                     if (quadruples.HasRows) {
@@ -990,7 +989,9 @@ namespace RDFSharp.Store {
                     //Close connection
                     this.Connection.Close();
 
+                    //Raise event
                     RDFStoreEvents.RaiseOnStoreInitialized(String.Format("Store '{0}' has been initialized with the Quadruples table.", this));
+
                 }
                 catch (Exception ex) {
 
@@ -1029,7 +1030,9 @@ namespace RDFSharp.Store {
                 //Close connection
                 this.Connection.Close();
 
+                //Raise event
                 RDFStoreEvents.RaiseOnStoreOptimized(String.Format("Store '{0}' has been optimized.", this));
+
             }
             catch (Exception ex) {
 

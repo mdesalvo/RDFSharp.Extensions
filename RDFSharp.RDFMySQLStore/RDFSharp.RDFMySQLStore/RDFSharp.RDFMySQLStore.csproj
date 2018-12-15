@@ -39,16 +39,16 @@
 
   <!-- Assembly References -->
   <ItemGroup>
-    <Reference Include="System" />
+	<Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="MySql.Data, Version=6.9.12.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
       <HintPath>..\packages\MySql.Data.6.9.12\lib\net40\MySql.Data.dll</HintPath>
-      <Private>True</Private>
+	  <Private>True</Private>
     </Reference>
-	<Reference Include="RDFSharp, Version=1.0.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RDFSharp.1.0.3\lib\net40\RDFSharp.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="RDFSharp, Version=1.5.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RDFSharp.1.5.0\lib\net40\RDFSharp.dll</HintPath>
+	  <Private>True</Private>
     </Reference>
   </ItemGroup>
 
