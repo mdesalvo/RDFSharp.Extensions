@@ -14,16 +14,6 @@
    limitations under the License.
 */
 
-using System.Reflection;
 using System.Runtime.InteropServices;
-[assembly: AssemblyTitle("RDFSharp.RDFSQLiteStore")]
-[assembly: AssemblyDescription("Store RDF data on SQLite with RDFSharp")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Marco De Salvo")]
-[assembly: AssemblyProduct("RDFSharp")]
-[assembly: AssemblyCopyright("Marco De Salvo")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("1.0.4")]
 [assembly: ComVisible(false)]
 [assembly: Guid("5C96900F-2B4B-446A-B02F-32BB289E21E0")]
