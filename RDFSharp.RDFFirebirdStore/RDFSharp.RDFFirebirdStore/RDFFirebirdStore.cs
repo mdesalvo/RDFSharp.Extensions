@@ -19,10 +19,30 @@ using System.IO;
 using System.Reflection;
 using FirebirdSql.Data.FirebirdClient;
 using RDFSharp.Model;
-using RDFSharp.Query;
 
 namespace RDFSharp.Store
 {
+
+    /// <summary>
+    /// RDFFirebirdStoreEnums represents a collector for all the enumerations used by RDFFirebirdStore class
+    /// </summary>
+    public static class RDFFirebirdStoreEnums {
+
+        /// <summary>
+        /// RDFFirebirdVersion represents an enumeration for supported version of Firebird
+        /// </summary>
+        public enum RDFFirebirdVersion {
+            /// <summary>
+            /// Firebird 2 (ODS=11)
+            /// </summary>
+            Firebird2 = 11,
+            /// <summary>
+            /// Firebird 3 (ODS=12)
+            /// </summary>
+            Firebird3 = 12
+        }
+
+    }
 
     /// <summary>
     /// RDFFirebirdStore represents a store backed on Firebird engine
@@ -40,7 +60,7 @@ namespace RDFSharp.Store
         /// <summary>
         /// Default-ctor to build a Firebird store instance
         /// </summary>
-        public RDFFirebirdStore(String firebirdConnectionString) {
+        public RDFFirebirdStore(String firebirdConnectionString, RDFFirebirdStoreEnums.RDFFirebirdVersion fbVersion = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird2) {
             if (!String.IsNullOrEmpty(firebirdConnectionString)) {                
 
                 //Initialize store structures
@@ -52,7 +72,7 @@ namespace RDFSharp.Store
                 if(!File.Exists(this.Connection.Database)) {
                     try {
                         Assembly firebird       = Assembly.GetExecutingAssembly();
-                        using (var templateDB   = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplate.fdb")) {
+                        using (var templateDB   = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplateODS" + (Int32)fbVersion + ".fdb")) {
                             using (var targetDB = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite)) {
                                 templateDB.CopyTo(targetDB);
                             }
@@ -67,7 +87,6 @@ namespace RDFSharp.Store
                 else {
                     this.PrepareStore();
                 }
-
                         
             }
             else {

@@ -44,7 +44,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Template\RDFFirebirdTemplate.fdb">
+    <!-- Firebird2 (ODS=11) -->
+    <EmbeddedResource Include="Template\RDFFirebirdTemplateODS11.fdb">
+      <Visible>True</Visible>
+    </EmbeddedResource>
+	<!-- Firebird3 (ODS=12) -->
+	<EmbeddedResource Include="Template\RDFFirebirdTemplateODS12.fdb">
       <Visible>True</Visible>
     </EmbeddedResource>
   </ItemGroup>
