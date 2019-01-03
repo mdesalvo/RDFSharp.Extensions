@@ -17,7 +17,6 @@
 using System;
 using MySql.Data.MySqlClient;
 using RDFSharp.Model;
-using RDFSharp.Query;
 
 namespace RDFSharp.Store {
 
