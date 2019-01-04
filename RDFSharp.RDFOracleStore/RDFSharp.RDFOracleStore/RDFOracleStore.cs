@@ -595,31 +595,31 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //C->S->P->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"SubjectID\" = :SUBJID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
                             command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                             command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                             command.Parameters["PREDID"].Value = pred.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //C->S->P->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"SubjectID\" = :SUBJID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
                                 command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                                 command.Parameters["PREDID"].Value = pred.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //C->S->P->
@@ -637,27 +637,27 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //C->S->->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"SubjectID\" = :SUBJID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                             command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //C->S->->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"SubjectID\" = :SUBJID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //C->S->->
@@ -675,27 +675,27 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //C->->P->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                             command.Parameters["PREDID"].Value = pred.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //C->->P->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("CTXID",  OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
                                 command.Parameters["PREDID"].Value = pred.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //C->->P->
@@ -711,23 +711,23 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //C->->->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                             command.Parameters["CTXID"].Value = ctx.PatternMemberID;
                             command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //C->->->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ContextID\" = :CTXID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                                 command.Parameters["CTXID"].Value = ctx.PatternMemberID;
                                 command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //C->->->
@@ -745,27 +745,27 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //->S->P->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"SubjectID\" = :SUBJID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                             command.Parameters["PREDID"].Value = pred.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //->S->P->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"SubjectID\" = :SUBJID AND \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                                 command.Parameters["PREDID"].Value = pred.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //->S->P->
@@ -781,23 +781,23 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //->S->->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"SubjectID\" = :SUBJID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //->S->->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"SubjectID\" = :SUBJID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //->S->->
@@ -813,23 +813,23 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //->->P->O
                             command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                             command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                             command.Parameters["PREDID"].Value = pred.PatternMemberID;
                             command.Parameters["OBJID"].Value  = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //->->P->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"PredicateID\" = :PREDID AND \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                                 command.Parameters.Add(new OracleParameter("OBJID",  OracleDbType.Int64));
-                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",    OracleDbType.Int32));
                                 command.Parameters["PREDID"].Value = pred.PatternMemberID;
                                 command.Parameters["OBJID"].Value  = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value    = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //->->P->
@@ -843,19 +843,19 @@ namespace RDFSharp.Store
                         if (obj     != null) {
                             //->->->O
                             command  = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                             command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                            command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                             command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                            command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
                         }
                         else {
                             if (lit != null) {
                                 //->->->L
                                 command = new OracleCommand("SELECT \"TripleFlavor\", \"Context\", \"Subject\", \"Predicate\", \"Object\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"Quadruples\" WHERE \"ObjectID\" = :OBJID AND \"TripleFlavor\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                                command.Parameters.Add(new OracleParameter("TFV",   OracleDbType.Int32));
                                 command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                                command.Parameters["TFV"].Value   = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
                             }
                             else {
                                 //->->->
