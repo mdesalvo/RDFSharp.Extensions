@@ -5,6 +5,7 @@
     <li>Firebird</li>
     <li>MySQL</li>
     <li>PostgreSQL</li>
+    <li>Oracle</li>
 </ul>
 <hr>
 There are many ways that you can contribute to the RDFSharp.Stores project: 
