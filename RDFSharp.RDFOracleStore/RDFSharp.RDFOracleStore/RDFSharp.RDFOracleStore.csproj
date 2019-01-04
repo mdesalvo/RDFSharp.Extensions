@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>RDFSharp.RDFOracleStore</AssemblyTitle>
+    <AssemblyName>RDFSharp.RDFOracleStore</AssemblyName>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <Version>2.0.0.0</Version>
+    <Authors>Marco De Salvo</Authors>
+    <Copyright>Marco De Salvo</Copyright>
+	<Description>Store RDF data on Oracle with RDFSharp</Description>
+	<TargetFramework>netstandard2.0</TargetFramework>
+    <SignAssembly>false</SignAssembly>
+    <Product>RDFSharp</Product>
+	<RootNamespace>RDFSharp.Store</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.RDFOracleStore.xml</DocumentationFile>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <NoWarn />
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+	<DefineConstants>TRACE</DefineConstants>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>bin\Release\netstandard2.0\RDFSharp.RDFOracleStore.xml</DocumentationFile>
+    <WarningLevel>0</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <NoWarn />
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Oracle.ManagedDataAccess" Version="18.3.0" />
+    <PackageReference Include="RDFSharp" Version="2.0.0" />
+  </ItemGroup>
+
+</Project>
