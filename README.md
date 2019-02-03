@@ -1,15 +1,12 @@
 # RDFSharp.Stores
 <b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions for storage of RDF data. Actual implementation provides support for: 
-<ul>
-    <li>SQLite</li>
-    <li>Firebird</li>
-    <li>MySQL</li>
-    <li>PostgreSQL</li>
-    <li>Oracle</li>
-</ul>
-<hr>
-Did you know that...
-<ul>
-    <li>RDFSharp.Stores is also available on <b><a href="http://www.nuget.org/packages?q=rdfsharp">NuGet</a></b>!</li>
-</ul>
-<hr>
+
+[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLiteStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLiteStore)<b> SQLite</b>
+
+[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFFirebirdStore)](https://www.nuget.org/packages/RDFSharp.RDFFirebirdStore)<b> Firebird</b>
+
+[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFMySQLStore)](https://www.nuget.org/packages/RDFSharp.RDFMySQLStore)<b> MySQL</b>
+
+[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFPostgreSQLStore)](https://www.nuget.org/packages/RDFSharp.RDFPostgreSQLStore)<b> PostgreSQL</b>
+
+[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFOracleStore)](https://www.nuget.org/packages/RDFSharp.RDFOracleStore)<b> Oracle</b>
