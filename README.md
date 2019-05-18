@@ -1,6 +1,4 @@
 # RDFSharp.Stores
-[![GitHub Tag](https://img.shields.io/github/tag/mdesalvo/rdfsharp.stores.svg?label=github)](https://github.com/mdesalvo/rdfsharp.stores)
-
 <b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions for storage of RDF data. Actual implementation includes support for the following providers: 
 
 |Provider|NuGet Package|
