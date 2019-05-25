@@ -1,5 +1,5 @@
 # RDFSharp.Stores
-<b><a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a></b> extensions for storage of RDF data. Actual implementation includes support for the following providers: 
+Actual implementation includes support for the following providers: 
 
 |Provider|NuGet Package|
 |---|---|
