@@ -4,7 +4,7 @@
     <AssemblyTitle>RDFSharp.RDFPostgreSQLStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFPostgreSQLStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.0.0.0</Version>
+    <Version>2.1.0.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
 	<Description>Store RDF data on PostgreSQL with RDFSharp</Description>
@@ -39,8 +39,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="4.0.4" />
-    <PackageReference Include="RDFSharp" Version="2.0.0" />
+    <PackageReference Include="Npgsql" Version="4.0.9" />
+    <PackageReference Include="RDFSharp" Version="2.7.0" />
   </ItemGroup>
 
 </Project>
