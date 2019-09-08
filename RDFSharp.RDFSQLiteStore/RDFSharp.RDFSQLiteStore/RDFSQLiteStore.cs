@@ -95,7 +95,7 @@ namespace RDFSharp.Store
                 var graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                var command  = new SqliteCommand("INSERT OR IGNORE INTO main.Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
+                var command  = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID",    SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("CTX",    SqliteType.Text, 1000));
@@ -174,7 +174,7 @@ namespace RDFSharp.Store
             if (quadruple   != null) {
 
                 //Create command
-                var command  = new SqliteCommand("INSERT OR IGNORE INTO main.Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
+                var command  = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID",    SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("CTX",    SqliteType.Text, 1000));
@@ -248,7 +248,7 @@ namespace RDFSharp.Store
             if (quadruple  != null) {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE QuadrupleID = @QID", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -302,7 +302,7 @@ namespace RDFSharp.Store
             if (contextResource != null) {
 
                 //Create command
-                var command      = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID", this.Connection);
+                var command      = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -356,7 +356,7 @@ namespace RDFSharp.Store
             if (subjectResource != null) {
 
                 //Create command
-                var command      = new SqliteCommand("DELETE FROM main.Quadruples WHERE SubjectID = @SUBJID", this.Connection);
+                var command      = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -410,7 +410,7 @@ namespace RDFSharp.Store
             if (predicateResource != null) {
 
                 //Create command
-                var command        = new SqliteCommand("DELETE FROM main.Quadruples WHERE PredicateID = @PREDID", this.Connection);
+                var command        = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -464,7 +464,7 @@ namespace RDFSharp.Store
             if (objectResource != null) {
 
                 //Create command
-                var command     = new SqliteCommand("DELETE FROM main.Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command     = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
 
@@ -520,7 +520,7 @@ namespace RDFSharp.Store
             if (literalObject != null) {
 
                 //Create command
-                var command    = new SqliteCommand("DELETE FROM main.Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command    = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
 
@@ -578,7 +578,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
 
@@ -638,7 +638,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
@@ -698,7 +698,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -760,7 +760,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -822,7 +822,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -884,7 +884,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -948,7 +948,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1012,7 +1012,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1076,7 +1076,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1140,7 +1140,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
@@ -1200,7 +1200,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1262,7 +1262,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1324,7 +1324,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1386,7 +1386,7 @@ namespace RDFSharp.Store
             {
 
                 //Create command
-                var command = new SqliteCommand("DELETE FROM main.Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                var command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1445,7 +1445,7 @@ namespace RDFSharp.Store
         public override void ClearQuadruples() {
 
             //Create command
-            var command = new SqliteCommand("DELETE FROM main.Quadruples", this.Connection);
+            var command = new SqliteCommand("DELETE FROM Quadruples", this.Connection);
 
             try {
 
@@ -1505,7 +1505,7 @@ namespace RDFSharp.Store
                     if (pred        != null) {
                         if (obj     != null) {
                             //C->S->P->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
@@ -1520,7 +1520,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //C->S->P->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
@@ -1534,7 +1534,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //C->S->P->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -1547,7 +1547,7 @@ namespace RDFSharp.Store
                     else {
                         if (obj     != null) {
                             //C->S->->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
@@ -1560,7 +1560,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //C->S->->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
@@ -1572,7 +1572,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //C->S->->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
@@ -1585,7 +1585,7 @@ namespace RDFSharp.Store
                     if (pred        != null) {
                         if (obj     != null) {
                             //C->->P->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -1598,7 +1598,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //C->->P->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -1610,7 +1610,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //C->->P->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("CTXID",  SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                                 command.Parameters["CTXID"].Value  = ctx.PatternMemberID;
@@ -1621,7 +1621,7 @@ namespace RDFSharp.Store
                     else {
                         if (obj     != null) {
                             //C->->->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1632,7 +1632,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //C->->->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1642,7 +1642,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //C->->->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ContextID = @CTXID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                                 command.Parameters["CTXID"].Value = ctx.PatternMemberID;
                             }
@@ -1655,7 +1655,7 @@ namespace RDFSharp.Store
                     if (pred        != null) {
                         if (obj     != null) {
                             //->S->P->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -1668,7 +1668,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //->S->P->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -1680,7 +1680,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //->S->P->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
@@ -1691,7 +1691,7 @@ namespace RDFSharp.Store
                     else {
                         if (obj     != null) {
                             //->S->->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("OBJID",  SqliteType.Integer));
@@ -1702,7 +1702,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //->S->->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("OBJID",  SqliteType.Integer));
@@ -1712,7 +1712,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //->S->->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE SubjectID = @SUBJID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                                 command.Parameters["SUBJID"].Value = subj.PatternMemberID;
                             }
@@ -1723,7 +1723,7 @@ namespace RDFSharp.Store
                     if (pred        != null) {
                         if (obj     != null) {
                             //->->P->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("OBJID",  SqliteType.Integer));
@@ -1734,7 +1734,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //->->P->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",    SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("OBJID",  SqliteType.Integer));
@@ -1744,7 +1744,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //->->P->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE PredicateID = @PREDID", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                                 command.Parameters["PREDID"].Value = pred.PatternMemberID;
                             }
@@ -1753,7 +1753,7 @@ namespace RDFSharp.Store
                     else {
                         if (obj     != null) {
                             //->->->O
-                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                            command  = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                             command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
                             command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                             command.Parameters["TFV"].Value   = RDFModelEnums.RDFTripleFlavors.SPO;
@@ -1762,7 +1762,7 @@ namespace RDFSharp.Store
                         else {
                             if (lit != null) {
                                 //->->->L
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                                 command.Parameters.Add(new SqliteParameter("TFV",   SqliteType.Integer));
                                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                                 command.Parameters["TFV"].Value   = RDFModelEnums.RDFTripleFlavors.SPL;
@@ -1770,7 +1770,7 @@ namespace RDFSharp.Store
                             }
                             else {
                                 //->->->
-                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM main.Quadruples", this.Connection);
+                                command = new SqliteCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", this.Connection);
                             }
                         }
                     }
@@ -1869,7 +1869,7 @@ namespace RDFSharp.Store
                     this.Connection.Open();
 
                     //Create command
-                    var command = new SqliteCommand("CREATE TABLE main.Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON main.Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON main.Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON main.Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON main.Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON main.Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON main.Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON main.Quadruples (PredicateID,ObjectID,TripleFlavor);", this.Connection);
+                    var command = new SqliteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", this.Connection);
 
                     //Execute command
                     command.ExecuteNonQuery();
