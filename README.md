@@ -1,5 +1,5 @@
-# RDFSharp.Stores
-Actual implementation includes support for the following providers: 
+# RDFSharp.Extensions
+Storage extensions includes support for backing RDF data on the following providers: 
 
 |Provider|NuGet Package|
 |---|---|
