@@ -4,7 +4,7 @@
     <AssemblyTitle>RDFSharp.RDFSQLiteStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFSQLiteStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.1.0.0</Version>
+    <Version>2.2.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
 	<Description>Store RDF data on SQLite with RDFSharp</Description>
@@ -39,14 +39,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="2.2.6" />
-    <PackageReference Include="RDFSharp" Version="2.7.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Template\RDFSQLiteTemplate.db">
       <Visible>True</Visible>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.0" />
+    <PackageReference Include="RDFSharp" Version="2.12.0" />
   </ItemGroup>
 
 </Project>

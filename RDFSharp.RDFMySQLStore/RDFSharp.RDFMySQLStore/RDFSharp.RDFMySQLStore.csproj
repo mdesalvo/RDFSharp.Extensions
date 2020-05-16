@@ -4,7 +4,7 @@
     <AssemblyTitle>RDFSharp.RDFMySQLStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFMySQLStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.1.0.0</Version>
+    <Version>2.2.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
 	<Description>Store RDF data on MySQL with RDFSharp</Description>
@@ -39,8 +39,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.0.17" />
-    <PackageReference Include="RDFSharp" Version="2.7.0" />
+    <PackageReference Include="MySql.Data" Version="8.0.20" />
+    <PackageReference Include="RDFSharp" Version="2.12.0" />
   </ItemGroup>
 
 </Project>

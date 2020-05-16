@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyTitle>RDFSharp.RDFOracleStore</AssemblyTitle>
-    <AssemblyName>RDFSharp.RDFOracleStore</AssemblyName>
+    <AssemblyTitle>RDFSharp.RDFSQLServerStore</AssemblyTitle>
+    <AssemblyName>RDFSharp.RDFSQLServerStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <Version>2.2.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
-    <Description>Store RDF data on Oracle with RDFSharp</Description>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	<Description>Store RDF data on SQLServer with RDFSharp</Description>
+	<TargetFramework>netstandard2.0</TargetFramework>
     <SignAssembly>false</SignAssembly>
     <Product>RDFSharp</Product>
-    <RootNamespace>RDFSharp.Store</RootNamespace>
+	<RootNamespace>RDFSharp.Store</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <OutputPath>bin\Debug\</OutputPath>
-    <DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.RDFOracleStore.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.RDFSQLServerStore.xml</DocumentationFile>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
@@ -27,9 +27,9 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DefineConstants>TRACE</DefineConstants>
+	<DefineConstants>TRACE</DefineConstants>
     <OutputPath>bin\Release\</OutputPath>
-    <DocumentationFile>bin\Release\netstandard2.0\RDFSharp.RDFOracleStore.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\netstandard2.0\RDFSharp.RDFSQLServerStore.xml</DocumentationFile>
     <WarningLevel>0</WarningLevel>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
@@ -39,7 +39,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Oracle.ManagedDataAccess" Version="19.7.0" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="2.0.0" />
     <PackageReference Include="RDFSharp" Version="2.12.0" />
   </ItemGroup>
 
