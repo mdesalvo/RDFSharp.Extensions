@@ -1,5 +1,5 @@
 # RDFSharp.Extensions
-Storage extensions includes support for backing RDF data on the following providers: 
+Storage extensions include support for saving RDF data on the following providers: 
 
 |Provider|NuGet Package|
 |---|---|
