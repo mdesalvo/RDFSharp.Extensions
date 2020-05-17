@@ -1,4 +1,4 @@
-﻿/*
+/*
    Copyright 2012-2020 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,4 +16,4 @@
 
 using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
-[assembly: Guid("6G7FE654-1B71-4433-B008-6DA0AB0FCBE1")]
+[assembly: Guid("6E7FE654-1B71-4433-B008-6DA0AB0FCBE1")]
