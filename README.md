@@ -3,6 +3,7 @@ Storage extensions include support for saving RDF data on the following provider
 
 |Provider|NuGet Package|
 |---|---|
+|SQLServer|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLServerStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLServerStore)|
 |SQLite|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLiteStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLiteStore)|
 |Firebird|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFFirebirdStore)](https://www.nuget.org/packages/RDFSharp.RDFFirebirdStore)|
 |MySQL|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFMySQLStore)](https://www.nuget.org/packages/RDFSharp.RDFMySQLStore)|
