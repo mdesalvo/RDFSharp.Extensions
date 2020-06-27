@@ -1,17 +1,26 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <AssemblyTitle>RDFSharp.RDFMySQLStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFMySQLStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.2.0</Version>
+    <Version>2.2.1</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
-	<Description>Store RDF data on MySQL with RDFSharp</Description>
-	<TargetFramework>netstandard2.0</TargetFramework>
+    <Description>Store RDF data on MySQL with RDFSharp</Description>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <SignAssembly>false</SignAssembly>
     <Product>RDFSharp</Product>
-	<RootNamespace>RDFSharp.Store</RootNamespace>
+    <PackageId>RDFSharp.RDFMySQLStore</PackageId>
+    <PackageTags>rdf triplestore quadstore rdf-data mysql</PackageTags>
+    <PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/mdesalvo/RDFSharp.Extensions.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <RootNamespace>RDFSharp.Store</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -19,28 +28,25 @@
     <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.RDFMySQLStore.xml</DocumentationFile>
     <WarningLevel>4</WarningLevel>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningsAsErrors />
-    <NoWarn />
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-	<DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile>bin\Release\netstandard2.0\RDFSharp.RDFMySQLStore.xml</DocumentationFile>
     <WarningLevel>0</WarningLevel>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningsAsErrors />
-    <NoWarn />
-    <DebugType>none</DebugType>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="MySql.Data" Version="8.0.20" />
-    <PackageReference Include="RDFSharp" Version="2.12.0" />
+    <PackageReference Include="RDFSharp" Version="2.13.1" />
   </ItemGroup>
 
 </Project>
