@@ -45,7 +45,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="Npgsql" Version="4.0.10" />
+    <PackageReference Include="Npgsql" Version="4.0.11" />
     <PackageReference Include="RDFSharp" Version="2.13.1" />
   </ItemGroup>
 
