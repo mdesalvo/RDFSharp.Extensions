@@ -1,8 +1,8 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
+about: Suggest an idea to improve RDFSharp.Extensions
+title: '[SUGGESTION]'
+labels: 'enhancement'
 assignees: ''
 
 ---
