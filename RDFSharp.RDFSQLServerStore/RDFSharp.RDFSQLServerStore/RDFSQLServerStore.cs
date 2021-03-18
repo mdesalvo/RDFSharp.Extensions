@@ -65,9 +65,7 @@ namespace RDFSharp.Store
         /// Gives the string representation of the SQL Server store 
         /// </summary>
         public override String ToString()
-        {
-            return base.ToString() + "|SERVER=" + this.Connection.DataSource + ";DATABASE=" + this.Connection.Database;
-        }
+            => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
         #endregion
 
         #region Methods
@@ -112,10 +110,7 @@ namespace RDFSharp.Store
                     {
 
                         //Valorize parameters
-                        command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(graphCtx + " " +
-                                                                                          triple.Subject + " " +
-                                                                                          triple.Predicate + " " +
-                                                                                          triple.Object);
+                        command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
                         command.Parameters["TFV"].Value = triple.TripleFlavor;
                         command.Parameters["CTX"].Value = graphCtx.ToString();
                         command.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -209,7 +204,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleAdded(String.Format("Quadruple '{0}' has been added to the Store '{1}'.", quadruple, this));
                 }
                 catch (Exception ex)
                 {
@@ -267,7 +261,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruple '{0}' has been removed from the Store '{1}'.", quadruple, this));
                 }
                 catch (Exception ex)
                 {
@@ -323,7 +316,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' have been removed from the Store '{1}'.", contextResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -379,7 +371,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' have been removed from the Store '{1}'.", subjectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -435,7 +426,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Predicate '{0}' have been removed from the Store '{1}'.", predicateResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -493,7 +483,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Object '{0}' have been removed from the Store '{1}'.", objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -551,7 +540,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Literal '{0}' have been removed from the Store '{1}'.", literalObject, this));
                 }
                 catch (Exception ex)
                 {
@@ -609,7 +597,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' and Subject '{1}' have been removed from the Store '{2}'.", contextResource, subjectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -667,7 +654,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' and Predicate '{1}' have been removed from the Store '{2}'.", contextResource, predicateResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -727,7 +713,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' and Object '{1}' have been removed from the Store '{2}'.", contextResource, objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -787,7 +772,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}' and Literal '{1}' have been removed from the Store '{2}'.", contextResource, objectLiteral, this));
                 }
                 catch (Exception ex)
                 {
@@ -847,7 +831,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}', Subject '{1}' and Predicate '{2}' have been removed from the Store '{3}'.", contextResource, subjectResource, predicateResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -909,7 +892,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}', Subject '{1}' and Object '{2}' have been removed from the Store '{3}'.", contextResource, subjectResource, objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -971,7 +953,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}', Subject '{1}' and Literal '{2}' have been removed from the Store '{3}'.", contextResource, subjectResource, objectLiteral, this));
                 }
                 catch (Exception ex)
                 {
@@ -1033,7 +1014,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}', Predicate '{1}' and Object '{2}' have been removed from the Store '{3}'.", contextResource, predicateResource, objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -1095,7 +1075,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Context '{0}', Predicate '{1}' and Literal '{2}' have been removed from the Store '{3}'.", contextResource, predicateResource, objectLiteral, this));
                 }
                 catch (Exception ex)
                 {
@@ -1153,7 +1132,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' and Predicate '{1}' have been removed from the Store '{2}'.", subjectResource, predicateResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -1213,7 +1191,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' and Object '{1}' have been removed from the Store '{2}'.", subjectResource, objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -1273,7 +1250,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Subject '{0}' and Literal '{1}' have been removed from the Store '{2}'.", subjectResource, objectLiteral, this));
                 }
                 catch (Exception ex)
                 {
@@ -1333,7 +1309,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Predicate '{0}' and Object '{1}' have been removed from the Store '{2}'.", predicateResource, objectResource, this));
                 }
                 catch (Exception ex)
                 {
@@ -1393,7 +1368,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnQuadrupleRemoved(String.Format("Quadruples with Predicate '{0}' and Literal '{1}' have been removed from the Store '{2}'.", predicateResource, objectLiteral, this));
                 }
                 catch (Exception ex)
                 {
@@ -1443,7 +1417,6 @@ namespace RDFSharp.Store
                 //Close connection
                 this.Connection.Close();
 
-                RDFStoreEvents.RaiseOnStoreCleared(String.Format("Store '{0}' has been cleared.", this));
             }
             catch (Exception ex)
             {
@@ -1466,11 +1439,7 @@ namespace RDFSharp.Store
         /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
-        internal override RDFMemoryStore SelectQuadruples(RDFContext ctx,
-                                                          RDFResource subj,
-                                                          RDFResource pred,
-                                                          RDFResource obj,
-                                                          RDFLiteral lit)
+        internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
             SqlCommand command = null;
@@ -1863,13 +1832,9 @@ namespace RDFSharp.Store
 
                 //Return the diagnostics state
                 if (result == 0)
-                {
                     return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                }
                 else
-                {
                     return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-                }
 
             }
             catch
@@ -1907,7 +1872,6 @@ namespace RDFSharp.Store
                     //Close connection
                     this.Connection.Close();
 
-                    RDFStoreEvents.RaiseOnStoreInitialized(String.Format("Store '{0}' has been initialized with the Quadruples table.", this));
                 }
                 catch (Exception ex)
                 {
@@ -1950,7 +1914,6 @@ namespace RDFSharp.Store
                 //Close connection
                 this.Connection.Close();
 
-                RDFStoreEvents.RaiseOnStoreOptimized(String.Format("Store '{0}' has been optimized.", this));
             }
             catch (Exception ex)
             {
