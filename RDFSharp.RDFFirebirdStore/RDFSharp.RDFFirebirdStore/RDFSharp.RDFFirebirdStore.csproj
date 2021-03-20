@@ -4,7 +4,7 @@
     <AssemblyTitle>RDFSharp.RDFFirebirdStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFFirebirdStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.2.1</Version>
+    <Version>2.22.1</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
     <Description>Store RDF data on Firebird with RDFSharp</Description>
@@ -56,8 +56,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.5.0" />
-    <PackageReference Include="RDFSharp" Version="2.13.1" />
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
+    <PackageReference Include="RDFSharp" Version="2.22.1" />
   </ItemGroup>
 
 </Project>
