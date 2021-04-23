@@ -22,13 +22,11 @@ using RDFSharp.Model;
 
 namespace RDFSharp.Store
 {
-
     /// <summary>
     /// RDFFirebirdStoreEnums represents a collector for all the enumerations used by RDFFirebirdStore class
     /// </summary>
     public static class RDFFirebirdStoreEnums
     {
-
         /// <summary>
         /// RDFFirebirdVersion represents an enumeration for supported version of Firebird
         /// </summary>
@@ -43,76 +41,105 @@ namespace RDFSharp.Store
             /// </summary>
             Firebird3 = 12
         }
-
     }
 
     /// <summary>
     /// RDFFirebirdStore represents a store backed on Firebird engine
     /// </summary>
-    public sealed class RDFFirebirdStore : RDFStore
+    public class RDFFirebirdStore : RDFStore, IDisposable
     {
-
         #region Properties
         /// <summary>
         /// Connection to the Firebird database
         /// </summary>
-        internal FbConnection Connection { get; set; }
+        private FbConnection Connection { get; set; }
+
+        /// <summary>
+        /// Flag indicating that the Firebird store instance has already been disposed
+        /// </summary>
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
         /// <summary>
         /// Default-ctor to build a Firebird store instance
         /// </summary>
-        public RDFFirebirdStore(String firebirdConnectionString, RDFFirebirdStoreEnums.RDFFirebirdVersion fbVersion = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird2)
+        public RDFFirebirdStore(string firebirdConnectionString, RDFFirebirdStoreEnums.RDFFirebirdVersion fbVersion = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird2)
         {
-            if (!String.IsNullOrEmpty(firebirdConnectionString))
+            if (string.IsNullOrEmpty(firebirdConnectionString))
+                throw new RDFStoreException("Cannot connect to Firebird store because: given \"firebirdConnectionString\" parameter is null or empty.");
+
+            //Initialize store structures
+            this.StoreType = "FIREBIRD";
+            this.Connection = new FbConnection(firebirdConnectionString);
+            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
+            this.Disposed = false;
+
+            //Clone internal store template
+            if (!File.Exists(this.Connection.Database))
             {
-
-                //Initialize store structures
-                this.StoreType = "FIREBIRD";
-                this.Connection = new FbConnection(firebirdConnectionString);
-                this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
-
-                //Clone internal store template
-                if (!File.Exists(this.Connection.Database))
+                try
                 {
-                    try
+                    Assembly firebird = Assembly.GetExecutingAssembly();
+                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplateODS" + (int)fbVersion + ".fdb"))
                     {
-                        Assembly firebird = Assembly.GetExecutingAssembly();
-                        using (var templateDB = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplateODS" + (Int32)fbVersion + ".fdb"))
+                        using (FileStream targetDB = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite))
                         {
-                            using (var targetDB = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite))
-                            {
-                                templateDB.CopyTo(targetDB);
-                            }
+                            templateDB.CopyTo(targetDB);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        throw new RDFStoreException("Cannot create Firebird store because: " + ex.Message, ex);
-                    }
                 }
-
-                //Perform initial diagnostics
-                else
+                catch (Exception ex)
                 {
-                    this.PrepareStore();
+                    throw new RDFStoreException("Cannot create Firebird store because: " + ex.Message, ex);
                 }
-
             }
+
+            //Perform initial diagnostics
             else
             {
-                throw new RDFStoreException("Cannot connect to Firebird store because: given \"firebirdConnectionString\" parameter is null or empty.");
+                this.PrepareStore();
             }
         }
+
+        /// <summary>
+        /// Destroys the Firebird store instance
+        /// </summary>
+        ~RDFFirebirdStore() => this.Dispose(false);
         #endregion
 
         #region Interfaces
         /// <summary>
         /// Gives the string representation of the Firebird store 
         /// </summary>
-        public override String ToString()
+        public override string ToString()
             => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+
+        /// <summary>
+        /// Disposes the Firebird store instance 
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the Firebird store instance  (business logic of resources disposal)
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.Disposed)
+                return;
+
+            if (disposing)
+            {
+                this.Connection.Dispose();
+                this.Connection = null;
+            }
+
+            this.Disposed = true;
+        }
         #endregion
 
         #region Methods
@@ -125,10 +152,10 @@ namespace RDFSharp.Store
         {
             if (graph != null)
             {
-                var graphCtx = new RDFContext(graph.Context);
+                RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                var command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
+                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                 command.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
@@ -142,7 +169,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -177,11 +203,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -190,9 +214,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -204,9 +226,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
+                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                 command.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
@@ -232,7 +253,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -250,11 +270,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -263,9 +281,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -279,9 +295,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -289,7 +304,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -307,11 +321,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -320,9 +332,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -334,9 +344,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -344,7 +353,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -362,11 +370,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -375,9 +381,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -389,9 +393,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -399,7 +402,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -417,11 +419,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -430,9 +430,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -444,9 +442,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -454,7 +451,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -472,11 +468,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -485,9 +479,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -499,9 +491,8 @@ namespace RDFSharp.Store
         {
             if (objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
 
@@ -511,7 +502,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -529,11 +519,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -542,9 +530,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -556,9 +542,8 @@ namespace RDFSharp.Store
         {
             if (literalObject != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
 
@@ -568,7 +553,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -586,11 +570,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -599,9 +581,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -613,9 +593,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
 
@@ -625,7 +604,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -643,11 +621,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -656,9 +632,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -670,9 +644,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
@@ -682,7 +655,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -700,11 +672,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -713,9 +683,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -727,9 +695,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -741,7 +708,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -759,11 +725,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -772,9 +736,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -786,9 +748,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -800,7 +761,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -818,11 +778,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -831,9 +789,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -845,9 +801,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
@@ -859,7 +814,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -877,11 +831,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -890,9 +842,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -904,9 +854,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -920,7 +869,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -938,11 +886,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -951,9 +897,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -965,9 +909,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -981,7 +924,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -999,11 +941,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1012,9 +952,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1026,9 +964,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -1042,7 +979,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1060,11 +996,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1073,9 +1007,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1087,9 +1019,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -1103,7 +1034,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1121,11 +1051,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1134,9 +1062,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1148,9 +1074,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
@@ -1160,7 +1085,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1178,11 +1102,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1191,9 +1113,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1205,9 +1125,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1219,7 +1138,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1237,11 +1155,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1250,9 +1166,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1264,9 +1178,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1278,7 +1191,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1296,11 +1208,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1309,9 +1219,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1323,9 +1231,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1337,7 +1244,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1355,11 +1261,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1368,9 +1272,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1382,9 +1284,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1396,7 +1297,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1414,11 +1314,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1427,9 +1325,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1439,13 +1335,11 @@ namespace RDFSharp.Store
         /// </summary>
         public override void ClearQuadruples()
         {
-
             //Create command
-            var command = new FbCommand("DELETE FROM Quadruples", this.Connection);
+            FbCommand command = new FbCommand("DELETE FROM Quadruples", this.Connection);
 
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1463,11 +1357,9 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Rollback transaction
                 command.Transaction.Rollback();
 
@@ -1476,9 +1368,7 @@ namespace RDFSharp.Store
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
-
             }
-
         }
         #endregion
 
@@ -1818,7 +1708,6 @@ namespace RDFSharp.Store
             //Prepare and execute command
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1829,7 +1718,7 @@ namespace RDFSharp.Store
                 command.CommandTimeout = 180;
 
                 //Execute command
-                using (var quadruples = command.ExecuteReader())
+                using (FbDataReader quadruples = command.ExecuteReader())
                 {
                     if (quadruples.HasRows)
                     {
@@ -1842,17 +1731,14 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
-
             }
 
             return result;
@@ -1867,35 +1753,28 @@ namespace RDFSharp.Store
         {
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
                 //Create command
-                var command = new FbCommand("SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = 'QUADRUPLES'", this.Connection);
+                FbCommand command = new FbCommand("SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = 'QUADRUPLES'", this.Connection);
 
                 //Execute command
-                var result = Int32.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
                 this.Connection.Close();
 
                 //Return the diagnostics state
-                if (result == 0)
-                    return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                else
-                    return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
-
             }
         }
 
@@ -1904,14 +1783,13 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            var check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
             {
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1935,17 +1813,14 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Close connection
                     this.Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare Firebird store because: " + ex.Message, ex);
-
                 }
             }
 
@@ -1958,7 +1833,5 @@ namespace RDFSharp.Store
         #endregion		
 
         #endregion
-
     }
-
 }
