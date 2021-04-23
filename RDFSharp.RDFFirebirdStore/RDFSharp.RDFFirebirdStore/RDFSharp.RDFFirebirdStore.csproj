@@ -56,8 +56,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="7.10.1" />
-    <PackageReference Include="RDFSharp" Version="2.22.1" />
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="8.0.1" />
+    <PackageReference Include="RDFSharp" Version="2.22.2" />
   </ItemGroup>
 
 </Project>
