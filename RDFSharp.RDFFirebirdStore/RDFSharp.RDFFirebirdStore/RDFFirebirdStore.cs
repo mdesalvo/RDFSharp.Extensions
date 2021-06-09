@@ -134,7 +134,7 @@ namespace RDFSharp.Store
 
             if (disposing)
             {
-                this.Connection.Dispose();
+                this.Connection?.Dispose();
                 this.Connection = null;
             }
 
