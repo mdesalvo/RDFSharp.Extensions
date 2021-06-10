@@ -52,6 +52,10 @@
     <EmbeddedResource Include="Template\RDFFirebirdTemplateODS12.fdb">
       <Visible>True</Visible>
     </EmbeddedResource>
+	<!-- Firebird4 (ODS=13) -->
+    <EmbeddedResource Include="Template\RDFFirebirdTemplateODS13.fdb">
+      <Visible>True</Visible>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

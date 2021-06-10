@@ -39,7 +39,11 @@ namespace RDFSharp.Store
             /// <summary>
             /// Firebird 3 (ODS=12)
             /// </summary>
-            Firebird3 = 12
+            Firebird3 = 12,
+            /// <summary>
+            /// Firebird 4 (ODS=13)
+            /// </summary>
+            Firebird4 = 13
         }
     }
 
@@ -62,7 +66,7 @@ namespace RDFSharp.Store
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a Firebird store instance
+        /// Default-ctor to build a Firebird store instance using the given Firebird version
         /// </summary>
         public RDFFirebirdStore(string firebirdConnectionString, RDFFirebirdStoreEnums.RDFFirebirdVersion fbVersion = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird2)
         {
