@@ -57,6 +57,11 @@ namespace RDFSharp.Store
             //Perform initial diagnostics
             this.PrepareStore();
         }
+
+        /// <summary>
+        /// Destroys the MySQL store instance
+        /// </summary>
+        ~RDFMySQLStore() => this.Dispose(false);
         #endregion
 
         #region Interfaces
