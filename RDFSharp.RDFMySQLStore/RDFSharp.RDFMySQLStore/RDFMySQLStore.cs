@@ -31,7 +31,7 @@ namespace RDFSharp.Store
         /// <summary>
         /// Connection to the MySQL database
         /// </summary>
-        internal MySqlConnection Connection { get; set; }
+        private MySqlConnection Connection { get; set; }
         
         /// <summary>
         /// Flag indicating that the MySQL store instance has already been disposed
