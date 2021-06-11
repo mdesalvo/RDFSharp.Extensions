@@ -25,47 +25,77 @@ namespace RDFSharp.Store
     /// <summary>
     /// RDFSQLServerStore represents a RDFStore backed on SQL Server engine
     /// </summary>
-    public sealed class RDFSQLServerStore : RDFStore
+    public class RDFSQLServerStore : RDFStore, IDisposable
     {
-
         #region Properties
         /// <summary>
         /// Connection to the SQL Server database
         /// </summary>
-        internal SqlConnection Connection { get; set; }
+        private SqlConnection Connection { get; set; }
+        
+        /// <summary>
+        /// Flag indicating that the SQL Server store instance has already been disposed
+        /// </summary>
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
         /// <summary>
         /// Default-ctor to build a SQL Server store
         /// </summary>
-        public RDFSQLServerStore(String sqlServerConnString)
+        public RDFSQLServerStore(string sqlServerConnString)
         {
-            if (!String.IsNullOrEmpty(sqlServerConnString))
-            {
+            if (string.IsNullOrEmpty(sqlServerConnString))
+            	throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlServerConnString\" parameter is null or empty.");
 
-                //Initialize store structures
-                this.StoreType = "SQLSERVER";
-                this.Connection = new SqlConnection(sqlServerConnString);
-                this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
+            //Initialize store structures
+            this.StoreType = "SQLSERVER";
+            this.Connection = new SqlConnection(sqlServerConnString);
+            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
+            this.Disposed = false;
 
-                //Perform initial diagnostics
-                this.PrepareStore();
-
-            }
-            else
-            {
-                throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlServerConnString\" parameter is null or empty.");
-            }
+            //Perform initial diagnostics
+            this.PrepareStore();
         }
+        
+        /// <summary>
+        /// Destroys the SQL Server store instance
+        /// </summary>
+        ~RDFSQLServerStore() => this.Dispose(false);
         #endregion
 
         #region Interfaces
         /// <summary>
         /// Gives the string representation of the SQL Server store 
         /// </summary>
-        public override String ToString()
+        public override string ToString()
             => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+
+        /// <summary>
+        /// Disposes the SQL Server store instance 
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the SQL Server store instance  (business logic of resources disposal)
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.Disposed)
+                return;
+
+            if (disposing)
+            {
+                this.Connection?.Dispose();
+                this.Connection = null;
+            }
+
+            this.Disposed = true;
+        }
         #endregion
 
         #region Methods
@@ -78,10 +108,10 @@ namespace RDFSharp.Store
         {
             if (graph != null)
             {
-                var graphCtx = new RDFContext(graph.Context);
+                RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                var command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", this.Connection);
+                SqlCommand command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", this.Connection);
                 command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
                 command.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
@@ -95,7 +125,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -130,11 +159,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -143,9 +170,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -157,9 +182,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", this.Connection);
+                SqlCommand command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", this.Connection);
                 command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
                 command.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
@@ -185,7 +209,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -203,11 +226,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -216,9 +237,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -232,9 +251,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID", this.Connection);
                 command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
 
                 //Valorize parameters
@@ -242,7 +260,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -260,11 +277,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -273,9 +288,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -287,9 +300,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
 
                 //Valorize parameters
@@ -297,7 +309,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -315,11 +326,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -328,9 +337,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -342,9 +349,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
 
                 //Valorize parameters
@@ -352,7 +358,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -370,11 +375,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -383,9 +386,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -397,9 +398,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", this.Connection);
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
                 //Valorize parameters
@@ -407,7 +407,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -425,11 +424,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -438,9 +435,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -452,9 +447,8 @@ namespace RDFSharp.Store
         {
             if (objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
@@ -464,7 +458,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -482,11 +475,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -495,9 +486,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -509,9 +498,8 @@ namespace RDFSharp.Store
         {
             if (literalObject != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
@@ -521,7 +509,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -539,11 +526,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -552,9 +537,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -566,9 +549,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
 
@@ -578,7 +560,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -596,11 +577,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -609,9 +588,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -623,9 +600,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
@@ -635,7 +611,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -653,11 +628,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -666,9 +639,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -680,9 +651,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -694,7 +664,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -712,11 +681,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -725,9 +692,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -739,9 +704,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -753,7 +717,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -771,11 +734,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -784,9 +745,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -798,9 +757,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
@@ -812,7 +770,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -830,11 +787,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -843,9 +798,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -857,9 +810,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
@@ -873,7 +825,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -891,11 +842,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -904,9 +853,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -918,9 +865,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
@@ -934,7 +880,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -952,11 +897,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -965,9 +908,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -979,9 +920,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
@@ -995,7 +935,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1013,11 +952,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1026,9 +963,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1040,9 +975,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
@@ -1056,7 +990,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1074,11 +1007,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1087,9 +1018,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1101,9 +1030,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", this.Connection);
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
@@ -1113,7 +1041,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1131,11 +1058,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1144,9 +1069,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1158,9 +1081,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -1172,7 +1094,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1190,11 +1111,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1203,9 +1122,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1217,9 +1134,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -1231,7 +1147,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1249,11 +1164,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1262,9 +1175,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1276,9 +1187,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -1290,7 +1200,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1308,11 +1217,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1321,9 +1228,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1335,9 +1240,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
+                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", this.Connection);
                 command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
                 command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
@@ -1349,7 +1253,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1367,11 +1270,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1380,9 +1281,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1392,13 +1291,11 @@ namespace RDFSharp.Store
         /// </summary>
         public override void ClearQuadruples()
         {
-
             //Create command
-            var command = new SqlCommand("DELETE FROM [dbo].[Quadruples]", this.Connection);
+            SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples]", this.Connection);
 
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1416,11 +1313,9 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Rollback transaction
                 command.Transaction.Rollback();
 
@@ -1429,9 +1324,7 @@ namespace RDFSharp.Store
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
-
             }
-
         }
         #endregion
 
@@ -1771,7 +1664,6 @@ namespace RDFSharp.Store
             //Prepare and execute command
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1792,17 +1684,14 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQL Server store because: " + ex.Message, ex);
-
             }
 
             return result;
@@ -1817,15 +1706,14 @@ namespace RDFSharp.Store
         {
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
                 //Create command
-                var command = new SqlCommand("SELECT COUNT(*) FROM sys.tables WHERE name='Quadruples' AND type_desc='USER_TABLE'", this.Connection);
+                SqlCommand command = new SqlCommand("SELECT COUNT(*) FROM sys.tables WHERE name='Quadruples' AND type_desc='USER_TABLE'", this.Connection);
 
                 //Execute command
-                var result = Int32.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
                 this.Connection.Close();
@@ -1835,17 +1723,14 @@ namespace RDFSharp.Store
                     return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
                 else
                     return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-
             }
             catch
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
-
             }
         }
 
@@ -1854,34 +1739,30 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            var check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
             {
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
                     //Create & Execute command
-                    var command = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", this.Connection);
+                    SqlCommand command = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", this.Connection);
                     command.ExecuteNonQuery();
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Close connection
                     this.Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare SQL Server store because: " + ex.Message, ex);
-
                 }
             }
 
@@ -1901,35 +1782,30 @@ namespace RDFSharp.Store
         {
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
                 //Create command
-                var command = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", this.Connection);
+                SqlCommand command = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", this.Connection);
 
                 //Execute command
                 command.ExecuteNonQuery();
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize SQL Server store because: " + ex.Message, ex);
-
             }
         }
         #endregion
 
         #endregion
-
     }
 
 }
