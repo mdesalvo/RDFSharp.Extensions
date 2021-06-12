@@ -28,7 +28,6 @@ namespace RDFSharp.Store
     /// </summary>
     public class RDFSQLiteStore : RDFStore, IDisposable
     {
-
         #region Properties
         /// <summary>
         /// Connection to the SQLite database
@@ -1836,7 +1835,6 @@ namespace RDFSharp.Store
         #endregion
 
         #endregion
-
     }
 
 }

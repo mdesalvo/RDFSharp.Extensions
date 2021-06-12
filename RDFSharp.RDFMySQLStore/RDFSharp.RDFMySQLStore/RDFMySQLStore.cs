@@ -26,7 +26,6 @@ namespace RDFSharp.Store
     /// </summary>
     public class RDFMySQLStore : RDFStore, IDisposable
     {
-
         #region Properties
         /// <summary>
         /// Connection to the MySQL database
@@ -137,7 +136,6 @@ namespace RDFSharp.Store
                     //Iterate triples
                     foreach (var triple in graph)
                     {
-
                         //Valorize parameters
                         command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
                         command.Parameters["TFV"].Value = triple.TripleFlavor;
@@ -1810,7 +1808,6 @@ namespace RDFSharp.Store
         #endregion
 
         #endregion
-
     }
 
 }
