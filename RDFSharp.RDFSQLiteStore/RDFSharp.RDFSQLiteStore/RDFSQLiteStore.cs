@@ -26,70 +26,101 @@ namespace RDFSharp.Store
     /// <summary>
     /// RDFSQLiteStore represents a store backed on SQLite engine
     /// </summary>
-    public sealed class RDFSQLiteStore : RDFStore
+    public class RDFSQLiteStore : RDFStore, IDisposable
     {
 
         #region Properties
         /// <summary>
         /// Connection to the SQLite database
         /// </summary>
-        internal SqliteConnection Connection { get; set; }
+        private SqliteConnection Connection { get; set; }
+        
+        /// <summary>
+        /// Flag indicating that the SQLite store instance has already been disposed
+        /// </summary>
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
         /// <summary>
         /// Default-ctor to build a SQLite store instance
         /// </summary>
-        public RDFSQLiteStore(String sqliteDbPath)
+        public RDFSQLiteStore(string sqliteDbPath)
         {
-            if (!String.IsNullOrEmpty(sqliteDbPath))
+            if (string.IsNullOrEmpty(sqliteDbPath))
+            	throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDbPath\" parameter is null or empty.");
+
+            //Initialize store structures
+            this.StoreType = "SQLITE";
+            this.Connection = new SqliteConnection(@"Data Source=" + sqliteDbPath + ";");
+            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
+            this.Disposed = false;
+
+            //Clone internal store template
+            if (!File.Exists(sqliteDbPath))
             {
-
-                //Initialize store structures
-                this.StoreType = "SQLITE";
-                this.Connection = new SqliteConnection(@"Data Source=" + sqliteDbPath + ";");
-                this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
-
-                //Clone internal store template
-                if (!File.Exists(sqliteDbPath))
+                try
                 {
-                    try
+                    Assembly sqlite = Assembly.GetExecutingAssembly();
+                    using (Stream templateDB = sqlite.GetManifestResourceStream("RDFSharp.Store.Template.RDFSQLiteTemplate.db"))
                     {
-                        Assembly sqlite = Assembly.GetExecutingAssembly();
-                        using (var templateDB = sqlite.GetManifestResourceStream("RDFSharp.Store.Template.RDFSQLiteTemplate.db"))
+                        using (FileStream targetDB = new FileStream(sqliteDbPath, FileMode.Create, FileAccess.ReadWrite))
                         {
-                            using (var targetDB = new FileStream(sqliteDbPath, FileMode.Create, FileAccess.ReadWrite))
-                            {
-                                templateDB.CopyTo(targetDB);
-                            }
+                            templateDB.CopyTo(targetDB);
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        throw new RDFStoreException("Cannot create SQLite store because: " + ex.Message, ex);
-                    }
                 }
-
-                //Perform initial diagnostics
-                else
+                catch (Exception ex)
                 {
-                    this.PrepareStore();
+                    throw new RDFStoreException("Cannot create SQLite store because: " + ex.Message, ex);
                 }
-
             }
+
+            //Perform initial diagnostics
             else
             {
-                throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDbPath\" parameter is null or empty.");
+                this.PrepareStore();
             }
         }
+
+        /// <summary>
+        /// Destroys the SQLite store instance
+        /// </summary>
+        ~RDFSQLiteStore() => this.Dispose(false);
         #endregion
 
         #region Interfaces
         /// <summary>
         /// Gives the string representation of the SQLite store 
         /// </summary>
-        public override String ToString()
+        public override string ToString()
             => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+
+        /// <summary>
+        /// Disposes the SQLite store instance 
+        /// </summary>
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Disposes the SQLite store instance  (business logic of resources disposal)
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.Disposed)
+                return;
+
+            if (disposing)
+            {
+                this.Connection?.Dispose();
+                this.Connection = null;
+            }
+
+            this.Disposed = true;
+        }
         #endregion
 
         #region Methods
@@ -102,10 +133,10 @@ namespace RDFSharp.Store
         {
             if (graph != null)
             {
-                var graphCtx = new RDFContext(graph.Context);
+                RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                var command = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
+                SqliteCommand command = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("CTX", SqliteType.Text, 1000));
@@ -119,7 +150,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -153,11 +183,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -166,9 +194,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -180,9 +206,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
+                SqliteCommand command = new SqliteCommand("INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("CTX", SqliteType.Text, 1000));
@@ -208,7 +233,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -226,11 +250,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -239,9 +261,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -255,9 +275,8 @@ namespace RDFSharp.Store
         {
             if (quadruple != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -265,7 +284,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -283,11 +301,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -296,9 +312,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -310,9 +324,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -320,7 +333,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -338,11 +350,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -351,9 +361,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -365,9 +373,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -375,7 +382,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -393,11 +399,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -406,9 +410,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -420,9 +422,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
                 //Valorize parameters
@@ -430,7 +431,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -448,11 +448,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -461,9 +459,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -475,9 +471,8 @@ namespace RDFSharp.Store
         {
             if (objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
 
@@ -487,7 +482,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -505,11 +499,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -518,9 +510,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -532,9 +522,8 @@ namespace RDFSharp.Store
         {
             if (literalObject != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
 
@@ -544,7 +533,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -562,11 +550,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -575,9 +561,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -589,9 +573,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
 
@@ -601,7 +584,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -619,11 +601,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -632,9 +612,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -646,9 +624,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
@@ -658,7 +635,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -676,11 +652,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -689,9 +663,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -703,9 +675,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -717,7 +688,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -735,11 +705,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -748,9 +716,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -762,9 +728,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -776,7 +741,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -794,11 +758,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -807,9 +769,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -821,9 +781,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
@@ -835,7 +794,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -853,11 +811,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -866,9 +822,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -880,9 +834,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -896,7 +849,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -914,11 +866,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -927,9 +877,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -941,9 +889,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -957,7 +904,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -975,11 +921,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -988,9 +932,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1002,9 +944,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1018,7 +959,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1036,11 +976,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1051,7 +989,6 @@ namespace RDFSharp.Store
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
 
                 }
-
             }
             return this;
         }
@@ -1063,9 +1000,8 @@ namespace RDFSharp.Store
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("CTXID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
@@ -1079,7 +1015,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1097,11 +1032,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1110,9 +1043,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1124,9 +1055,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && predicateResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
 
@@ -1136,7 +1066,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1154,11 +1083,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1167,9 +1094,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1181,9 +1106,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1195,7 +1119,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1213,11 +1136,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1226,9 +1147,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1240,9 +1159,8 @@ namespace RDFSharp.Store
         {
             if (subjectResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("SUBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1254,7 +1172,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1272,11 +1189,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1285,9 +1200,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1299,9 +1212,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectResource != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1313,7 +1225,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1331,11 +1242,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1344,9 +1253,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1358,9 +1265,8 @@ namespace RDFSharp.Store
         {
             if (predicateResource != null && objectLiteral != null)
             {
-
                 //Create command
-                var command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
                 command.Parameters.Add(new SqliteParameter("PREDID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                 command.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
@@ -1372,7 +1278,6 @@ namespace RDFSharp.Store
 
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
@@ -1390,11 +1295,9 @@ namespace RDFSharp.Store
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Rollback transaction
                     command.Transaction.Rollback();
 
@@ -1403,9 +1306,7 @@ namespace RDFSharp.Store
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
-
             }
             return this;
         }
@@ -1415,13 +1316,11 @@ namespace RDFSharp.Store
         /// </summary>
         public override void ClearQuadruples()
         {
-
             //Create command
-            var command = new SqliteCommand("DELETE FROM Quadruples", this.Connection);
+            SqliteCommand command = new SqliteCommand("DELETE FROM Quadruples", this.Connection);
 
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1439,11 +1338,9 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Rollback transaction
                 command.Transaction.Rollback();
 
@@ -1452,9 +1349,7 @@ namespace RDFSharp.Store
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
             }
-
         }
         #endregion
 
@@ -1794,7 +1689,6 @@ namespace RDFSharp.Store
             //Prepare and execute command
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
@@ -1818,17 +1712,14 @@ namespace RDFSharp.Store
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQLite store because: " + ex.Message, ex);
-
             }
 
             return result;
@@ -1843,15 +1734,14 @@ namespace RDFSharp.Store
         {
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
                 //Create command
-                var command = new SqliteCommand("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Quadruples'", this.Connection);
+                SqliteCommand command = new SqliteCommand("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Quadruples'", this.Connection);
 
                 //Execute command
-                var result = Int32.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
                 this.Connection.Close();
@@ -1861,17 +1751,14 @@ namespace RDFSharp.Store
                     return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
                 else
                     return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-
             }
             catch
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
-
             }
         }
 
@@ -1880,36 +1767,32 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            var check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
             {
                 try
                 {
-
                     //Open connection
                     this.Connection.Open();
 
                     //Create command
-                    var command = new SqliteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", this.Connection);
+                    SqliteCommand command = new SqliteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", this.Connection);
 
                     //Execute command
                     command.ExecuteNonQuery();
 
                     //Close connection
                     this.Connection.Close();
-
                 }
                 catch (Exception ex)
                 {
-
                     //Close connection
                     this.Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare SQLite store because: " + ex.Message, ex);
-
                 }
             }
 
@@ -1929,29 +1812,25 @@ namespace RDFSharp.Store
         {
             try
             {
-
                 //Open connection
                 this.Connection.Open();
 
                 //Create command
-                var command = new SqliteCommand("VACUUM", this.Connection);
+                SqliteCommand command = new SqliteCommand("VACUUM", this.Connection);
 
                 //Execute command
                 command.ExecuteNonQuery();
 
                 //Close connection
                 this.Connection.Close();
-
             }
             catch (Exception ex)
             {
-
                 //Close connection
                 this.Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize SQLite store because: " + ex.Message, ex);
-
             }
         }
         #endregion

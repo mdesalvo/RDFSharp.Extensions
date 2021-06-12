@@ -4,7 +4,7 @@
     <AssemblyTitle>RDFSharp.RDFSQLiteStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFSQLiteStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.22.1</Version>
+    <Version>2.24.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
     <Description>Store RDF data on SQLite with RDFSharp</Description>
@@ -12,7 +12,7 @@
     <SignAssembly>false</SignAssembly>
     <Product>RDFSharp</Product>
     <PackageId>RDFSharp.RDFSQLiteStore</PackageId>
-    <PackageTags>rdf triplestore quadstore rdf-data sqlite</PackageTags>
+    <PackageTags>rdf triplestore quadstore sqlite</PackageTags>
     <PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/mdesalvo/RDFSharp.Extensions.git</RepositoryUrl>
@@ -51,8 +51,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.0" />
-    <PackageReference Include="RDFSharp" Version="2.22.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="5.0.0" />
+    <PackageReference Include="RDFSharp" Version="2.24.0" />
   </ItemGroup>
 
 </Project>

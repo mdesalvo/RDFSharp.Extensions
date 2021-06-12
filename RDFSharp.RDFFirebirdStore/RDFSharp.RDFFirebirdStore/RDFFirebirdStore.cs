@@ -185,7 +185,6 @@ namespace RDFSharp.Store
                     //Iterate triples
                     foreach (var triple in graph)
                     {
-
                         //Valorize parameters
                         command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
                         command.Parameters["TFV"].Value = triple.TripleFlavor;
