@@ -105,6 +105,23 @@ namespace RDFSharp.Store.Test
             Assert.IsTrue(store.Disposed);
             Assert.IsNull(store.Connection);
         }
+
+        [TestMethod]
+        public void ShouldMergeGraph()
+        {
+            RDFGraph graph = new RDFGraph(new List<RDFTriple>() {
+                new RDFTriple(new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))
+            }).SetContext(new Uri("ex:ctx"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldMergeGraph.db"));
+            store.MergeGraph(graph);
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(new RDFQuadruple(new RDFContext("ex:ctx"), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))));
+        }
         #endregion
     }
 }
