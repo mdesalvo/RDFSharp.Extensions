@@ -18,7 +18,7 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Build SQLite
-      run: dotnet build ../../RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore.sln -c Release
+      run: dotnet build ../../RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore.csproj -c Release
 
     - name: Test SQLite
-      run: dotnet test ../../RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore.sln --no-build --verbosity normal -c Release
+      run: dotnet test ../../RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore/RDFSharp.RDFSQLiteStore.csproj --no-build --verbosity normal -c Release
