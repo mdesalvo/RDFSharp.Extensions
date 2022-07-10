@@ -107,6 +107,23 @@ namespace RDFSharp.Store.Test
         }
 
         [TestMethod]
+        public void ShouldAddQuadruple()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldAddQuadruple.db"));
+            store.AddQuadruple(quadruple);
+            store.AddQuadruple(null); //Will not be inserted, since null quadruples are not allowed
+            store.AddQuadruple(quadruple); //Will not be inserted, since duplicate quadruples are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(new RDFQuadruple(new RDFContext("ex:ctx"), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))));
+        }
+
+        [TestMethod]
         public void ShouldMergeGraph()
         {
             RDFGraph graph = new RDFGraph(new List<RDFTriple>() {
