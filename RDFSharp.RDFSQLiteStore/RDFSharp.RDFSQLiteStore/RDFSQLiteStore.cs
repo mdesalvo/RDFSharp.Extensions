@@ -1361,7 +1361,7 @@ namespace RDFSharp.Store
                 return false;
 
             //Create command
-            SqliteCommand command = new SqliteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
+            SqliteCommand command = new SqliteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", this.Connection);
             command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));            
 
             //Valorize parameters

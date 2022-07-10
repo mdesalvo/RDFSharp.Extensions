@@ -764,6 +764,44 @@ namespace RDFSharp.Store.Test
             Assert.IsTrue(memStore.QuadruplesCount == 1);
             Assert.IsTrue(memStore.Single().Equals(quadruple));
         }
+
+        [TestMethod]
+        public void ShouldClearQuadruples()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldClearQuadruples.db"));
+            store.ClearQuadruples();
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldContainQuadruple()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            
+            Assert.IsTrue(store.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotContainQuadruple()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+
+            Assert.IsFalse(store.ContainsQuadruple(quadruple2));
+            Assert.IsFalse(store.ContainsQuadruple(null));
+        }
         #endregion
     }
 }
