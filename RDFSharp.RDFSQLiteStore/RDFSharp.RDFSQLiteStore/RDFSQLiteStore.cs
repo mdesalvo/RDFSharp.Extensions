@@ -36,7 +36,7 @@ namespace RDFSharp.Store
         /// <summary>
         /// Flag indicating that the SQLite store instance has already been disposed
         /// </summary>
-        private bool Disposed { get; set; }
+        internal bool Disposed { get; set; }
         #endregion
 
         #region Ctors

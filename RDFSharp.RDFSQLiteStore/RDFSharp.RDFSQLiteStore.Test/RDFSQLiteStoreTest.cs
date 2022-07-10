@@ -70,6 +70,41 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldThrowExceptionOnCreatingStoreBecauseUnaccessiblePath()
             => Assert.ThrowsException<RDFStoreException>(() => new RDFSQLiteStore("http://example.org/file.db"));
+
+        [TestMethod]
+        public void ShouldCreateStoreUsingDispose()
+        {
+            RDFSQLiteStore store = default;
+            using(store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldCreateStoreUsingDispose.db")))
+            {
+                Assert.IsNotNull(store);
+                Assert.IsTrue(string.Equals(store.StoreType, "SQLITE"));
+                Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
+                Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLITE|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+                Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldCreateStoreUsingDispose.db")));
+                Assert.IsFalse(store.Disposed);
+            }
+
+            Assert.IsTrue(store.Disposed);
+            Assert.IsNull(store.Connection);
+        }
+
+        [TestMethod]
+        public void ShouldCreateStoreInvokingDispose()
+        {
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldCreateStoreInvokingDispose.db"));
+            
+            Assert.IsNotNull(store);
+            Assert.IsTrue(string.Equals(store.StoreType, "SQLITE"));
+            Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
+            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLITE|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldCreateStoreInvokingDispose.db")));
+            Assert.IsFalse(store.Disposed);
+
+            store.Dispose();
+            Assert.IsTrue(store.Disposed);
+            Assert.IsNull(store.Connection);
+        }
         #endregion
     }
 }
