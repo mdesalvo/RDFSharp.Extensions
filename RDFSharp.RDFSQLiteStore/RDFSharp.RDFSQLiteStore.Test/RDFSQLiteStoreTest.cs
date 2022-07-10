@@ -59,8 +59,17 @@ namespace RDFSharp.Store.Test
             Assert.IsNotNull(store);
             Assert.IsTrue(string.Equals(store.StoreType, "SQLITE"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
+            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLITE|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
             Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldCreateStore.db")));
         }
+
+        [TestMethod]
+        public void ShouldThrowExceptionOnCreatingStoreBecauseNullOrEmptyPath()
+            => Assert.ThrowsException<RDFStoreException>(() => new RDFSQLiteStore(null));
+
+        [TestMethod]
+        public void ShouldThrowExceptionOnCreatingStoreBecauseUnaccessiblePath()
+            => Assert.ThrowsException<RDFStoreException>(() => new RDFSQLiteStore("http://example.org/file.db"));
         #endregion
     }
 }

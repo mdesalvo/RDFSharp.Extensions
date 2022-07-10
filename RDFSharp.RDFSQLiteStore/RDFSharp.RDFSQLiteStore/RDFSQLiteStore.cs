@@ -31,7 +31,7 @@ namespace RDFSharp.Store
         /// <summary>
         /// Connection to the SQLite database
         /// </summary>
-        private SqliteConnection Connection { get; set; }
+        internal SqliteConnection Connection { get; set; }
         
         /// <summary>
         /// Flag indicating that the SQLite store instance has already been disposed
@@ -45,38 +45,39 @@ namespace RDFSharp.Store
         /// </summary>
         public RDFSQLiteStore(string sqliteDbPath)
         {
+            //Guard against tricky paths
             if (string.IsNullOrWhiteSpace(sqliteDbPath))
             	throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDbPath\" parameter is null or empty.");
 
-            //Initialize store structures
+            //Initialize store
             this.StoreType = "SQLITE";
             this.Connection = new SqliteConnection(@"Data Source=" + sqliteDbPath + ";");
             this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
             this.Disposed = false;
 
-            //Clone internal store template
-            if (!File.Exists(sqliteDbPath))
+            try
             {
-                try
+                //File does not exist => clone store template
+                if (!File.Exists(sqliteDbPath))
                 {
                     Assembly sqlite = Assembly.GetExecutingAssembly();
                     using (Stream templateDB = sqlite.GetManifestResourceStream("RDFSharp.Store.Template.RDFSQLiteTemplate.db"))
                     {
                         using (FileStream targetDB = new FileStream(sqliteDbPath, FileMode.Create, FileAccess.ReadWrite))
-                        {
                             templateDB.CopyTo(targetDB);
-                        }
                     }
                 }
-                catch (Exception ex)
+
+                //File exists => execute diagnostics and preparation
+                else
                 {
-                    throw new RDFStoreException("Cannot create SQLite store because: " + ex.Message, ex);
+                    this.PrepareStore();
                 }
             }
-
-            //Perform initial diagnostics
-            else
-                this.PrepareStore();
+            catch (Exception ex)
+            {
+                throw new RDFStoreException("Cannot create SQLite store because: " + ex.Message, ex);
+            }
         }
 
         /// <summary>
