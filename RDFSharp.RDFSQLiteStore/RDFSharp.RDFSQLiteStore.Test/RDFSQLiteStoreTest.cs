@@ -17,35 +17,18 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
-using WireMock.Server;
 using RDFSharp.Model;
-using RDFSharp.Query;
-using RDFSharp.Store;
 
 namespace RDFSharp.Store.Test
 {
     [TestClass]
     public class RDFSQLiteStoreTest
     {
-        private WireMockServer server;
-
-        [TestInitialize]
-        public void Initialize() { server = WireMockServer.Start(); }
-
         [TestCleanup]
         public void Cleanup()
         { 
-            server.Stop(); 
-            server.Dispose();
-
             foreach (string file in Directory.EnumerateFiles(Environment.CurrentDirectory, "RDFSQLiteStoreTest_Should*"))
                 File.Delete(file);
         }
@@ -113,14 +96,14 @@ namespace RDFSharp.Store.Test
 
             RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldAddQuadruple.db"));
             store.AddQuadruple(quadruple);
-            store.AddQuadruple(null); //Will not be inserted, since null quadruples are not allowed
             store.AddQuadruple(quadruple); //Will not be inserted, since duplicate quadruples are not allowed
+            store.AddQuadruple(null); //Will not be inserted, since null quadruples are not allowed
 
             RDFMemoryStore memStore = store.SelectAllQuadruples();
 
             Assert.IsNotNull(memStore);
             Assert.IsTrue(memStore.QuadruplesCount == 1);
-            Assert.IsTrue(memStore.Single().Equals(new RDFQuadruple(new RDFContext("ex:ctx"), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))));
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
         }
 
         [TestMethod]
@@ -132,12 +115,206 @@ namespace RDFSharp.Store.Test
 
             RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldMergeGraph.db"));
             store.MergeGraph(graph);
+            store.MergeGraph(null); //Will not be merged, since null graphs are not allowed
 
             RDFMemoryStore memStore = store.SelectAllQuadruples();
 
             Assert.IsNotNull(memStore);
             Assert.IsTrue(memStore.QuadruplesCount == 1);
             Assert.IsTrue(memStore.Single().Equals(new RDFQuadruple(new RDFContext("ex:ctx"), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruple()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruple.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruple(quadruple);
+            store.RemoveQuadruple(null); //Will not be removed, since null quadruples are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruple()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+            RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruple.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruple(quadruple2);
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruplesByContext()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruplesByContext.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx")));
+            store.RemoveQuadruplesByContext(null); //Will not be removed, since null contexts are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruplesByContext()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByContext.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx2")));
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruplesBySubject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruplesBySubject.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesBySubject(new RDFResource("ex:subj"));
+            store.RemoveQuadruplesBySubject(null); //Will not be removed, since null subjects are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruplesBySubject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesBySubject.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesBySubject(new RDFResource("ex:subj2"));
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruplesByPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruplesByPredicate.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred"));
+            store.RemoveQuadruplesByPredicate(null); //Will not be removed, since null predicates are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruplesByPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByPredicate.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred2"));
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruplesByObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruplesByObject.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByObject(new RDFResource("ex:obj"));
+            store.RemoveQuadruplesByObject(null); //Will not be removed, since null objects are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruplesByObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByObject.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByObject(new RDFResource("ex:obj2"));
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldRemoveQuadruplesByLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldRemoveQuadruplesByLiteral.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello"));
+            store.RemoveQuadruplesByLiteral(null); //Will not be removed, since null literals are not allowed
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 0);
+        }
+
+        [TestMethod]
+        public void ShouldNotRemoveQuadruplesByLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotRemoveQuadruplesByLiteral.db"));
+            store.AddQuadruple(quadruple);
+            store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello", "en-US"));
+
+            RDFMemoryStore memStore = store.SelectAllQuadruples();
+
+            Assert.IsNotNull(memStore);
+            Assert.IsTrue(memStore.QuadruplesCount == 1);
+            Assert.IsTrue(memStore.Single().Equals(quadruple));
         }
         #endregion
     }
