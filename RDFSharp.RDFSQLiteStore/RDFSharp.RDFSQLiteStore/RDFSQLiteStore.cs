@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2020 Marco De Salvo
+   Copyright 2012-2022 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ using RDFSharp.Model;
 
 namespace RDFSharp.Store
 {
-
     /// <summary>
     /// RDFSQLiteStore represents a store backed on SQLite engine
     /// </summary>
@@ -46,7 +45,7 @@ namespace RDFSharp.Store
         /// </summary>
         public RDFSQLiteStore(string sqliteDbPath)
         {
-            if (string.IsNullOrEmpty(sqliteDbPath))
+            if (string.IsNullOrWhiteSpace(sqliteDbPath))
             	throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDbPath\" parameter is null or empty.");
 
             //Initialize store structures
@@ -77,9 +76,7 @@ namespace RDFSharp.Store
 
             //Perform initial diagnostics
             else
-            {
                 this.PrepareStore();
-            }
         }
 
         /// <summary>
@@ -1354,6 +1351,50 @@ namespace RDFSharp.Store
 
         #region Select
         /// <summary>
+        /// Checks if the given quadruple is found in the store
+        /// </summary>
+        public override bool ContainsQuadruple(RDFQuadruple quadruple)
+        {
+            //Guard against tricky input
+            if (quadruple == null)
+                return false;
+
+            //Create command
+            SqliteCommand command = new SqliteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QUADID", this.Connection);
+            command.Parameters.Add(new SqliteParameter("QUADID", SqliteType.Integer));            
+
+            //Valorize parameters
+            command.Parameters["QUADID"].Value = quadruple.QuadrupleID;
+
+            //Prepare and execute command
+            try
+            {
+                //Open connection
+                this.Connection.Open();
+
+                //Prepare command
+                command.Prepare();
+
+                //Execute command
+                int result = int.Parse(command.ExecuteScalar().ToString());                
+
+                //Close connection
+                this.Connection.Close();
+
+                //Give result
+                return result == 1;
+            }
+            catch (Exception ex)
+            {
+                //Close connection
+                this.Connection.Close();
+
+                //Propagate exception
+                throw new RDFStoreException("Cannot read data from SQLite store because: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
         internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
@@ -1797,9 +1838,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the database
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-            {
                 throw new RDFStoreException("Cannot prepare SQLite store because: unable to open the database.");
-            }
         }
         #endregion		
 
@@ -1836,5 +1875,4 @@ namespace RDFSharp.Store
 
         #endregion
     }
-
 }
