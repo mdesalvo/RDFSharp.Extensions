@@ -157,7 +157,7 @@ namespace RDFSharp.Store
                     command.Transaction = this.Connection.BeginTransaction();
 
                     //Iterate triples
-                    foreach (var triple in graph)
+                    foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
                         command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
@@ -1361,11 +1361,11 @@ namespace RDFSharp.Store
                 return false;
 
             //Create command
-            SqliteCommand command = new SqliteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QUADID", this.Connection);
-            command.Parameters.Add(new SqliteParameter("QUADID", SqliteType.Integer));            
+            SqliteCommand command = new SqliteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
+            command.Parameters.Add(new SqliteParameter("QID", SqliteType.Integer));            
 
             //Valorize parameters
-            command.Parameters["QUADID"].Value = quadruple.QuadrupleID;
+            command.Parameters["QID"].Value = quadruple.QuadrupleID;
 
             //Prepare and execute command
             try
