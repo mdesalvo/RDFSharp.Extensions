@@ -881,7 +881,7 @@ namespace RDFSharp.Store.Test
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
         }
 
-                [TestMethod]
+        [TestMethod]
         public void ShouldSelectQuadruplesByObject()
         {
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
@@ -907,7 +907,7 @@ namespace RDFSharp.Store.Test
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
         }
 
-                [TestMethod]
+        [TestMethod]
         public void ShouldSelectQuadruplesByLiteral()
         {
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
@@ -1005,7 +1005,7 @@ namespace RDFSharp.Store.Test
 
             RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextObject.db"));
             store.AddQuadruple(quadruple);
-            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, new RDFResource("ex:pred"), null);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, new RDFResource("ex:obj"), null);
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
@@ -1032,6 +1032,370 @@ namespace RDFSharp.Store.Test
             RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextLiteral.db"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextSubjectPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextSubjectPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextSubjectObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextSubjectObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextSubjectObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextSubjectLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextSubjectLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextSubjectPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextSubjectPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByContextSubjectPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesBySubjectPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesBySubjectPredicate.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesBySubjectPredicate()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesBySubjectObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesBySubjectObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesBySubjectObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesBySubjectObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesBySubjectLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesBySubjectLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesBySubjectLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesByPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesByPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesByPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesBySubjectPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesBySubjectPredicateObject()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldSelectQuadruplesBySubjectPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldNotSelectQuadruplesBySubjectPredicateLiteral()
+        {
+            RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral.db"));
+            store.AddQuadruple(quadruple);
+            RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
