@@ -1670,7 +1670,7 @@ namespace RDFSharp.Store
 
                 //Prepare command
                 command.Prepare();
-                command.CommandTimeout = 0;
+                command.CommandTimeout = 180; //Setup 3mins timeout
 
                 //Execute command
                 using (SqliteDataReader quadruples = command.ExecuteReader())
@@ -1716,10 +1716,8 @@ namespace RDFSharp.Store
                 Connection.Close();
 
                 //Return the diagnostics state
-                if (result == 0)
-                    return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                else
-                    return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
+                                   : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
             {

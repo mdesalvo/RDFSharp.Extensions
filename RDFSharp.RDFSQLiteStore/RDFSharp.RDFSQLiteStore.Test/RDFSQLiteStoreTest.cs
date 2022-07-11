@@ -1400,6 +1400,39 @@ namespace RDFSharp.Store.Test
             Assert.IsNotNull(result);
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
         }
+
+        [TestMethod]
+        public void ShouldOptimize()
+        {
+            RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+            RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple3 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple4 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx3")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple5 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+            RDFQuadruple quadruple6 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj4"), new RDFResource("ex:pred4"), new RDFResource("ex:obj"));
+
+            RDFSQLiteStore store = new RDFSQLiteStore(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldOptimize.db"));
+            store.AddQuadruple(quadruple1);
+            store.AddQuadruple(quadruple2);
+            store.AddQuadruple(quadruple3);
+            store.AddQuadruple(quadruple4);
+            store.RemoveQuadruple(quadruple1);
+            store.RemoveQuadruple(quadruple2);
+            store.AddQuadruple(quadruple1);
+            store.AddQuadruple(quadruple2);
+            store.AddQuadruple(quadruple5);
+            store.AddQuadruple(quadruple6);
+
+            FileInfo originalFileInfo = new FileInfo(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldOptimize.db"));
+            long originalFileLength = originalFileInfo.Length;
+
+            store.OptimizeStore();
+
+            FileInfo optimizedFileInfo = new FileInfo(Path.Combine(Environment.CurrentDirectory, "RDFSQLiteStoreTest_ShouldOptimize.db"));
+            long optimizedFileLength = optimizedFileInfo.Length;
+
+            Assert.IsTrue(optimizedFileLength <= originalFileLength);
+        }
         #endregion
     }
 }
