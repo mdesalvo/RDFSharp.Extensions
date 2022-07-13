@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("B7278DB3-AC3D-4086-9229-B94419CCE243")]
+[assembly: InternalsVisibleTo("RDFSharp.RDFFirebirdStore.Test")]

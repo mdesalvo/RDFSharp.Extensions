@@ -26,35 +26,48 @@ namespace RDFSharp.Store.Test
     [TestClass]
     public class RDFFirebirdStoreTest
     {
+        private RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
+        private string User { get; set; } = "SYSDBA";
+        private string Password { get; set; } = "masterkey";
+        private string DataSource { get; set; } = "localhost";
+        private string Charset { get; set; } = "NONE";
+        private int Port { get; set; } = 3050;
+        private int Dialect { get; set; } = 3;
+        private int ServerType { get; set; } = 0;
+
+        private string GetConnectionString(string database)
+            => $"User={User};Password={Password};Database={database};DataSource={DataSource};Port={Port};Dialect={Dialect};Charset={Charset};ServerType={ServerType};";
+
         [TestCleanup]
         public void Cleanup()
-        {
+        { 
             foreach (string file in Directory.EnumerateFiles(Environment.CurrentDirectory, "RDFFirebirdStoreTest_Should*"))
                 File.Delete(file);
         }
 
-        /*
         #region Tests        
         [TestMethod]
         public void ShouldCreateStore()
         {
-            RDFFirebirdStore store = new RDFFirebirdStore(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStore.db"));
+            RDFFirebirdStore store = new RDFFirebirdStore(
+                GetConnectionString(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldCreateStore.fdb")), FirebirdVersion);
 
             Assert.IsNotNull(store);
-            Assert.IsTrue(string.Equals(store.StoreType, "Firebird"));
+            Assert.IsTrue(string.Equals(store.StoreType, "FIREBIRD"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
-            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("Firebird|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
-            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStore.db")));
+            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("FIREBIRD|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStore.fdb")));
         }
 
         [TestMethod]
         public void ShouldThrowExceptionOnCreatingStoreBecauseNullOrEmptyPath()
-            => Assert.ThrowsException<RDFStoreException>(() => new RDFFirebirdStore(null));
+            => Assert.ThrowsException<RDFStoreException>(() => new RDFFirebirdStore(null, FirebirdVersion));
 
         [TestMethod]
         public void ShouldThrowExceptionOnCreatingStoreBecauseUnaccessiblePath()
-            => Assert.ThrowsException<RDFStoreException>(() => new RDFFirebirdStore("http://example.org/file.db"));
+            => Assert.ThrowsException<RDFStoreException>(() => new RDFFirebirdStore(GetConnectionString("http://example.org/file.fdb"), FirebirdVersion));
 
+        /*
         [TestMethod]
         public void ShouldCreateStoreUsingDispose()
         {
@@ -1434,7 +1447,7 @@ namespace RDFSharp.Store.Test
 
             Assert.IsTrue(optimizedFileLength <= originalFileLength);
         }
-        #endregion
         */
+        #endregion        
     }
 }
