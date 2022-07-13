@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFFirebirdStore", "RDFSharp.RDFFirebirdStore\RDFSharp.RDFFirebirdStore.csproj", "{B7278DB3-AC3D-4086-9229-B94419CCE243}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.RDFFirebirdStore", "RDFSharp.RDFFirebirdStore\RDFSharp.RDFFirebirdStore.csproj", "{B7278DB3-AC3D-4086-9229-B94419CCE243}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFFirebirdStore.Test", "RDFSharp.RDFFirebirdStore.Test\RDFSharp.RDFFirebirdStore.Test.csproj", "{CA58A144-49CC-6FFF-AF22-66A278A0C077}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,11 +17,15 @@ Global
 		{B7278DB3-AC3D-4086-9229-B94419CCE243}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7278DB3-AC3D-4086-9229-B94419CCE243}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7278DB3-AC3D-4086-9229-B94419CCE243}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA58A144-49CC-6FFF-AF22-66A278A0C077}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA58A144-49CC-6FFF-AF22-66A278A0C077}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA58A144-49CC-6FFF-AF22-66A278A0C077}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA58A144-49CC-6FFF-AF22-66A278A0C077}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {FDD2B7E0-5BC5-4636-997B-778F43D467E8}
+		SolutionGuid = {A442B880-5B44-4636-9A7B-77AF4CD4E7E1}
 	EndGlobalSection
 EndGlobal

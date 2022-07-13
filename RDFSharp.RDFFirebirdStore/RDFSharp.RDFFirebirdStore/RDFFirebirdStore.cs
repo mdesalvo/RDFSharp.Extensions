@@ -17,6 +17,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using FirebirdSql.Data.FirebirdClient;
 using RDFSharp.Model;
 
@@ -56,12 +57,12 @@ namespace RDFSharp.Store
         /// <summary>
         /// Connection to the Firebird database
         /// </summary>
-        private FbConnection Connection { get; set; }
+        internal FbConnection Connection { get; set; }
 
         /// <summary>
         /// Flag indicating that the Firebird store instance has already been disposed
         /// </summary>
-        private bool Disposed { get; set; }
+        internal bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -74,23 +75,21 @@ namespace RDFSharp.Store
                 throw new RDFStoreException("Cannot connect to Firebird store because: given \"firebirdConnectionString\" parameter is null or empty.");
 
             //Initialize store structures
-            this.StoreType = "FIREBIRD";
-            this.Connection = new FbConnection(firebirdConnectionString);
-            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
-            this.Disposed = false;
+            StoreType = "FIREBIRD";
+            Connection = new FbConnection(firebirdConnectionString);
+            StoreID = RDFModelUtilities.CreateHash(ToString());
+            Disposed = false;
 
             //Clone internal store template
-            if (!File.Exists(this.Connection.Database))
+            if (!File.Exists(Connection.Database))
             {
                 try
                 {
                     Assembly firebird = Assembly.GetExecutingAssembly();
                     using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Store.Template.RDFFirebirdTemplateODS" + (int)fbVersion + ".fdb"))
                     {
-                        using (FileStream targetDB = new FileStream(this.Connection.Database, FileMode.Create, FileAccess.ReadWrite))
-                        {
+                        using (FileStream targetDB = new FileStream(Connection.Database, FileMode.Create, FileAccess.ReadWrite))
                             templateDB.CopyTo(targetDB);
-                        }
                     }
                 }
                 catch (Exception ex)
@@ -101,15 +100,13 @@ namespace RDFSharp.Store
 
             //Perform initial diagnostics
             else
-            {
-                this.PrepareStore();
-            }
+                PrepareStore();
         }
 
         /// <summary>
         /// Destroys the Firebird store instance
         /// </summary>
-        ~RDFFirebirdStore() => this.Dispose(false);
+        ~RDFFirebirdStore() => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -117,14 +114,14 @@ namespace RDFSharp.Store
         /// Gives the string representation of the Firebird store 
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
 
         /// <summary>
         /// Disposes the Firebird store instance 
         /// </summary>
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -133,16 +130,16 @@ namespace RDFSharp.Store
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (this.Disposed)
+            if (Disposed)
                 return;
 
             if (disposing)
             {
-                this.Connection?.Dispose();
-                this.Connection = null;
+                Connection?.Dispose();
+                Connection = null;
             }
 
-            this.Disposed = true;
+            Disposed = true;
         }
         #endregion
 
@@ -159,7 +156,7 @@ namespace RDFSharp.Store
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
+                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                 command.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
@@ -174,13 +171,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Iterate triples
                     foreach (var triple in graph)
@@ -205,7 +202,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -213,7 +210,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
@@ -230,7 +227,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", this.Connection);
+                FbCommand command = new FbCommand("UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)", Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                 command.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
@@ -257,13 +254,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -272,7 +269,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -280,7 +277,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
@@ -299,7 +296,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", Connection);
                 command.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -308,13 +305,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -323,7 +320,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -331,7 +328,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -348,7 +345,7 @@ namespace RDFSharp.Store
             if (contextResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -357,13 +354,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -372,7 +369,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -380,7 +377,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -397,7 +394,7 @@ namespace RDFSharp.Store
             if (subjectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -406,13 +403,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -421,7 +418,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -429,7 +426,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -446,7 +443,7 @@ namespace RDFSharp.Store
             if (predicateResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
                 //Valorize parameters
@@ -455,13 +452,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -470,7 +467,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -478,7 +475,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -495,7 +492,7 @@ namespace RDFSharp.Store
             if (objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
 
@@ -506,13 +503,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -521,7 +518,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -529,7 +526,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -546,7 +543,7 @@ namespace RDFSharp.Store
             if (literalObject != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
 
@@ -557,13 +554,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -572,7 +569,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -580,7 +577,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -597,7 +594,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
 
@@ -608,13 +605,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -623,7 +620,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -631,7 +628,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -648,7 +645,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
@@ -659,13 +656,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -674,7 +671,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -682,7 +679,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -699,7 +696,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -712,13 +709,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -727,7 +724,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -735,7 +732,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -752,7 +749,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectLiteral != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -765,13 +762,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -780,7 +777,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -788,7 +785,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -805,7 +802,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
@@ -818,13 +815,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -833,7 +830,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -841,7 +838,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -858,7 +855,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -873,13 +870,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -888,7 +885,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -896,7 +893,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -913,7 +910,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -928,13 +925,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -943,7 +940,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -951,7 +948,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -968,7 +965,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -983,13 +980,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -998,7 +995,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1006,7 +1003,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1023,7 +1020,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
@@ -1038,13 +1035,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1053,7 +1050,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1061,7 +1058,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1078,7 +1075,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && predicateResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
 
@@ -1089,13 +1086,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1104,7 +1101,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1112,7 +1109,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1129,7 +1126,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1142,13 +1139,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1157,7 +1154,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1165,7 +1162,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1182,7 +1179,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1195,13 +1192,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1210,7 +1207,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1218,7 +1215,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1235,7 +1232,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectResource != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1248,13 +1245,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1263,7 +1260,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1271,7 +1268,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1288,7 +1285,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
+                FbCommand command = new FbCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
                 command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
                 command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
@@ -1301,13 +1298,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1316,7 +1313,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1324,7 +1321,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1339,18 +1336,18 @@ namespace RDFSharp.Store
         public override void ClearQuadruples()
         {
             //Create command
-            FbCommand command = new FbCommand("DELETE FROM Quadruples", this.Connection);
+            FbCommand command = new FbCommand("DELETE FROM Quadruples", Connection);
 
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
 
                 //Open transaction
-                command.Transaction = this.Connection.BeginTransaction();
+                command.Transaction = Connection.BeginTransaction();
 
                 //Execute command
                 command.ExecuteNonQuery();
@@ -1359,7 +1356,7 @@ namespace RDFSharp.Store
                 command.Transaction.Commit();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
@@ -1367,7 +1364,7 @@ namespace RDFSharp.Store
                 command.Transaction.Rollback();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
@@ -1377,368 +1374,339 @@ namespace RDFSharp.Store
 
         #region Select
         /// <summary>
+        /// Checks if the given quadruple is found in the store
+        /// </summary>
+        public override bool ContainsQuadruple(RDFQuadruple quadruple)
+        {
+            //Guard against tricky input
+            if (quadruple == null)
+                return false;
+
+            //Create command
+            FbCommand command = new FbCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", Connection);
+            command.Parameters.Add(new FbParameter("QID", FbDbType.Integer));            
+
+            //Valorize parameters
+            command.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+            //Prepare and execute command
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Prepare command
+                command.Prepare();
+
+                //Execute command
+                bool result = bool.Parse(command.ExecuteScalar().ToString());                
+
+                //Close connection
+                Connection.Close();
+
+                //Give result
+                return result;
+            }
+            catch (Exception ex)
+            {
+                //Close connection
+                Connection.Close();
+
+                //Propagate exception
+                throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
         internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            FbCommand command = null;
+            StringBuilder queryFilters = new StringBuilder();
+
+            //Filter by Context
+            if (ctx != null)
+                queryFilters.Append('C');
+
+            //Filter by Subject
+            if (subj != null)
+                queryFilters.Append('S');
+
+            //Filter by Predicate
+            if (pred != null)
+                queryFilters.Append('P');
+
+            //Filter by Object
+            if (obj != null)
+                queryFilters.Append('O');
+
+            //Filter by Literal
+            if (lit != null)
+                queryFilters.Append('L');
 
             //Intersect the filters
-            if (ctx != null)
+            FbCommand command = null;
+            switch (queryFilters.ToString())
             {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->P->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->P->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->P->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", this.Connection);
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->->P->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->P->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->P->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", this.Connection);
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->->->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID", this.Connection);
-                                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->S->P->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->P->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->P->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", this.Connection);
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->S->->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID", this.Connection);
-                                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->->P->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->P->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->P->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID", this.Connection);
-                                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->->->O
-                            command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                            command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                            command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->->L
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", this.Connection);
-                                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->->
-                                command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", this.Connection);
-                            }
-                        }
-                    }
-                }
+                case "C":
+                    //C->->->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    break;
+                case "S":
+                    //->S->->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "P":
+                    //->->P->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID", Connection);
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "O":
+                    //->->->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));                    
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "L":
+                    //->->->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;                    
+                    break;
+                case "CS":
+                    //C->S->->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "CP":
+                    //C->->P->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CO":
+                    //C->->->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CL":
+                    //C->->->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSP":
+                    //C->S->P->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CSO":
+                    //C->S->->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSL":
+                    //C->S->->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CPO":
+                    //C->->P->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CPL":
+                    //C->->P->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSPO":
+                    //C->S->P->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSPL":
+                    //C->S->P->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("CTXID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SP":
+                    //->S->P->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "SO":
+                    //->S->->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SL":
+                    //->S->->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "PO":
+                    //->->P->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "PL":
+                    //->->P->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SPO":
+                    //->S->P->O
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SPL":
+                    //->S->P->L
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
+                    command.Parameters.Add(new FbParameter("SUBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("PREDID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
+                    command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                default:
+                    //->->->
+                    command = new FbCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", Connection);
+                    break;
             }
 
             //Prepare and execute command
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
-
-                //Set command timeout (3min)
-                command.CommandTimeout = 180;
+                command.CommandTimeout = 180; //Setup 3mins timeout
 
                 //Execute command
                 using (FbDataReader quadruples = command.ExecuteReader())
                 {
-                    if (quadruples.HasRows)
-                    {
-                        while (quadruples.Read())
-                        {
-                            result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
-                        }
-                    }
+                    while (quadruples.Read())
+                        result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
                 }
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
@@ -1757,16 +1725,16 @@ namespace RDFSharp.Store
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Create command
-                FbCommand command = new FbCommand("SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = 'QUADRUPLES'", this.Connection);
+                FbCommand command = new FbCommand("SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = 'QUADRUPLES'", Connection);
 
                 //Execute command
                 int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
                 return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
@@ -1774,7 +1742,7 @@ namespace RDFSharp.Store
             catch
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
@@ -1786,7 +1754,7 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
@@ -1794,10 +1762,10 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Create & Execute command
-                    FbCommand command = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", this.Connection);
+                    FbCommand command = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", Connection);
                     command.ExecuteNonQuery();
                     command.CommandText = "CREATE INDEX IDX_ContextID ON Quadruples(ContextID)";
                     command.ExecuteNonQuery();
@@ -1815,12 +1783,12 @@ namespace RDFSharp.Store
                     command.ExecuteNonQuery();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare Firebird store because: " + ex.Message, ex);
@@ -1829,9 +1797,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the database
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-            {
                 throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the given datasource.");
-            }
         }
         #endregion		
 
