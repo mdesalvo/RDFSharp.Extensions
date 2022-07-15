@@ -1383,7 +1383,7 @@ namespace RDFSharp.Store
                 return false;
 
             //Create command
-            FbCommand command = new FbCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", Connection);
+            FbCommand command = new FbCommand("SELECT COUNT(1) FROM RDB$DATABASE WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", Connection);
             command.Parameters.Add(new FbParameter("QID", FbDbType.Integer));            
 
             //Valorize parameters
@@ -1399,13 +1399,13 @@ namespace RDFSharp.Store
                 command.Prepare();
 
                 //Execute command
-                bool result = bool.Parse(command.ExecuteScalar().ToString());                
+                int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
 
                 //Give result
-                return result;
+                return result == 1;
             }
             catch (Exception ex)
             {
