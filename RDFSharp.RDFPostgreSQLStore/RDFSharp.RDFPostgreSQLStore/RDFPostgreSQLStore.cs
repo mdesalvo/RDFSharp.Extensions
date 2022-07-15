@@ -15,13 +15,13 @@
 */
 
 using System;
+using System.Text;
 using Npgsql;
 using NpgsqlTypes;
 using RDFSharp.Model;
 
 namespace RDFSharp.Store
 {
-
     /// <summary>
     /// RDFPostgreSQLStore represents a store backed on PostgreSQL engine
     /// </summary>
@@ -31,12 +31,12 @@ namespace RDFSharp.Store
         /// <summary>
         /// Connection to the PostgreSQL database
         /// </summary>
-        private NpgsqlConnection Connection { get; set; }
+        internal NpgsqlConnection Connection { get; set; }
         
         /// <summary>
         /// Flag indicating that the PostgreSQL store instance has already been disposed
         /// </summary>
-        private bool Disposed { get; set; }
+        internal bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -49,19 +49,19 @@ namespace RDFSharp.Store
             	throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlConnectionString\" parameter is null or empty.");
 
             //Initialize store structures
-            this.StoreType = "POSTGRESQL";
-            this.Connection = new NpgsqlConnection(pgsqlConnectionString);
-            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
-            this.Disposed = false;
+            StoreType = "POSTGRESQL";
+            Connection = new NpgsqlConnection(pgsqlConnectionString);
+            StoreID = RDFModelUtilities.CreateHash(ToString());
+            Disposed = false;
 
             //Perform initial diagnostics
-            this.PrepareStore();
+            PrepareStore();
         }
 
         /// <summary>
         /// Destroys the PostgreSQL store instance
         /// </summary>
-        ~RDFPostgreSQLStore() => this.Dispose(false);
+        ~RDFPostgreSQLStore() => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -69,14 +69,14 @@ namespace RDFSharp.Store
         /// Gives the string representation of the PostgreSQL store 
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
 
         /// <summary>
         /// Disposes the PostgreSQL store instance 
         /// </summary>
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -85,16 +85,16 @@ namespace RDFSharp.Store
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (this.Disposed)
+            if (Disposed)
                 return;
 
             if (disposing)
             {
-                this.Connection?.Dispose();
-                this.Connection = null;
+                Connection?.Dispose();
+                Connection = null;
             }
 
-            this.Disposed = true;
+            Disposed = true;
         }
         #endregion
 
@@ -111,7 +111,7 @@ namespace RDFSharp.Store
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("INSERT INTO public.\"quadruples\"(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM public.\"quadruples\" WHERE quadrupleid = @QID)", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("INSERT INTO public.\"quadruples\"(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM public.\"quadruples\" WHERE quadrupleid = @QID)", Connection);
                 command.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                 command.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
@@ -126,13 +126,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Iterate triples
                     foreach (var triple in graph)
@@ -157,7 +157,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -165,7 +165,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into PostgreSQL store because: " + ex.Message, ex);
@@ -182,7 +182,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("INSERT INTO public.\"quadruples\"(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM public.\"quadruples\" WHERE quadrupleid = @QID)", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("INSERT INTO public.\"quadruples\"(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM public.\"quadruples\" WHERE quadrupleid = @QID)", Connection);
                 command.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                 command.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
@@ -209,13 +209,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -224,7 +224,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -232,7 +232,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into PostgreSQL store because: " + ex.Message, ex);
@@ -251,7 +251,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE quadrupleid = @QID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE quadrupleid = @QID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
 
                 //Valorize parameters
@@ -260,13 +260,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -275,7 +275,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -283,7 +283,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -300,7 +300,7 @@ namespace RDFSharp.Store
             if (contextResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
 
                 //Valorize parameters
@@ -309,13 +309,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -324,7 +324,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -332,7 +332,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -349,7 +349,7 @@ namespace RDFSharp.Store
             if (subjectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
 
                 //Valorize parameters
@@ -358,13 +358,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -373,7 +373,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -381,7 +381,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -398,7 +398,7 @@ namespace RDFSharp.Store
             if (predicateResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
 
                 //Valorize parameters
@@ -407,13 +407,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -422,7 +422,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -430,7 +430,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -447,7 +447,7 @@ namespace RDFSharp.Store
             if (objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
 
@@ -458,13 +458,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -473,7 +473,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -481,7 +481,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -498,7 +498,7 @@ namespace RDFSharp.Store
             if (literalObject != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
 
@@ -509,13 +509,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -524,7 +524,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -532,7 +532,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -549,7 +549,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
 
@@ -560,13 +560,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -575,7 +575,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -583,7 +583,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -600,7 +600,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
 
@@ -611,13 +611,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -626,7 +626,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -634,7 +634,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -651,7 +651,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -664,13 +664,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -679,7 +679,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -687,7 +687,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -704,7 +704,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectLiteral != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -717,13 +717,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -732,7 +732,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -740,7 +740,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -757,7 +757,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
@@ -770,13 +770,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -785,7 +785,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -793,7 +793,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -810,7 +810,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
@@ -825,13 +825,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -840,7 +840,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -848,7 +848,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -865,7 +865,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
@@ -880,13 +880,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -895,7 +895,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -903,7 +903,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -920,7 +920,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
@@ -935,13 +935,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -950,7 +950,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -958,7 +958,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -975,7 +975,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
@@ -990,13 +990,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1005,7 +1005,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1013,7 +1013,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1030,7 +1030,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && predicateResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID", Connection);
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
 
@@ -1041,13 +1041,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1056,7 +1056,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1064,7 +1064,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1081,7 +1081,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -1094,13 +1094,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1109,7 +1109,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1117,7 +1117,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1134,7 +1134,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -1147,13 +1147,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1162,7 +1162,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1170,7 +1170,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1187,7 +1187,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectResource != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -1200,13 +1200,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1215,7 +1215,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1223,7 +1223,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1240,7 +1240,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
                 command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                 command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
@@ -1253,13 +1253,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1268,7 +1268,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1276,7 +1276,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1291,18 +1291,18 @@ namespace RDFSharp.Store
         public override void ClearQuadruples()
         {
             //Create command
-            NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\"", this.Connection);
+            NpgsqlCommand command = new NpgsqlCommand("DELETE FROM public.\"quadruples\"", Connection);
 
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
 
                 //Open transaction
-                command.Transaction = this.Connection.BeginTransaction();
+                command.Transaction = Connection.BeginTransaction();
 
                 //Execute command
                 command.ExecuteNonQuery();
@@ -1311,7 +1311,7 @@ namespace RDFSharp.Store
                 command.Transaction.Commit();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
@@ -1319,7 +1319,7 @@ namespace RDFSharp.Store
                 command.Transaction.Rollback();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
@@ -1329,368 +1329,339 @@ namespace RDFSharp.Store
 
         #region Select
         /// <summary>
+        /// Checks if the given quadruple is found in the store
+        /// </summary>
+        public override bool ContainsQuadruple(RDFQuadruple quadruple)
+        {
+            //Guard against tricky input
+            if (quadruple == null)
+                return false;
+
+            //Create command
+            NpgsqlCommand command = new NpgsqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM public.\"quadruples\" WHERE quadrupleid = @QID)", Connection);
+            command.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));            
+
+            //Valorize parameters
+            command.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+            //Prepare and execute command
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Prepare command
+                command.Prepare();
+
+                //Execute command
+                int result = int.Parse(command.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Give result
+                return result == 1;
+            }
+            catch (Exception ex)
+            {
+                //Close connection
+                Connection.Close();
+
+                //Propagate exception
+                throw new RDFStoreException("Cannot read data from PostgreSQL store because: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
         internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            NpgsqlCommand command = null;
+            StringBuilder queryFilters = new StringBuilder();
+            
+            //Filter by Context
+            if (ctx != null)
+                queryFilters.Append('C');
+
+            //Filter by Subject
+            if (subj != null)
+                queryFilters.Append('S');
+
+            //Filter by Predicate
+            if (pred != null)
+                queryFilters.Append('P');
+
+            //Filter by Object
+            if (obj != null)
+                queryFilters.Append('O');
+
+            //Filter by Literal
+            if (lit != null)
+                queryFilters.Append('L');
 
             //Intersect the filters
-            if (ctx != null)
+            NpgsqlCommand command = null;
+            switch (queryFilters.ToString())
             {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->P->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->P->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->P->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->->P->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->P->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->P->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->->->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->S->P->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->P->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->P->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->S->->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->->P->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->P->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->P->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->->->O
-                            command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                            command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                            command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                            command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->->L
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", this.Connection);
-                                command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                                command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-                                command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->->
-                                command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\"", this.Connection);
-                            }
-                        }
-                    }
-                }
+                case "C":
+                    //C->->->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    break;
+                case "S":
+                    //->S->->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "P":
+                    //->->P->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "O":
+                    //->->->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "L":
+                    //->->->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CS":
+                    //C->S->->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "CP":
+                    //C->->P->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CO":
+                    //C->->->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CL":
+                    //C->->->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSP":
+                    //C->S->P->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CSO":
+                    //C->S->->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSL":
+                    //C->S->->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CPO":
+                    //C->->P->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CPL":
+                    //C->->P->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSPO":
+                    //C->S->P->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSPL":
+                    //C->S->P->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SP":
+                    //->S->P->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "SO":
+                    //->S->->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SL":
+                    //->S->->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "PO":
+                    //->->P->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "PL":
+                    //->->P->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SPO":
+                    //->S->P->O
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SPL":
+                    //->S->P->L
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\" WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV", Connection);
+                    command.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
+                    command.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                default:
+                    //->->->
+                    command = new NpgsqlCommand("SELECT tripleflavor, context, subject, predicate, object FROM public.\"quadruples\"", Connection);
+                    break;
             }
 
             //Prepare and execute command
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
-
-                //Set command timeout (3min)
                 command.CommandTimeout = 180;
 
                 //Execute command
-                using (var quadruples = command.ExecuteReader())
+                using (NpgsqlDataReader quadruples = command.ExecuteReader())
                 {
-                    if (quadruples.HasRows)
-                    {
-                        while (quadruples.Read())
-                        {
-                            result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
-                        }
-                    }
+                    while (quadruples.Read())
+                        result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
                 }
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from PostgreSQL store because: " + ex.Message, ex);
@@ -1709,27 +1680,25 @@ namespace RDFSharp.Store
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("SELECT COUNT(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'quadruples';", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("SELECT COUNT(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = 'quadruples';", Connection);
 
                 //Execute command
                 int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
-                if (result == 0)
-                    return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                else
-                    return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
+                                   : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
@@ -1741,7 +1710,7 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
@@ -1749,19 +1718,19 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Create & Execute command
-                    NpgsqlCommand command = new NpgsqlCommand("CREATE TABLE public.\"quadruples\" (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON public.\"quadruples\" USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON public.\"quadruples\" USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON public.\"quadruples\" USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON public.\"quadruples\" USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON public.\"quadruples\" USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON public.\"quadruples\" USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON public.\"quadruples\" USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", this.Connection);
+                    NpgsqlCommand command = new NpgsqlCommand("CREATE TABLE public.\"quadruples\" (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON public.\"quadruples\" USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON public.\"quadruples\" USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON public.\"quadruples\" USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON public.\"quadruples\" USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON public.\"quadruples\" USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON public.\"quadruples\" USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON public.\"quadruples\" USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", Connection);
                     command.ExecuteNonQuery();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare PostgreSQL store because: " + ex.Message, ex);
@@ -1770,9 +1739,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-            {
                 throw new RDFStoreException("Cannot prepare PostgreSQL store because: unable to connect to the server instance or to open the selected database.");
-            }
         }
         #endregion
 
@@ -1785,21 +1752,21 @@ namespace RDFSharp.Store
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand("VACUUM ANALYZE public.\"quadruples\"", this.Connection);
+                NpgsqlCommand command = new NpgsqlCommand("VACUUM ANALYZE public.\"quadruples\"", Connection);
 
                 //Execute command
                 command.ExecuteNonQuery();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize PostgreSQL store because: " + ex.Message, ex);
@@ -1809,5 +1776,4 @@ namespace RDFSharp.Store
 
         #endregion
     }
-
 }

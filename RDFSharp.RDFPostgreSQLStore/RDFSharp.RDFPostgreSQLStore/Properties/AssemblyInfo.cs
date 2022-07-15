@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3")]
+[assembly: InternalsVisibleTo("RDFSharp.RDFPostgreSQLStore.Test")]
