@@ -26,6 +26,7 @@ namespace RDFSharp.Store.Test
     [TestClass]
     public class RDFFirebirdStoreTest
     {
+        //This test suite is based on a local installation of Firebird4 having default SYSDBA credentials
         private RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
         private string User { get; set; } = "SYSDBA";
         private string Password { get; set; } = "masterkey";
@@ -42,15 +43,15 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStore()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldCreateStore.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldCreateStore.fdb"));
             RDFFirebirdStore store = new RDFFirebirdStore(
-                GetConnectionString(Path.Combine(Environment.CurrentDirectory,"ShouldCreateStore.fdb")), FirebirdVersion);
+                GetConnectionString(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldCreateStore.fdb")), FirebirdVersion);
 
             Assert.IsNotNull(store);
             Assert.IsTrue(string.Equals(store.StoreType, "FIREBIRD"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
             Assert.IsTrue(string.Equals(store.ToString(), string.Concat("FIREBIRD|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
-            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "ShouldCreateStore.fdb")));
+            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStore.fdb")));
         }
 
         [TestMethod]
@@ -64,15 +65,15 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreUsingDispose()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldCreateStoreUsingDispose.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldCreateStoreUsingDispose.fdb"));
             RDFFirebirdStore store = default;
-            using(store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldCreateStoreUsingDispose.fdb")), FirebirdVersion))
+            using(store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStoreUsingDispose.fdb")), FirebirdVersion))
             {
                 Assert.IsNotNull(store);
                 Assert.IsTrue(string.Equals(store.StoreType, "FIREBIRD"));
                 Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
                 Assert.IsTrue(string.Equals(store.ToString(), string.Concat("FIREBIRD|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
-                Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "ShouldCreateStoreUsingDispose.fdb")));
+                Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStoreUsingDispose.fdb")));
                 Assert.IsFalse(store.Disposed);
             }
 
@@ -83,14 +84,14 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreInvokingDispose()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldCreateStoreInvokingDispose.fdb"));
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldCreateStoreInvokingDispose.fdb")), FirebirdVersion);
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldCreateStoreInvokingDispose.fdb"));
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStoreInvokingDispose.fdb")), FirebirdVersion);
 
             Assert.IsNotNull(store);
             Assert.IsTrue(string.Equals(store.StoreType, "FIREBIRD"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
             Assert.IsTrue(string.Equals(store.ToString(), string.Concat("FIREBIRD|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
-            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "ShouldCreateStoreInvokingDispose.fdb")));
+            Assert.IsTrue(File.Exists(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldCreateStoreInvokingDispose.fdb")));
             Assert.IsFalse(store.Disposed);
 
             store.Dispose();
@@ -101,10 +102,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldAddQuadruple()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldAddQuadruple.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldAddQuadruple.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldAddQuadruple.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldAddQuadruple.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.AddQuadruple(quadruple); //Will not be inserted, since duplicate quadruples are not allowed
             store.AddQuadruple(null); //Will not be inserted, since null quadruples are not allowed
@@ -119,12 +120,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldMergeGraph()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldMergeGraph.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldMergeGraph.fdb"));
             RDFGraph graph = new RDFGraph(new List<RDFTriple>() {
                 new RDFTriple(new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))
             }).SetContext(new Uri("ex:ctx"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldMergeGraph.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldMergeGraph.fdb")), FirebirdVersion);
             store.MergeGraph(graph);
             store.MergeGraph(null); //Will not be merged, since null graphs are not allowed
 
@@ -138,10 +139,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruple()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruple.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruple.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruple.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruple.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruple(quadruple);
             store.RemoveQuadruple(null); //Will not be removed, since null quadruples are not allowed
@@ -155,11 +156,11 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruple()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruple.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruple.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruple.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruple.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruple(quadruple2);
 
@@ -173,10 +174,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContext()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContext.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContext.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContext.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContext.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx")));
             store.RemoveQuadruplesByContext(null); //Will not be removed, since null contexts are not allowed
@@ -190,10 +191,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContext()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContext.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContext.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContext.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContext.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx2")));
 
@@ -207,10 +208,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesBySubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesBySubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubject(new RDFResource("ex:subj"));
             store.RemoveQuadruplesBySubject(null); //Will not be removed, since null subjects are not allowed
@@ -224,10 +225,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesBySubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesBySubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubject(new RDFResource("ex:subj2"));
 
@@ -241,10 +242,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred"));
             store.RemoveQuadruplesByPredicate(null); //Will not be removed, since null predicates are not allowed
@@ -258,10 +259,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred2"));
 
@@ -275,10 +276,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByObject(new RDFResource("ex:obj"));
             store.RemoveQuadruplesByObject(null); //Will not be removed, since null objects are not allowed
@@ -292,10 +293,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByObject(new RDFResource("ex:obj2"));
 
@@ -309,10 +310,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByLiteral(null); //Will not be removed, since null literals are not allowed
@@ -326,10 +327,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello", "en-US"));
 
@@ -343,10 +344,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextSubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextSubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"));
             store.RemoveQuadruplesByContextSubject(null, null); //Will not be removed, since null params are not allowed
@@ -360,10 +361,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextSubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextSubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"));
 
@@ -377,10 +378,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicate(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"));
             store.RemoveQuadruplesByContextPredicate(null, null); //Will not be removed, since null params are not allowed
@@ -394,10 +395,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicate(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"));
 
@@ -411,10 +412,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextObject(null, null); //Will not be removed, since null params are not allowed
@@ -428,10 +429,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:obj"));
 
@@ -445,10 +446,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextLiteral(new RDFContext(new Uri("ex:ctx")), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -462,10 +463,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFPlainLiteral("hello"));
 
@@ -479,10 +480,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextSubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectPredicate(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"));
             store.RemoveQuadruplesByContextSubjectPredicate(null, null, null); //Will not be removed, since null params are not allowed
@@ -496,10 +497,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextSubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectPredicate(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"));
 
@@ -513,10 +514,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextSubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextSubjectObject(null, null, null); //Will not be removed, since null params are not allowed
@@ -530,10 +531,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextSubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:obj"));
 
@@ -547,10 +548,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextSubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectLiteral(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextSubjectLiteral(null, null, null); //Will not be removed, since null params are not allowed
@@ -564,10 +565,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextSubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
 
@@ -581,10 +582,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextPredicateObject(null, null, null); //Will not be removed, since null params are not allowed
@@ -598,10 +599,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
@@ -615,10 +616,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByContextPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateLiteral(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextPredicateLiteral(null, null, null); //Will not be removed, since null params are not allowed
@@ -632,10 +633,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByContextPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
@@ -649,10 +650,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesBySubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectPredicate(new RDFResource("ex:subj"), new RDFResource("ex:pred"));
             store.RemoveQuadruplesBySubjectPredicate(null, null); //Will not be removed, since null params are not allowed
@@ -666,10 +667,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesBySubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectPredicate(new RDFResource("ex:subj2"), new RDFResource("ex:pred"));
 
@@ -683,10 +684,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesBySubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesBySubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectObject(new RDFResource("ex:subj"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesBySubjectObject(null, null); //Will not be removed, since null params are not allowed
@@ -700,10 +701,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesBySubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesBySubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectObject(new RDFResource("ex:subj2"), new RDFResource("ex:obj"));
 
@@ -717,10 +718,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesBySubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectLiteral(new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesBySubjectLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -734,10 +735,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesBySubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectLiteral(new RDFResource("ex:subj2"), new RDFPlainLiteral("hello"));
 
@@ -751,10 +752,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateObject(new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByPredicateObject(null, null); //Will not be removed, since null params are not allowed
@@ -768,10 +769,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateObject(new RDFResource("ex:pred2"), new RDFResource("ex:obj"));
 
@@ -785,10 +786,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldRemoveQuadruplesByPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldRemoveQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldRemoveQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateLiteral(new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByPredicateLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -802,10 +803,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotRemoveQuadruplesByPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotRemoveQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateLiteral(new RDFResource("ex:pred2"), new RDFPlainLiteral("hello"));
 
@@ -819,10 +820,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldClearQuadruples()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldClearQuadruples.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldClearQuadruples.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldClearQuadruples.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldClearQuadruples.fdb")), FirebirdVersion);
             store.ClearQuadruples();
 
             RDFMemoryStore memStore = store.SelectAllQuadruples();
@@ -834,11 +835,11 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldContainQuadruple()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldContainQuadruple.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldContainQuadruple.fdb"));
             RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldContainQuadruple.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldContainQuadruple.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple1);
             store.AddQuadruple(quadruple2);
 
@@ -849,11 +850,11 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotContainQuadruple()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotContainQuadruple.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotContainQuadruple.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotContainQuadruple.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotContainQuadruple.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
 
             Assert.IsFalse(store.ContainsQuadruple(quadruple2));
@@ -863,10 +864,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContext()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContext.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContext.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContext.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContext.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByContext(new RDFContext(new Uri("ex:ctx")));
 
@@ -877,10 +878,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContext()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContext.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContext.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContext.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContext.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByContext(new RDFContext(new Uri("ex:ctx2")));
 
@@ -891,10 +892,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesBySubject(new RDFResource("ex:subj"));
 
@@ -905,10 +906,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesBySubject(new RDFResource("ex:subj2"));
 
@@ -919,10 +920,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByPredicate(new RDFResource("ex:pred"));
 
@@ -933,10 +934,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByPredicate(new RDFResource("ex:pred2"));
 
@@ -947,10 +948,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByObject(new RDFResource("ex:obj"));
 
@@ -961,10 +962,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByObject(new RDFResource("ex:obj2"));
 
@@ -975,10 +976,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByLiteral(new RDFPlainLiteral("hello"));
 
@@ -989,10 +990,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByLiteral(new RDFPlainLiteral("hello","en"));
 
@@ -1003,10 +1004,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, null, null);
 
@@ -1017,10 +1018,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, null, null);
 
@@ -1031,10 +1032,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), null, null);
 
@@ -1045,10 +1046,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), null, null);
 
@@ -1059,10 +1060,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, null, new RDFResource("ex:obj"), null);
 
@@ -1073,10 +1074,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, new RDFResource("ex:obj"), null);
 
@@ -1087,10 +1088,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, null, null, new RDFPlainLiteral("hello"));
 
@@ -1101,10 +1102,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, null, new RDFPlainLiteral("hello"));
 
@@ -1115,10 +1116,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1129,10 +1130,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1143,10 +1144,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1157,10 +1158,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1171,10 +1172,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1185,10 +1186,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1199,10 +1200,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1213,10 +1214,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1227,10 +1228,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1241,10 +1242,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1255,10 +1256,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubjectPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubjectPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1269,10 +1270,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubjectPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubjectPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1283,10 +1284,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByContextSubjectPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByContextSubjectPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1297,10 +1298,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1311,10 +1312,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1325,10 +1326,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicate()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubjectPredicate.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, null);
 
@@ -1339,10 +1340,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1353,10 +1354,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubjectObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubjectObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, new RDFResource("ex:obj"), null);
 
@@ -1367,10 +1368,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1381,10 +1382,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubjectLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1395,10 +1396,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1409,10 +1410,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), new RDFResource("ex:obj"), null);
 
@@ -1423,10 +1424,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesByPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1437,10 +1438,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesByPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), null, new RDFPlainLiteral("hello"));
 
@@ -1451,10 +1452,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubjectPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubjectPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1465,10 +1466,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateObject()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubjectPredicateObject.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubjectPredicateObject.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1479,10 +1480,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldSelectQuadruplesBySubjectPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldSelectQuadruplesBySubjectPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1493,10 +1494,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateLiteral()
         {
-            File.Delete(Path.Combine(Environment.CurrentDirectory,"ShouldNotSelectQuadruplesBySubjectPredicateLiteral.fdb"));
+            File.Delete(Path.Combine(Environment.CurrentDirectory,"RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral.fdb"));
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "ShouldNotSelectQuadruplesBySubjectPredicateLiteral.fdb")), FirebirdVersion);
+            RDFFirebirdStore store = new RDFFirebirdStore(GetConnectionString(Path.Combine(Environment.CurrentDirectory, "RDFFirebirdStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral.fdb")), FirebirdVersion);
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
