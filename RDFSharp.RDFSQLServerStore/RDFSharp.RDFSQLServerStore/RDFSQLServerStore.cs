@@ -16,12 +16,12 @@
 
 using System;
 using System.Data;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using RDFSharp.Model;
 
 namespace RDFSharp.Store
 {
-
     /// <summary>
     /// RDFSQLServerStore represents a RDFStore backed on SQL Server engine
     /// </summary>
@@ -1378,330 +1378,264 @@ namespace RDFSharp.Store
         internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            SqlCommand command = null;
+            StringBuilder queryFilters = new StringBuilder();
+
+            //Filter by Context
+            if (ctx != null)
+                queryFilters.Append('C');
+
+            //Filter by Subject
+            if (subj != null)
+                queryFilters.Append('S');
+
+            //Filter by Predicate
+            if (pred != null)
+                queryFilters.Append('P');
+
+            //Filter by Object
+            if (obj != null)
+                queryFilters.Append('O');
+
+            //Filter by Literal
+            if (lit != null)
+                queryFilters.Append('L');
 
             //Intersect the filters
-            if (ctx != null)
+            SqlCommand command = null;
+            switch (queryFilters.ToString())
             {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->P->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->P->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->P->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->S->->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", Connection);
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->->P->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->P->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->P->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", Connection);
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->->->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //C->->->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", Connection);
-                                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->S->P->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->P->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->P->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->S->->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->S->->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", Connection);
-                                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->->P->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->P->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->P->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", Connection);
-                                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->->->O
-                            command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                            command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                            command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                            command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->->L
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                            }
-                            else
-                            {
-                                //->->->
-                                command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]", Connection);
-                            }
-                        }
-                    }
-                }
+                case "C":
+                    //C->->->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    break;
+                case "S":
+                    //->S->->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "P":
+                    //->->P->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", Connection);
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "O":
+                    //->->->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "L":
+                    //->->->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CS":
+                    //C->S->->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "CP":
+                    //C->->P->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CO":
+                    //C->->->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CL":
+                    //C->->->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSP":
+                    //C->S->P->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CSO":
+                    //C->S->->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSL":
+                    //C->S->->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CPO":
+                    //C->->P->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CPL":
+                    //C->->P->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSPO":
+                    //C->S->P->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSPL":
+                    //C->S->P->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SP":
+                    //->S->P->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "SO":
+                    //->S->->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SL":
+                    //->S->->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "PO":
+                    //->->P->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "PL":
+                    //->->P->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SPO":
+                    //->S->P->O
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SPL":
+                    //->S->P->L
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
+                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                default:
+                    //->->->
+                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]", Connection);
+                    break;
             }
 
             //Prepare and execute command
@@ -1714,15 +1648,10 @@ namespace RDFSharp.Store
                 command.Prepare();
 
                 //Execute command
-                using (var quadruples = command.ExecuteReader())
+                using (SqlDataReader quadruples = command.ExecuteReader())
                 {
-                    if (quadruples.HasRows)
-                    {
-                        while (quadruples.Read())
-                        {
-                            result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
-                        }
-                    }
+                    while (quadruples.Read())
+                        result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
                 }
 
                 //Close connection
@@ -1762,10 +1691,8 @@ namespace RDFSharp.Store
                 Connection.Close();
 
                 //Return the diagnostics state
-                if (result == 0)
-                    return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                else
-                    return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
+                return  result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
+                                    : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
             {
@@ -1811,9 +1738,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-            {
                 throw new RDFStoreException("Cannot prepare SQL Server store because: unable to connect to the server instance or to open the selected database.");
-            }
         }
         #endregion
 
@@ -1850,5 +1775,4 @@ namespace RDFSharp.Store
 
         #endregion
     }
-
 }
