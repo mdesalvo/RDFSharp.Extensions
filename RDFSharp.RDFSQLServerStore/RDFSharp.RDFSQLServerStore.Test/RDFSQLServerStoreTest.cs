@@ -18,8 +18,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.IO;
 using System.Linq;
 using RDFSharp.Model;
 
@@ -28,7 +26,7 @@ namespace RDFSharp.Store.Test
     [TestClass]
     public class RDFSQLServerStoreTest
     {
-        //This test suite is based on a local installation of SQLServer Express using Windows authentication
+        //This test suite is based on a local installation of SQLServer Express using unencrypted Windows authentication
         private string GetConnectionString(string database)
             => $"Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;Encrypt=False;";
 
