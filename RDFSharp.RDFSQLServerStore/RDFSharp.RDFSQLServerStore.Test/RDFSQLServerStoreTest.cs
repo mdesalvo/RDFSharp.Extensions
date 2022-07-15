@@ -15,8 +15,10 @@
 */
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using RDFSharp.Model;
@@ -28,19 +30,81 @@ namespace RDFSharp.Store.Test
     {
         //This test suite is based on a local installation of SQLServer Express using Windows authentication
         private string GetConnectionString(string database)
-            => $"Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;";
+            => $"Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;Encrypt=False;";
+
+        private void CreateDatabase(string database)
+        {
+            SqlConnection connection = default;
+            try
+            {
+                //Create connection
+                connection = new SqlConnection(GetConnectionString("master"));
+
+                //Open connection
+                connection.Open();
+
+                //Create command
+                SqlCommand command = new SqlCommand($"CREATE DATABASE {database};", connection);
+
+                //Execute command
+                command.ExecuteNonQuery();
+
+                //Close connection
+                connection.Close();
+            }
+            catch
+            {
+                //Close connection
+                connection.Close();
+
+                //Propagate exception
+                throw;
+            }
+        }
+
+        private void DropDatabase(string database)
+        {
+            SqlConnection connection = default;
+            try
+            {
+                //Create connection
+                connection = new SqlConnection(GetConnectionString("master"));
+
+                //Open connection
+                connection.Open();
+
+                //Create command
+                SqlCommand command = new SqlCommand($"DROP DATABASE IF EXISTS {database};", connection);
+
+                //Execute command
+                command.ExecuteNonQuery();
+
+                //Close connection
+                connection.Close();
+            }
+            catch
+            {
+                //Close connection
+                connection.Close();
+
+                //Propagate exception
+                throw;
+            }
+        }
 
         #region Tests        
         [TestMethod]
         public void ShouldCreateStore()
         {
-            RDFSQLServerStore store = new RDFSQLServerStore(
-                GetConnectionString("RDFSQLServerStoreTest_ShouldCreateStore"));
+            DropDatabase("RDFSQLServerStoreTest_ShouldCreateStore");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldCreateStore");
+
+            RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldCreateStore"));
 
             Assert.IsNotNull(store);
-            Assert.IsTrue(string.Equals(store.StoreType, "SQLServer"));
+            Assert.IsTrue(string.Equals(store.StoreType, "SQLSERVER"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
-            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLServer|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLSERVER|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
         }
 
         [TestMethod]
@@ -54,13 +118,16 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreUsingDispose()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldCreateStoreUsingDispose");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldCreateStoreUsingDispose");
+
             RDFSQLServerStore store = default;
             using(store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldCreateStoreUsingDispose")))
             {
                 Assert.IsNotNull(store);
-                Assert.IsTrue(string.Equals(store.StoreType, "SQLServer"));
+                Assert.IsTrue(string.Equals(store.StoreType, "SQLSERVER"));
                 Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
-                Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLServer|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+                Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLSERVER|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
                 Assert.IsFalse(store.Disposed);
             }
 
@@ -71,12 +138,15 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreInvokingDispose()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldCreateStoreInvokingDispose");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldCreateStoreInvokingDispose");
+
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldCreateStoreInvokingDispose"));
 
             Assert.IsNotNull(store);
-            Assert.IsTrue(string.Equals(store.StoreType, "SQLServer"));
+            Assert.IsTrue(string.Equals(store.StoreType, "SQLSERVER"));
             Assert.IsTrue(store.StoreID.Equals(RDFModelUtilities.CreateHash(store.ToString())));
-            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLServer|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
+            Assert.IsTrue(string.Equals(store.ToString(), string.Concat("SQLSERVER|SERVER=", store.Connection.DataSource, ";DATABASE=", store.Connection.Database)));
             Assert.IsFalse(store.Disposed);
 
             store.Dispose();
@@ -87,6 +157,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldAddQuadruple()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldAddQuadruple");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldAddQuadruple");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldAddQuadruple"));
@@ -104,6 +177,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldMergeGraph()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldMergeGraph");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldMergeGraph");
+
             RDFGraph graph = new RDFGraph(new List<RDFTriple>() {
                 new RDFTriple(new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))
             }).SetContext(new Uri("ex:ctx"));
@@ -122,6 +198,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruple()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruple");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruple");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruple"));
@@ -138,6 +217,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruple()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruple");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruple");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
@@ -155,6 +237,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContext()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContext");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContext");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContext"));
@@ -171,6 +256,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContext()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContext");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContext");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContext"));
@@ -187,6 +275,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubject"));
@@ -203,6 +294,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubject"));
@@ -219,6 +313,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicate"));
@@ -235,6 +332,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicate"));
@@ -251,6 +351,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByObject"));
@@ -267,6 +370,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByObject"));
@@ -283,6 +389,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByLiteral"));
@@ -299,6 +408,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByLiteral"));
@@ -315,6 +427,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubject"));
@@ -331,6 +446,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubject"));
@@ -347,6 +465,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicate"));
@@ -363,6 +484,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicate"));
@@ -379,6 +503,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextObject"));
@@ -395,6 +522,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextObject"));
@@ -411,6 +541,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextLiteral"));
@@ -427,6 +560,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextLiteral"));
@@ -443,6 +579,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate"));
@@ -459,6 +598,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate"));
@@ -475,6 +617,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectObject"));
@@ -491,6 +636,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject"));
@@ -507,6 +655,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral"));
@@ -523,6 +674,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral"));
@@ -539,6 +693,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateObject"));
@@ -555,6 +712,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject"));
@@ -571,6 +731,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral"));
@@ -587,6 +750,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral"));
@@ -603,6 +769,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectPredicate"));
@@ -619,6 +788,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate"));
@@ -635,6 +807,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectObject"));
@@ -651,6 +826,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectObject"));
@@ -667,6 +845,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesBySubjectLiteral"));
@@ -683,6 +864,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral"));
@@ -699,6 +883,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateObject"));
@@ -715,6 +902,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateObject"));
@@ -731,6 +921,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldRemoveQuadruplesByPredicateLiteral"));
@@ -747,6 +940,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral"));
@@ -763,6 +959,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldClearQuadruples()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldClearQuadruples");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldClearQuadruples");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldClearQuadruples"));
@@ -777,6 +976,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldContainQuadruple()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldContainQuadruple");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldContainQuadruple");
+
             RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
@@ -791,6 +993,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotContainQuadruple()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotContainQuadruple");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotContainQuadruple");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
@@ -804,6 +1009,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContext()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContext");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContext");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContext"));
@@ -817,6 +1025,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContext()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContext");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContext");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContext"));
@@ -830,6 +1041,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubject"));
@@ -843,6 +1057,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubject"));
@@ -856,6 +1073,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicate"));
@@ -869,6 +1089,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicate"));
@@ -882,6 +1105,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByObject"));
@@ -895,6 +1121,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByObject"));
@@ -908,6 +1137,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByLiteral"));
@@ -921,6 +1153,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByLiteral"));
@@ -934,6 +1169,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubject"));
@@ -947,6 +1185,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubject"));
@@ -960,6 +1201,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicate"));
@@ -973,6 +1217,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicate"));
@@ -986,6 +1233,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextObject"));
@@ -999,6 +1249,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextObject"));
@@ -1012,6 +1265,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextLiteral"));
@@ -1025,6 +1281,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextLiteral"));
@@ -1038,6 +1297,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate"));
@@ -1051,6 +1313,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate"));
@@ -1064,6 +1329,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectObject"));
@@ -1077,6 +1345,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject"));
@@ -1090,6 +1361,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral"));
@@ -1103,6 +1377,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral"));
@@ -1116,6 +1393,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateObject"));
@@ -1129,6 +1409,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject"));
@@ -1142,6 +1425,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral"));
@@ -1155,6 +1441,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral"));
@@ -1168,6 +1457,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject"));
@@ -1181,6 +1473,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject"));
@@ -1194,6 +1489,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral"));
@@ -1207,6 +1505,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral"));
@@ -1220,6 +1521,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicate"));
@@ -1233,6 +1537,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicate()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate"));
@@ -1246,6 +1553,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectObject"));
@@ -1259,6 +1569,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectObject"));
@@ -1272,6 +1585,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectLiteral"));
@@ -1285,6 +1601,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral"));
@@ -1298,6 +1617,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateObject"));
@@ -1311,6 +1633,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateObject"));
@@ -1324,6 +1649,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesByPredicateLiteral"));
@@ -1337,6 +1665,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral"));
@@ -1350,6 +1681,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject"));
@@ -1363,6 +1697,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateObject()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject"));
@@ -1376,6 +1713,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral"));
@@ -1389,6 +1729,9 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateLiteral()
         {
+            DropDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
+
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
             RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral"));
@@ -1397,6 +1740,35 @@ namespace RDFSharp.Store.Test
 
             Assert.IsNotNull(result);
             Assert.IsFalse(result.ContainsQuadruple(quadruple));
+        }
+
+        [TestMethod]
+        public void ShouldOptimize()
+        {
+            DropDatabase("RDFSQLServerStoreTest_ShouldOptimize");
+            CreateDatabase("RDFSQLServerStoreTest_ShouldOptimize");
+
+            RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+            RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple3 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple4 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx3")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
+            RDFQuadruple quadruple5 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
+            RDFQuadruple quadruple6 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj4"), new RDFResource("ex:pred4"), new RDFResource("ex:obj"));
+
+            RDFSQLServerStore store = new RDFSQLServerStore(GetConnectionString("RDFSQLServerStoreTest_ShouldOptimize"));
+            store.AddQuadruple(quadruple1);
+            store.AddQuadruple(quadruple2);
+            store.AddQuadruple(quadruple3);
+            store.AddQuadruple(quadruple4);
+            store.RemoveQuadruple(quadruple1);
+            store.RemoveQuadruple(quadruple2);
+            store.AddQuadruple(quadruple1);
+            store.AddQuadruple(quadruple2);
+            store.AddQuadruple(quadruple5);
+            store.AddQuadruple(quadruple6);
+
+            store.OptimizeStore();
+            Assert.IsTrue(true);
         }
         #endregion        
     }
