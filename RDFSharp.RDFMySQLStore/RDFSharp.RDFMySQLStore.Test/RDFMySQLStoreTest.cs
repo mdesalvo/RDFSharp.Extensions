@@ -99,10 +99,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStore()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldCreateStore");
-            CreateDatabase("RDFMySQLStoreTest_ShouldCreateStore");
+            DropDatabase("ShouldCreateStore");
+            CreateDatabase("ShouldCreateStore");
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldCreateStore"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldCreateStore"));
 
             Assert.IsNotNull(store);
             Assert.IsTrue(string.Equals(store.StoreType, "MYSQL"));
@@ -121,11 +121,11 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreUsingDispose()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldCreateStoreUsingDispose");
-            CreateDatabase("RDFMySQLStoreTest_ShouldCreateStoreUsingDispose");
+            DropDatabase("ShouldCreateStoreUsingDispose");
+            CreateDatabase("ShouldCreateStoreUsingDispose");
 
             RDFMySQLStore store = default;
-            using(store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldCreateStoreUsingDispose")))
+            using(store = new RDFMySQLStore(GetConnectionString("ShouldCreateStoreUsingDispose")))
             {
                 Assert.IsNotNull(store);
                 Assert.IsTrue(string.Equals(store.StoreType, "MYSQL"));
@@ -141,10 +141,10 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldCreateStoreInvokingDispose()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldCreateStoreInvokingDispose");
-            CreateDatabase("RDFMySQLStoreTest_ShouldCreateStoreInvokingDispose");
+            DropDatabase("ShouldCreateStoreInvokingDispose");
+            CreateDatabase("ShouldCreateStoreInvokingDispose");
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldCreateStoreInvokingDispose"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldCreateStoreInvokingDispose"));
 
             Assert.IsNotNull(store);
             Assert.IsTrue(string.Equals(store.StoreType, "MYSQL"));
@@ -160,12 +160,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldAddQuadruple()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldAddQuadruple");
-            CreateDatabase("RDFMySQLStoreTest_ShouldAddQuadruple");
+            DropDatabase("ShouldAddQuadruple");
+            CreateDatabase("ShouldAddQuadruple");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldAddQuadruple"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldAddQuadruple"));
             store.AddQuadruple(quadruple);
             store.AddQuadruple(quadruple); //Will not be inserted, since duplicate quadruples are not allowed
             store.AddQuadruple(null); //Will not be inserted, since null quadruples are not allowed
@@ -180,14 +180,14 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldMergeGraph()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldMergeGraph");
-            CreateDatabase("RDFMySQLStoreTest_ShouldMergeGraph");
+            DropDatabase("ShouldMergeGraph");
+            CreateDatabase("ShouldMergeGraph");
 
             RDFGraph graph = new RDFGraph(new List<RDFTriple>() {
                 new RDFTriple(new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"))
             }).SetContext(new Uri("ex:ctx"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldMergeGraph"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldMergeGraph"));
             store.MergeGraph(graph);
             store.MergeGraph(null); //Will not be merged, since null graphs are not allowed
 
@@ -201,12 +201,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruple()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruple");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruple");
+            DropDatabase("ShouldRemoveQuadruple");
+            CreateDatabase("ShouldRemoveQuadruple");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruple"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruple"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruple(quadruple);
             store.RemoveQuadruple(null); //Will not be removed, since null quadruples are not allowed
@@ -220,13 +220,13 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruple()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruple");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruple");
+            DropDatabase("ShouldNotRemoveQuadruple");
+            CreateDatabase("ShouldNotRemoveQuadruple");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruple"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruple"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruple(quadruple2);
 
@@ -240,12 +240,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContext()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContext");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContext");
+            DropDatabase("ShouldRemoveQuadruplesByContext");
+            CreateDatabase("ShouldRemoveQuadruplesByContext");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContext"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContext"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx")));
             store.RemoveQuadruplesByContext(null); //Will not be removed, since null contexts are not allowed
@@ -259,12 +259,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContext()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContext");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContext");
+            DropDatabase("ShouldNotRemoveQuadruplesByContext");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContext");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContext"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContext"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContext(new RDFContext(new Uri("ex:ctx2")));
 
@@ -278,12 +278,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubject");
+            DropDatabase("ShouldRemoveQuadruplesBySubject");
+            CreateDatabase("ShouldRemoveQuadruplesBySubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesBySubject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubject(new RDFResource("ex:subj"));
             store.RemoveQuadruplesBySubject(null); //Will not be removed, since null subjects are not allowed
@@ -297,12 +297,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubject");
+            DropDatabase("ShouldNotRemoveQuadruplesBySubject");
+            CreateDatabase("ShouldNotRemoveQuadruplesBySubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesBySubject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubject(new RDFResource("ex:subj2"));
 
@@ -316,12 +316,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicate");
+            DropDatabase("ShouldRemoveQuadruplesByPredicate");
+            CreateDatabase("ShouldRemoveQuadruplesByPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred"));
             store.RemoveQuadruplesByPredicate(null); //Will not be removed, since null predicates are not allowed
@@ -335,12 +335,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicate");
+            DropDatabase("ShouldNotRemoveQuadruplesByPredicate");
+            CreateDatabase("ShouldNotRemoveQuadruplesByPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicate(new RDFResource("ex:pred2"));
 
@@ -354,12 +354,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByObject");
+            DropDatabase("ShouldRemoveQuadruplesByObject");
+            CreateDatabase("ShouldRemoveQuadruplesByObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByObject(new RDFResource("ex:obj"));
             store.RemoveQuadruplesByObject(null); //Will not be removed, since null objects are not allowed
@@ -373,12 +373,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByObject");
+            DropDatabase("ShouldNotRemoveQuadruplesByObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByObject(new RDFResource("ex:obj2"));
 
@@ -392,12 +392,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByLiteral");
+            DropDatabase("ShouldRemoveQuadruplesByLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesByLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByLiteral(null); //Will not be removed, since null literals are not allowed
@@ -411,12 +411,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesByLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesByLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByLiteral(new RDFPlainLiteral("hello", "en-US"));
 
@@ -430,12 +430,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubject");
+            DropDatabase("ShouldRemoveQuadruplesByContextSubject");
+            CreateDatabase("ShouldRemoveQuadruplesByContextSubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextSubject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"));
             store.RemoveQuadruplesByContextSubject(null, null); //Will not be removed, since null params are not allowed
@@ -449,12 +449,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubject");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextSubject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextSubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextSubject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"));
 
@@ -468,12 +468,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicate");
+            DropDatabase("ShouldRemoveQuadruplesByContextPredicate");
+            CreateDatabase("ShouldRemoveQuadruplesByContextPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicate(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"));
             store.RemoveQuadruplesByContextPredicate(null, null); //Will not be removed, since null params are not allowed
@@ -487,12 +487,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicate");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextPredicate");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicate(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"));
 
@@ -506,12 +506,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextObject");
+            DropDatabase("ShouldRemoveQuadruplesByContextObject");
+            CreateDatabase("ShouldRemoveQuadruplesByContextObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextObject(null, null); //Will not be removed, since null params are not allowed
@@ -525,12 +525,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextObject");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:obj"));
 
@@ -544,12 +544,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextLiteral");
+            DropDatabase("ShouldRemoveQuadruplesByContextLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesByContextLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextLiteral(new RDFContext(new Uri("ex:ctx")), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -563,12 +563,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFPlainLiteral("hello"));
 
@@ -582,12 +582,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate");
+            DropDatabase("ShouldRemoveQuadruplesByContextSubjectPredicate");
+            CreateDatabase("ShouldRemoveQuadruplesByContextSubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextSubjectPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectPredicate(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"));
             store.RemoveQuadruplesByContextSubjectPredicate(null, null, null); //Will not be removed, since null params are not allowed
@@ -601,12 +601,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextSubjectPredicate");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextSubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextSubjectPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectPredicate(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"));
 
@@ -620,12 +620,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectObject");
+            DropDatabase("ShouldRemoveQuadruplesByContextSubjectObject");
+            CreateDatabase("ShouldRemoveQuadruplesByContextSubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextSubjectObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextSubjectObject(null, null, null); //Will not be removed, since null params are not allowed
@@ -639,12 +639,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextSubjectObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextSubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextSubjectObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:obj"));
 
@@ -658,12 +658,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextSubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral");
+            DropDatabase("ShouldRemoveQuadruplesByContextSubjectLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesByContextSubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextSubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextSubjectLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectLiteral(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextSubjectLiteral(null, null, null); //Will not be removed, since null params are not allowed
@@ -677,12 +677,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextSubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextSubjectLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextSubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextSubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextSubjectLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextSubjectLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
 
@@ -696,12 +696,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateObject");
+            DropDatabase("ShouldRemoveQuadruplesByContextPredicateObject");
+            CreateDatabase("ShouldRemoveQuadruplesByContextPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextPredicateObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateObject(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByContextPredicateObject(null, null, null); //Will not be removed, since null params are not allowed
@@ -715,12 +715,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextPredicateObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextPredicateObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateObject(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
@@ -734,12 +734,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByContextPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral");
+            DropDatabase("ShouldRemoveQuadruplesByContextPredicateLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesByContextPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByContextPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByContextPredicateLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateLiteral(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByContextPredicateLiteral(null, null, null); //Will not be removed, since null params are not allowed
@@ -753,12 +753,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByContextPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesByContextPredicateLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesByContextPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByContextPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByContextPredicateLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByContextPredicateLiteral(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
@@ -772,12 +772,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectPredicate");
+            DropDatabase("ShouldRemoveQuadruplesBySubjectPredicate");
+            CreateDatabase("ShouldRemoveQuadruplesBySubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesBySubjectPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectPredicate(new RDFResource("ex:subj"), new RDFResource("ex:pred"));
             store.RemoveQuadruplesBySubjectPredicate(null, null); //Will not be removed, since null params are not allowed
@@ -791,12 +791,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate");
+            DropDatabase("ShouldNotRemoveQuadruplesBySubjectPredicate");
+            CreateDatabase("ShouldNotRemoveQuadruplesBySubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesBySubjectPredicate"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectPredicate(new RDFResource("ex:subj2"), new RDFResource("ex:pred"));
 
@@ -810,12 +810,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectObject");
+            DropDatabase("ShouldRemoveQuadruplesBySubjectObject");
+            CreateDatabase("ShouldRemoveQuadruplesBySubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesBySubjectObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectObject(new RDFResource("ex:subj"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesBySubjectObject(null, null); //Will not be removed, since null params are not allowed
@@ -829,12 +829,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectObject");
+            DropDatabase("ShouldNotRemoveQuadruplesBySubjectObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesBySubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesBySubjectObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectObject(new RDFResource("ex:subj2"), new RDFResource("ex:obj"));
 
@@ -848,12 +848,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesBySubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectLiteral");
+            DropDatabase("ShouldRemoveQuadruplesBySubjectLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesBySubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesBySubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesBySubjectLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectLiteral(new RDFResource("ex:subj"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesBySubjectLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -867,12 +867,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesBySubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesBySubjectLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesBySubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesBySubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesBySubjectLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesBySubjectLiteral(new RDFResource("ex:subj2"), new RDFPlainLiteral("hello"));
 
@@ -886,12 +886,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateObject");
+            DropDatabase("ShouldRemoveQuadruplesByPredicateObject");
+            CreateDatabase("ShouldRemoveQuadruplesByPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByPredicateObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateObject(new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             store.RemoveQuadruplesByPredicateObject(null, null); //Will not be removed, since null params are not allowed
@@ -905,12 +905,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateObject");
+            DropDatabase("ShouldNotRemoveQuadruplesByPredicateObject");
+            CreateDatabase("ShouldNotRemoveQuadruplesByPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByPredicateObject"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateObject(new RDFResource("ex:pred2"), new RDFResource("ex:obj"));
 
@@ -924,12 +924,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldRemoveQuadruplesByPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateLiteral");
+            DropDatabase("ShouldRemoveQuadruplesByPredicateLiteral");
+            CreateDatabase("ShouldRemoveQuadruplesByPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldRemoveQuadruplesByPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldRemoveQuadruplesByPredicateLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateLiteral(new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             store.RemoveQuadruplesByPredicateLiteral(null, null); //Will not be removed, since null params are not allowed
@@ -943,12 +943,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotRemoveQuadruplesByPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral");
+            DropDatabase("ShouldNotRemoveQuadruplesByPredicateLiteral");
+            CreateDatabase("ShouldNotRemoveQuadruplesByPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotRemoveQuadruplesByPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotRemoveQuadruplesByPredicateLiteral"));
             store.AddQuadruple(quadruple);
             store.RemoveQuadruplesByPredicateLiteral(new RDFResource("ex:pred2"), new RDFPlainLiteral("hello"));
 
@@ -962,12 +962,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldClearQuadruples()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldClearQuadruples");
-            CreateDatabase("RDFMySQLStoreTest_ShouldClearQuadruples");
+            DropDatabase("ShouldClearQuadruples");
+            CreateDatabase("ShouldClearQuadruples");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldClearQuadruples"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldClearQuadruples"));
             store.ClearQuadruples();
 
             RDFMemoryStore memStore = store.SelectAllQuadruples();
@@ -979,13 +979,13 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldContainQuadruple()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldContainQuadruple");
-            CreateDatabase("RDFMySQLStoreTest_ShouldContainQuadruple");
+            DropDatabase("ShouldContainQuadruple");
+            CreateDatabase("ShouldContainQuadruple");
 
             RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldContainQuadruple"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldContainQuadruple"));
             store.AddQuadruple(quadruple1);
             store.AddQuadruple(quadruple2);
 
@@ -996,13 +996,13 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotContainQuadruple()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotContainQuadruple");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotContainQuadruple");
+            DropDatabase("ShouldNotContainQuadruple");
+            CreateDatabase("ShouldNotContainQuadruple");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotContainQuadruple"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotContainQuadruple"));
             store.AddQuadruple(quadruple);
 
             Assert.IsFalse(store.ContainsQuadruple(quadruple2));
@@ -1012,12 +1012,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContext()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContext");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContext");
+            DropDatabase("ShouldSelectQuadruplesByContext");
+            CreateDatabase("ShouldSelectQuadruplesByContext");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContext"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContext"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByContext(new RDFContext(new Uri("ex:ctx")));
 
@@ -1028,12 +1028,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContext()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContext");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContext");
+            DropDatabase("ShouldNotSelectQuadruplesByContext");
+            CreateDatabase("ShouldNotSelectQuadruplesByContext");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContext"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContext"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByContext(new RDFContext(new Uri("ex:ctx2")));
 
@@ -1044,12 +1044,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubject");
+            DropDatabase("ShouldSelectQuadruplesBySubject");
+            CreateDatabase("ShouldSelectQuadruplesBySubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesBySubject(new RDFResource("ex:subj"));
 
@@ -1060,12 +1060,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubject");
+            DropDatabase("ShouldNotSelectQuadruplesBySubject");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesBySubject(new RDFResource("ex:subj2"));
 
@@ -1076,12 +1076,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicate");
+            DropDatabase("ShouldSelectQuadruplesByPredicate");
+            CreateDatabase("ShouldSelectQuadruplesByPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByPredicate(new RDFResource("ex:pred"));
 
@@ -1092,12 +1092,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicate");
+            DropDatabase("ShouldNotSelectQuadruplesByPredicate");
+            CreateDatabase("ShouldNotSelectQuadruplesByPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByPredicate(new RDFResource("ex:pred2"));
 
@@ -1108,12 +1108,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByObject");
+            DropDatabase("ShouldSelectQuadruplesByObject");
+            CreateDatabase("ShouldSelectQuadruplesByObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByObject(new RDFResource("ex:obj"));
 
@@ -1124,12 +1124,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByObject");
+            DropDatabase("ShouldNotSelectQuadruplesByObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByObject(new RDFResource("ex:obj2"));
 
@@ -1140,12 +1140,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByLiteral");
+            DropDatabase("ShouldSelectQuadruplesByLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByLiteral(new RDFPlainLiteral("hello"));
 
@@ -1156,12 +1156,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruplesByLiteral(new RDFPlainLiteral("hello","en"));
 
@@ -1172,12 +1172,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubject");
+            DropDatabase("ShouldSelectQuadruplesByContextSubject");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, null, null);
 
@@ -1188,12 +1188,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubject");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubject");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, null, null);
 
@@ -1204,12 +1204,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicate");
+            DropDatabase("ShouldSelectQuadruplesByContextPredicate");
+            CreateDatabase("ShouldSelectQuadruplesByContextPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), null, null);
 
@@ -1220,12 +1220,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicate");
+            DropDatabase("ShouldNotSelectQuadruplesByContextPredicate");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), null, null);
 
@@ -1236,12 +1236,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextObject");
+            DropDatabase("ShouldSelectQuadruplesByContextObject");
+            CreateDatabase("ShouldSelectQuadruplesByContextObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, null, new RDFResource("ex:obj"), null);
 
@@ -1252,12 +1252,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextObject");
+            DropDatabase("ShouldNotSelectQuadruplesByContextObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, new RDFResource("ex:obj"), null);
 
@@ -1268,12 +1268,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextLiteral");
+            DropDatabase("ShouldSelectQuadruplesByContextLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByContextLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, null, null, new RDFPlainLiteral("hello"));
 
@@ -1284,12 +1284,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByContextLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, null, null, new RDFPlainLiteral("hello"));
 
@@ -1300,12 +1300,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate");
+            DropDatabase("ShouldSelectQuadruplesByContextSubjectPredicate");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubjectPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1316,12 +1316,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicate");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubjectPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1332,12 +1332,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectObject");
+            DropDatabase("ShouldSelectQuadruplesByContextSubjectObject");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubjectObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1348,12 +1348,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubjectObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubjectObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1364,12 +1364,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral");
+            DropDatabase("ShouldSelectQuadruplesByContextSubjectLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubjectLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1380,12 +1380,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubjectLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubjectLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1396,12 +1396,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateObject");
+            DropDatabase("ShouldSelectQuadruplesByContextPredicateObject");
+            CreateDatabase("ShouldSelectQuadruplesByContextPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1412,12 +1412,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject");
+            DropDatabase("ShouldNotSelectQuadruplesByContextPredicateObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1428,12 +1428,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral");
+            DropDatabase("ShouldSelectQuadruplesByContextPredicateLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByContextPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1444,12 +1444,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByContextPredicateLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1460,12 +1460,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject");
+            DropDatabase("ShouldSelectQuadruplesByContextSubjectPredicateObject");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubjectPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubjectPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1476,12 +1476,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubjectPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1492,12 +1492,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByContextSubjectPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
+            DropDatabase("ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByContextSubjectPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByContextSubjectPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByContextSubjectPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1508,12 +1508,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByContextSubjectPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(new RDFContext(new Uri("ex:ctx2")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1524,12 +1524,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicate");
+            DropDatabase("ShouldSelectQuadruplesBySubjectPredicate");
+            CreateDatabase("ShouldSelectQuadruplesBySubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubjectPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, null);
 
@@ -1540,12 +1540,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicate()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate");
+            DropDatabase("ShouldNotSelectQuadruplesBySubjectPredicate");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubjectPredicate");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicate"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubjectPredicate"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, null);
 
@@ -1556,12 +1556,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectObject");
+            DropDatabase("ShouldSelectQuadruplesBySubjectObject");
+            CreateDatabase("ShouldSelectQuadruplesBySubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubjectObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, new RDFResource("ex:obj"), null);
 
@@ -1572,12 +1572,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectObject");
+            DropDatabase("ShouldNotSelectQuadruplesBySubjectObject");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubjectObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubjectObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, new RDFResource("ex:obj"), null);
 
@@ -1588,12 +1588,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectLiteral");
+            DropDatabase("ShouldSelectQuadruplesBySubjectLiteral");
+            CreateDatabase("ShouldSelectQuadruplesBySubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubjectLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1604,12 +1604,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesBySubjectLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubjectLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubjectLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), null, null, new RDFPlainLiteral("hello"));
 
@@ -1620,12 +1620,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateObject");
+            DropDatabase("ShouldSelectQuadruplesByPredicateObject");
+            CreateDatabase("ShouldSelectQuadruplesByPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1636,12 +1636,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateObject");
+            DropDatabase("ShouldNotSelectQuadruplesByPredicateObject");
+            CreateDatabase("ShouldNotSelectQuadruplesByPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), new RDFResource("ex:obj"), null);
 
@@ -1652,12 +1652,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesByPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateLiteral");
+            DropDatabase("ShouldSelectQuadruplesByPredicateLiteral");
+            CreateDatabase("ShouldSelectQuadruplesByPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesByPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesByPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1668,12 +1668,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesByPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesByPredicateLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesByPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesByPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesByPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, null, new RDFResource("ex:pred2"), null, new RDFPlainLiteral("hello"));
 
@@ -1684,12 +1684,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject");
+            DropDatabase("ShouldSelectQuadruplesBySubjectPredicateObject");
+            CreateDatabase("ShouldSelectQuadruplesBySubjectPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubjectPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1700,12 +1700,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateObject()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject");
+            DropDatabase("ShouldNotSelectQuadruplesBySubjectPredicateObject");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubjectPredicateObject");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateObject"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubjectPredicateObject"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), new RDFResource("ex:obj"), null);
 
@@ -1716,12 +1716,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldSelectQuadruplesBySubjectPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral");
+            DropDatabase("ShouldSelectQuadruplesBySubjectPredicateLiteral");
+            CreateDatabase("ShouldSelectQuadruplesBySubjectPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldSelectQuadruplesBySubjectPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldSelectQuadruplesBySubjectPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1732,12 +1732,12 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldNotSelectQuadruplesBySubjectPredicateLiteral()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
-            CreateDatabase("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
+            DropDatabase("ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
+            CreateDatabase("ShouldNotSelectQuadruplesBySubjectPredicateLiteral");
 
             RDFQuadruple quadruple = new RDFQuadruple(new RDFContext(new Uri("ex:ctx")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldNotSelectQuadruplesBySubjectPredicateLiteral"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldNotSelectQuadruplesBySubjectPredicateLiteral"));
             store.AddQuadruple(quadruple);
             RDFMemoryStore result = store.SelectQuadruples(null, new RDFResource("ex:subj2"), new RDFResource("ex:pred"), null, new RDFPlainLiteral("hello"));
 
@@ -1748,8 +1748,8 @@ namespace RDFSharp.Store.Test
         [TestMethod]
         public void ShouldOptimize()
         {
-            DropDatabase("RDFMySQLStoreTest_ShouldOptimize");
-            CreateDatabase("RDFMySQLStoreTest_ShouldOptimize");
+            DropDatabase("ShouldOptimize");
+            CreateDatabase("ShouldOptimize");
 
             RDFQuadruple quadruple1 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             RDFQuadruple quadruple2 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx1")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFPlainLiteral("hello"));
@@ -1758,7 +1758,7 @@ namespace RDFSharp.Store.Test
             RDFQuadruple quadruple5 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj"), new RDFResource("ex:pred"), new RDFResource("ex:obj"));
             RDFQuadruple quadruple6 = new RDFQuadruple(new RDFContext(new Uri("ex:ctx4")), new RDFResource("ex:subj4"), new RDFResource("ex:pred4"), new RDFResource("ex:obj"));
 
-            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("RDFMySQLStoreTest_ShouldOptimize"));
+            RDFMySQLStore store = new RDFMySQLStore(GetConnectionString("ShouldOptimize"));
             store.AddQuadruple(quadruple1);
             store.AddQuadruple(quadruple2);
             store.AddQuadruple(quadruple3);
