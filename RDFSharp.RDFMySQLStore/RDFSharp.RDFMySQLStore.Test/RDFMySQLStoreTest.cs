@@ -26,9 +26,14 @@ namespace RDFSharp.Store.Test
     [TestClass]
     public class RDFMySQLStoreTest
     {
-        //This test suite is based on a local installation of MySQL using unencrypted Windows authentication
+        //This test suite is based on a local installation of MySQL using root/root credentials
+        private string User { get; set; } = "root";
+        private string Password { get; set; } = "root";
+        private string Server { get; set; } = "localhost";
+        private int Port { get; set; } = 3306;
+
         private string GetConnectionString(string database)
-            => $"Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;Encrypt=False;";
+            => $"Server={Server};Database={database};Uid={User};Pwd={Password};Port={Port}";
 
         private void CreateDatabase(string database)
         {
@@ -36,7 +41,7 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new MySqlConnection(GetConnectionString("master"));
+                connection = new MySqlConnection(GetConnectionString("mysql"));
 
                 //Open connection
                 connection.Open();
@@ -66,7 +71,7 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new MySqlConnection(GetConnectionString("master"));
+                connection = new MySqlConnection(GetConnectionString("mysql"));
 
                 //Open connection
                 connection.Open();
