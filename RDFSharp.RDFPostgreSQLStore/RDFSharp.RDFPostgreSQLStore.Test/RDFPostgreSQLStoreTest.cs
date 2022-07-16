@@ -29,12 +29,11 @@ namespace RDFSharp.Store.Test
         //This test suite is based on a local installation of PostgreSQL having postgres/postgres credentials
         private string User { get; set; } = "postgres";
         private string Password { get; set; } = "postgres";
-        private string Server { get; set; } = "localhost";
+        private string Host { get; set; } = "localhost";
         private int Port { get; set; } = 5432;
-        private int Protocol { get; set; } = 3;
 
         private string GetConnectionString(string database)
-            => $"Server={Server};Port={Port};Database=public.\"{database}\";Userid={User};Password={Password};Protocol={Protocol};SSL=false;SslMode=Disable;";
+            => $"Host={Host};Port={Port};Database={database.ToLower()};Userid={User};Password={Password};";
 
         private void CreateDatabase(string database)
         {
@@ -42,13 +41,13 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new NpgsqlConnection(GetConnectionString("template1"));
+                connection = new NpgsqlConnection(GetConnectionString("postgres"));
 
                 //Open connection
                 connection.Open();
 
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand($"CREATE DATABASE public.\"{database.ToLower()}\";", connection);
+                NpgsqlCommand command = new NpgsqlCommand($"CREATE DATABASE {database.ToLower()};", connection);
 
                 //Execute command
                 command.ExecuteNonQuery();
@@ -72,13 +71,13 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new NpgsqlConnection(GetConnectionString("template1"));
+                connection = new NpgsqlConnection(GetConnectionString("postgres"));
 
                 //Open connection
                 connection.Open();
 
                 //Create command
-                NpgsqlCommand command = new NpgsqlCommand($"DROP DATABASE public.\"{database.ToLower()}\"", connection);
+                NpgsqlCommand command = new NpgsqlCommand($"DROP DATABASE IF EXISTS {database.ToLower()};", connection);
 
                 //Execute command
                 command.ExecuteNonQuery();
