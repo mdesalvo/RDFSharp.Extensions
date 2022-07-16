@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <AssemblyTitle>RDFSharp.RDFMySQLStore</AssemblyTitle>
     <AssemblyName>RDFSharp.RDFMySQLStore</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>2.24.0</Version>
+    <Version>2.27.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
     <Description>Store RDF data on MySQL with RDFSharp</Description>
@@ -22,7 +21,6 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RootNamespace>RDFSharp.Store</RootNamespace>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <OutputPath>bin\Debug\</OutputPath>
@@ -32,7 +30,6 @@
     <DebugSymbols>true</DebugSymbols>
     <Optimize>false</Optimize>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <DefineConstants>TRACE</DefineConstants>
     <OutputPath>bin\Release\</OutputPath>
@@ -42,11 +39,9 @@
     <DebugSymbols>true</DebugSymbols>
     <Optimize>true</Optimize>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="MySql.Data" Version="8.0.25" />
-    <PackageReference Include="RDFSharp" Version="2.24.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="MySql.Data" Version="8.0.29" />
+    <PackageReference Include="RDFSharp" Version="2.27.0" />
   </ItemGroup>
-
 </Project>

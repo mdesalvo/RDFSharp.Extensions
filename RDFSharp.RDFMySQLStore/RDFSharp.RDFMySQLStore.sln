@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFMySQLStore", "RDFSharp.RDFMySQLStore\RDFSharp.RDFMySQLStore.csproj", "{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.RDFMySQLStore", "RDFSharp.RDFMySQLStore\RDFSharp.RDFMySQLStore.csproj", "{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFMySQLStore.Test", "RDFSharp.RDFMySQLStore.Test\RDFSharp.RDFMySQLStore.Test.csproj", "{BD55AAA8-7782-ADE4-FE59-899BBAC7A0F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,11 +17,15 @@ Global
 		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD55AAA8-7782-ADE4-FE59-899BBAC7A0F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD55AAA8-7782-ADE4-FE59-899BBAC7A0F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD55AAA8-7782-ADE4-FE59-899BBAC7A0F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD55AAA8-7782-ADE4-FE59-899BBAC7A0F5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {FDD2B7E0-5BC5-4636-997B-778F43D467E8}
+		SolutionGuid = {A22CC4E0-9BE5-E936-717B-884FFFA667E8}
 	EndGlobalSection
 EndGlobal
