@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2020 Marco De Salvo
+   Copyright 2012-2022 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 */
 
 using System;
+using System.Text;
 using Oracle.ManagedDataAccess.Client;
 using RDFSharp.Model;
 
 namespace RDFSharp.Store
 {
-
     /// <summary>
     /// RDFOracleStore represents a store backed on Oracle engine
     /// </summary>
@@ -30,17 +30,17 @@ namespace RDFSharp.Store
         /// <summary>
         /// Connection to the Oracle database
         /// </summary>
-        private OracleConnection Connection { get; set; }
+        internal OracleConnection Connection { get; set; }
 
         /// <summary>
         /// Utility for getting fields of the connection
         /// </summary>
-        private OracleConnectionStringBuilder ConnectionBuilder { get; set; }
+        internal OracleConnectionStringBuilder ConnectionBuilder { get; set; }
         
         /// <summary>
         /// Flag indicating that the Oracle store instance has already been disposed
         /// </summary>
-        private bool Disposed { get; set; }
+        internal bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -53,20 +53,20 @@ namespace RDFSharp.Store
             	throw new RDFStoreException("Cannot connect to Oracle store because: given \"oracleConnectionString\" parameter is null or empty.");
             
             //Initialize store structures
-            this.StoreType = "ORACLE";
-            this.Connection = new OracleConnection(oracleConnectionString);
-            this.ConnectionBuilder = new OracleConnectionStringBuilder(this.Connection.ConnectionString);
-            this.StoreID = RDFModelUtilities.CreateHash(this.ToString());
-            this.Disposed = false;
+            StoreType = "ORACLE";
+            Connection = new OracleConnection(oracleConnectionString);
+            ConnectionBuilder = new OracleConnectionStringBuilder(Connection.ConnectionString);
+            StoreID = RDFModelUtilities.CreateHash(ToString());
+            Disposed = false;
 
             //Perform initial diagnostics
-            this.PrepareStore();
+            PrepareStore();
         }
         
         /// <summary>
         /// Destroys the Oracle store instance
         /// </summary>
-        ~RDFOracleStore() => this.Dispose(false);
+        ~RDFOracleStore() => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -74,14 +74,14 @@ namespace RDFSharp.Store
         /// Gives the string representation of the Oracle store 
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", this.Connection.DataSource, ";DATABASE=", this.Connection.Database);
+            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
 
         /// <summary>
         /// Disposes the Oracle store instance 
         /// </summary>
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -90,16 +90,16 @@ namespace RDFSharp.Store
         /// </summary>
         protected virtual void Dispose(bool disposing)
         {
-            if (this.Disposed)
+            if (Disposed)
                 return;
 
             if (disposing)
             {
-                this.Connection?.Dispose();
-                this.Connection = null;
+                Connection?.Dispose();
+                Connection = null;
             }
 
-            this.Disposed = true;
+            Disposed = true;
         }
         #endregion
 
@@ -116,7 +116,7 @@ namespace RDFSharp.Store
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                OracleCommand command = new OracleCommand("INSERT INTO \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\", \"TRIPLEFLAVOR\", \"CONTEXT\", \"CONTEXTID\", \"SUBJECT\", \"SUBJECTID\", \"PREDICATE\", \"PREDICATEID\", \"OBJECT\", \"OBJECTID\") SELECT :QID, :TFV, :CTX, :CTXID, :SUBJ, :SUBJID, :PRED, :PREDID, :OBJ, :OBJID FROM DUAL WHERE NOT EXISTS(SELECT \"QUADRUPLEID\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", this.Connection);
+                OracleCommand command = new OracleCommand("INSERT INTO \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\", \"TRIPLEFLAVOR\", \"CONTEXT\", \"CONTEXTID\", \"SUBJECT\", \"SUBJECTID\", \"PREDICATE\", \"PREDICATEID\", \"OBJECT\", \"OBJECTID\") SELECT :QID, :TFV, :CTX, :CTXID, :SUBJ, :SUBJID, :PRED, :PREDID, :OBJ, :OBJID FROM DUAL WHERE NOT EXISTS(SELECT \"QUADRUPLEID\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", Connection);
                 command.Parameters.Add(new OracleParameter("QID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
                 command.Parameters.Add(new OracleParameter("CTX", OracleDbType.Varchar2, 1000));
@@ -131,13 +131,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Iterate triples
                     foreach (var triple in graph)
@@ -162,7 +162,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -170,7 +170,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Oracle store because: " + ex.Message, ex);
@@ -187,7 +187,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("INSERT INTO \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\", \"TRIPLEFLAVOR\", \"CONTEXT\", \"CONTEXTID\", \"SUBJECT\", \"SUBJECTID\", \"PREDICATE\", \"PREDICATEID\", \"OBJECT\", \"OBJECTID\") SELECT :QID, :TFV, :CTX, :CTXID, :SUBJ, :SUBJID, :PRED, :PREDID, :OBJ, :OBJID FROM DUAL WHERE NOT EXISTS(SELECT \"QUADRUPLEID\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", this.Connection);
+                OracleCommand command = new OracleCommand("INSERT INTO \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\", \"TRIPLEFLAVOR\", \"CONTEXT\", \"CONTEXTID\", \"SUBJECT\", \"SUBJECTID\", \"PREDICATE\", \"PREDICATEID\", \"OBJECT\", \"OBJECTID\") SELECT :QID, :TFV, :CTX, :CTXID, :SUBJ, :SUBJID, :PRED, :PREDID, :OBJ, :OBJID FROM DUAL WHERE NOT EXISTS(SELECT \"QUADRUPLEID\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", Connection);
                 command.Parameters.Add(new OracleParameter("QID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
                 command.Parameters.Add(new OracleParameter("CTX", OracleDbType.Varchar2, 1000));
@@ -214,13 +214,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -229,7 +229,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -237,7 +237,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Oracle store because: " + ex.Message, ex);
@@ -256,7 +256,7 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID", Connection);
                 command.Parameters.Add(new OracleParameter("QID", OracleDbType.Int64));
 
                 //Valorize parameters
@@ -265,13 +265,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -280,7 +280,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -288,7 +288,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -305,7 +305,7 @@ namespace RDFSharp.Store
             if (contextResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
 
                 //Valorize parameters
@@ -314,13 +314,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -329,7 +329,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -337,7 +337,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -354,7 +354,7 @@ namespace RDFSharp.Store
             if (subjectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID", Connection);
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
 
                 //Valorize parameters
@@ -363,13 +363,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -378,7 +378,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -386,7 +386,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -403,7 +403,7 @@ namespace RDFSharp.Store
             if (predicateResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID", Connection);
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
 
                 //Valorize parameters
@@ -412,13 +412,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -427,7 +427,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -435,7 +435,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -452,7 +452,7 @@ namespace RDFSharp.Store
             if (objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
 
@@ -463,13 +463,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -478,7 +478,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -486,7 +486,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -503,7 +503,7 @@ namespace RDFSharp.Store
             if (literalObject != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
 
@@ -514,13 +514,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -529,7 +529,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -537,7 +537,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -554,7 +554,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
 
@@ -565,13 +565,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -580,7 +580,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -588,7 +588,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -605,7 +605,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
 
@@ -616,13 +616,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -631,7 +631,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -639,7 +639,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -656,7 +656,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -669,13 +669,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -684,7 +684,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -692,7 +692,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -709,7 +709,7 @@ namespace RDFSharp.Store
             if (contextResource != null && objectLiteral != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -722,13 +722,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -737,7 +737,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -745,7 +745,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -762,7 +762,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
@@ -775,13 +775,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -790,7 +790,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -798,7 +798,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -815,7 +815,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
@@ -830,13 +830,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -845,7 +845,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -853,7 +853,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -870,7 +870,7 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
@@ -885,13 +885,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -900,7 +900,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -908,7 +908,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -925,7 +925,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
@@ -940,13 +940,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -955,7 +955,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -963,7 +963,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -980,7 +980,7 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
@@ -995,13 +995,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1010,7 +1010,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1018,7 +1018,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1035,7 +1035,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && predicateResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", Connection);
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
 
@@ -1046,13 +1046,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1061,7 +1061,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1069,7 +1069,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1086,7 +1086,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -1099,13 +1099,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1114,7 +1114,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1122,7 +1122,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1139,7 +1139,7 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -1152,13 +1152,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1167,7 +1167,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1175,7 +1175,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1192,7 +1192,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectResource != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -1205,13 +1205,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1220,7 +1220,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1228,7 +1228,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1245,7 +1245,7 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
+                OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
                 command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
                 command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
@@ -1258,13 +1258,13 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Prepare command
                     command.Prepare();
 
                     //Open transaction
-                    command.Transaction = this.Connection.BeginTransaction();
+                    command.Transaction = Connection.BeginTransaction();
 
                     //Execute command
                     command.ExecuteNonQuery();
@@ -1273,7 +1273,7 @@ namespace RDFSharp.Store
                     command.Transaction.Commit();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
@@ -1281,7 +1281,7 @@ namespace RDFSharp.Store
                     command.Transaction.Rollback();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1296,18 +1296,18 @@ namespace RDFSharp.Store
         public override void ClearQuadruples()
         {
             //Create command
-            OracleCommand command = new OracleCommand("DELETE FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\"", this.Connection);
+            OracleCommand command = new OracleCommand("DELETE FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"", Connection);
 
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
 
                 //Open transaction
-                command.Transaction = this.Connection.BeginTransaction();
+                command.Transaction = Connection.BeginTransaction();
 
                 //Execute command
                 command.ExecuteNonQuery();
@@ -1316,7 +1316,7 @@ namespace RDFSharp.Store
                 command.Transaction.Commit();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
@@ -1324,7 +1324,7 @@ namespace RDFSharp.Store
                 command.Transaction.Rollback();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from Oracle store because: " + ex.Message, ex);
@@ -1334,368 +1334,339 @@ namespace RDFSharp.Store
 
         #region Select
         /// <summary>
+        /// Checks if the given quadruple is found in the store
+        /// </summary>
+        public override bool ContainsQuadruple(RDFQuadruple quadruple)
+        {
+            //Guard against tricky input
+            if (quadruple == null)
+                return false;
+
+            //Create command
+            OracleCommand command = new OracleCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", Connection);
+            command.Parameters.Add(new OracleParameter("QID", OracleDbType.Int64));            
+
+            //Valorize parameters
+            command.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+            //Prepare and execute command
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Prepare command
+                command.Prepare();
+
+                //Execute command
+                int result = int.Parse(command.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Give result
+                return result == 1;
+            }
+            catch (Exception ex)
+            {
+                //Close connection
+                Connection.Close();
+
+                //Propagate exception
+                throw new RDFStoreException("Cannot read data from Oracle store because: " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
         internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            OracleCommand command = null;
+            StringBuilder queryFilters = new StringBuilder();
+
+            //Filter by Context
+            if (ctx != null)
+                queryFilters.Append('C');
+
+            //Filter by Subject
+            if (subj != null)
+                queryFilters.Append('S');
+
+            //Filter by Predicate
+            if (pred != null)
+                queryFilters.Append('P');
+
+            //Filter by Object
+            if (obj != null)
+                queryFilters.Append('O');
+
+            //Filter by Literal
+            if (lit != null)
+                queryFilters.Append('L');
 
             //Intersect the filters
-            if (ctx != null)
+            OracleCommand command = null;
+            switch (queryFilters.ToString())
             {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->P->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->P->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //C->S->P->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->S->->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->S->->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //C->S->->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //C->->P->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->P->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //C->->P->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //C->->->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //C->->->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //C->->->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                                command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (subj != null)
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->S->P->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->P->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //->S->P->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->S->->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->S->->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //->S->->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                                command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (pred != null)
-                    {
-                        if (obj != null)
-                        {
-                            //->->P->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->P->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //->->P->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID", this.Connection);
-                                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                                command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (obj != null)
-                        {
-                            //->->->O
-                            command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                            command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                            command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                            command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                            command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        }
-                        else
-                        {
-                            if (lit != null)
-                            {
-                                //->->->L
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", this.Connection);
-                                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                                command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                            }
-                            else
-                            {
-                                //->->->
-                                command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\"", this.Connection);
-                            }
-                        }
-                    }
-                }
+                case "C":
+                    //C->->->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    break;
+                case "S":
+                    //->S->->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "P":
+                    //->->P->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID", Connection);
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "O":
+                    //->->->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "L":
+                    //->->->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CS":
+                    //C->S->->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    break;
+                case "CP":
+                    //C->->P->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CO":
+                    //C->->->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CL":
+                    //C->->->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSP":
+                    //C->S->P->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "CSO":
+                    //C->S->->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSL":
+                    //C->S->->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CPO":
+                    //C->->P->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CPL":
+                    //C->->P->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "CSPO":
+                    //C->S->P->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "CSPL":
+                    //C->S->P->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"CONTEXTID\" = :CTXID AND \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SP":
+                    //->S->P->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    break;
+                case "SO":
+                    //->S->->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SL":
+                    //->S->->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "PO":
+                    //->->P->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "PL":
+                    //->->P->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                case "SPO":
+                    //->S->P->O
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+                    break;
+                case "SPL":
+                    //->S->P->L
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"SUBJECTID\" = :SUBJID AND \"PREDICATEID\" = :PREDID AND \"OBJECTID\" = :OBJID AND \"TRIPLEFLAVOR\" = :TFV", Connection);
+                    command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                    command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+                    break;
+                default:
+                    //->->->
+                    command = new OracleCommand("SELECT \"TRIPLEFLAVOR\", \"CONTEXT\", \"SUBJECT\", \"PREDICATE\", \"OBJECT\" FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"", Connection);
+                    break;
             }
 
             //Prepare and execute command
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Prepare command
                 command.Prepare();
-
-                //Set command timeout (3min)
                 command.CommandTimeout = 180;
 
                 //Execute command
-                using (var quadruples = command.ExecuteReader())
+                using (OracleDataReader quadruples = command.ExecuteReader())
                 {
-                    if (quadruples.HasRows)
-                    {
-                        while (quadruples.Read())
-                        {
-                            result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
-                        }
-                    }
+                    while (quadruples.Read())
+                        result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
                 }
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from Oracle store because: " + ex.Message, ex);
@@ -1714,27 +1685,25 @@ namespace RDFSharp.Store
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Create command
-                OracleCommand command = new OracleCommand("SELECT COUNT(*) FROM ALL_OBJECTS WHERE OBJECT_TYPE IN ('TABLE', 'VIEW') AND OBJECT_NAME = 'QUADRUPLES'", this.Connection);
+                OracleCommand command = new OracleCommand("SELECT COUNT(*) FROM ALL_OBJECTS WHERE OBJECT_TYPE IN ('TABLE', 'VIEW') AND OBJECT_NAME = 'QUADRUPLES'", Connection);
 
                 //Execute command
                 int result = int.Parse(command.ExecuteScalar().ToString());
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
-                if (result == 0)
-                    return RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound;
-                else
-                    return RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
+                                   : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Return the diagnostics state
                 return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
@@ -1746,7 +1715,7 @@ namespace RDFSharp.Store
         /// </summary>
         private void PrepareStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = this.Diagnostics();
+            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
 
             //Prepare the database only if diagnostics has detected the missing of "QUADRUPLES" table in the store
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
@@ -1754,33 +1723,33 @@ namespace RDFSharp.Store
                 try
                 {
                     //Open connection
-                    this.Connection.Open();
+                    Connection.Open();
 
                     //Create & Execute command
-                    OracleCommand command = new OracleCommand("CREATE TABLE \"" + this.ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", this.Connection);
+                    OracleCommand command = new OracleCommand("CREATE TABLE \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", Connection);
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\"             ON \"QUADRUPLES\"(\"CONTEXTID\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\"             ON \"QUADRUPLES\"(\"CONTEXTID\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\"             ON \"QUADRUPLES\"(\"SUBJECTID\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\"             ON \"QUADRUPLES\"(\"SUBJECTID\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\"           ON \"QUADRUPLES\"(\"PREDICATEID\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\"           ON \"QUADRUPLES\"(\"PREDICATEID\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\"              ON \"QUADRUPLES\"(\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\"              ON \"QUADRUPLES\"(\"OBJECTID\",\"TRIPLEFLAVOR\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"PREDICATEID\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"PREDICATEID\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\"    ON \"QUADRUPLES\"(\"SUBJECTID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\"    ON \"QUADRUPLES\"(\"SUBJECTID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
                     command.ExecuteNonQuery();
-                    command.CommandText = "CREATE INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\"  ON \"QUADRUPLES\"(\"PREDICATEID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                    command.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\"  ON \"QUADRUPLES\"(\"PREDICATEID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
                     command.ExecuteNonQuery();
 
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
                 }
                 catch (Exception ex)
                 {
                     //Close connection
-                    this.Connection.Close();
+                    Connection.Close();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare Oracle store because: " + ex.Message, ex);
@@ -1789,9 +1758,7 @@ namespace RDFSharp.Store
 
             //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-            {
                 throw new RDFStoreException("Cannot prepare Oracle store because: unable to connect to the server instance or to open the selected database.");
-            }
         }
         #endregion
 
@@ -1804,31 +1771,31 @@ namespace RDFSharp.Store
             try
             {
                 //Open connection
-                this.Connection.Open();
+                Connection.Open();
 
                 //Create & Execute command
-                OracleCommand command = new OracleCommand("ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" REBUILD", this.Connection);
+                OracleCommand command = new OracleCommand("ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" REBUILD", Connection);
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\" REBUILD";
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\" REBUILD";
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\" REBUILD";
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" REBUILD";
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\" REBUILD";
                 command.ExecuteNonQuery();
-                command.CommandText = "ALTER INDEX \"" + this.ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\" REBUILD";
+                command.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\" REBUILD";
                 command.ExecuteNonQuery();
 
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
             }
             catch (Exception ex)
             {
                 //Close connection
-                this.Connection.Close();
+                Connection.Close();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize Oracle store because: " + ex.Message, ex);
@@ -1838,5 +1805,4 @@ namespace RDFSharp.Store
 
         #endregion
     }
-
 }

@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFOracleStore", "RDFSharp.RDFOracleStore\RDFSharp.RDFOracleStore.csproj", "{997FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.RDFOracleStore", "RDFSharp.RDFOracleStore\RDFSharp.RDFOracleStore.csproj", "{997FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RDFSharp.RDFOracleStore.Test", "RDFSharp.RDFOracleStore.Test\RDFSharp.RDFOracleStore.Test.csproj", "{BB55AE43-8825-FFD6-CFA8-9BCD58C0A481}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,11 +17,15 @@ Global
 		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB55AE43-8825-FFD6-CFA8-9BCD58C0A481}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB55AE43-8825-FFD6-CFA8-9BCD58C0A481}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB55AE43-8825-FFD6-CFA8-9BCD58C0A481}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB55AE43-8825-FFD6-CFA8-9BCD58C0A481}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {FDD2B7E0-5BC5-4636-997B-778F43D467E8}
+		SolutionGuid = {AAF57E4-9EC7-8879-CCDC-777789D467E8}
 	EndGlobalSection
 EndGlobal
