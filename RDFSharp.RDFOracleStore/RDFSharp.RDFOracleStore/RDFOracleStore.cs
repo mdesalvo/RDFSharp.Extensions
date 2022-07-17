@@ -1343,7 +1343,7 @@ namespace RDFSharp.Store
                 return false;
 
             //Create command
-            OracleCommand command = new OracleCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID)", Connection);
+            OracleCommand command = new OracleCommand("SELECT CASE WHEN EXISTS (SELECT 1 FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\" WHERE \"QUADRUPLEID\" = :QID) THEN 1 ELSE 0 END AS REC_EXISTS FROM DUAL;", Connection);
             command.Parameters.Add(new OracleParameter("QID", OracleDbType.Int64));            
 
             //Valorize parameters

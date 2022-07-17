@@ -26,9 +26,13 @@ namespace RDFSharp.Store.Test
     [TestClass]
     public class RDFOracleStoreTest
     {
-        //This test suite is based on a local installation of Oracle using XXX
+        //This test suite is based on a local installation of Oracle-XE 11 using oracle/oracle credentials
+        private string User { get; set; } = "oracle";
+        private string Password { get; set; } = "oracle";
+        private string DataSource { get; set; } = "XE";
+
         private string GetConnectionString(string database)
-            => $"Server=.\\SQLEXPRESS;Database={database};Trusted_Connection=True;Encrypt=False;";
+            => $"Data Source={DataSource};User Id={User};Password={Password};";
 
         private void CreateDatabase(string database)
         {
@@ -36,7 +40,7 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new OracleConnection(GetConnectionString("master"));
+                connection = new OracleConnection(GetConnectionString("XE"));
 
                 //Open connection
                 connection.Open();
@@ -66,7 +70,7 @@ namespace RDFSharp.Store.Test
             try
             {
                 //Create connection
-                connection = new OracleConnection(GetConnectionString("master"));
+                connection = new OracleConnection(GetConnectionString("XE"));
 
                 //Open connection
                 connection.Open();
