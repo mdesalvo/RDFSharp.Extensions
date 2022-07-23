@@ -20,6 +20,7 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<RootNamespace>RDFSharp.Extensions.SQLite</RootNamespace>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -45,8 +46,8 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
-		<PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.0"/>
-		<PackageReference Include="RDFSharp" Version="2.27.0"/>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.0" />
+		<PackageReference Include="RDFSharp" Version="2.27.0" />
 	</ItemGroup>
 </Project>
