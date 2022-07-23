@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30711.63
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.Firebird", "RDFSharp.Extensions.Firebird\RDFSharp.Extensions.Firebird.csproj", "{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.MySQL", "RDFSharp.Extensions.MySQL\RDFSharp.Extensions.MySQL.csproj", "{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.Oracle", "RDFSharp.Extensions.Oracle\RDFSharp.Extensions.Oracle.csproj", "{997FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.PostgreSQL", "RDFSharp.Extensions.PostgreSQL\RDFSharp.Extensions.PostgreSQL.csproj", "{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLite", "RDFSharp.Extensions.SQLite\RDFSharp.Extensions.SQLite.csproj", "{5C96900F-2B4B-446A-B02F-32BB289E21E0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLServer", "RDFSharp.Extensions.SQLServer\RDFSharp.Extensions.SQLServer.csproj", "{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{997FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FDD2B7E0-5BC5-4636-997B-778F43D467E8}
+	EndGlobalSection
+EndGlobal

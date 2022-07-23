@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<AssemblyTitle>RDFSharp.Extensions.Firebird</AssemblyTitle>
+		<AssemblyName>RDFSharp.Extensions.Firebird</AssemblyName>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<Version>3.0.0</Version>
+		<Authors>Marco De Salvo</Authors>
+		<Copyright>Marco De Salvo</Copyright>
+		<Description>RDFSharp extension for storage of RDF data on Firebird</Description>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<SignAssembly>false</SignAssembly>
+		<Product>RDFSharp</Product>
+		<PackageId>RDFSharp.Extensions.Firebird</PackageId>
+		<PackageVersion>3.0.0-preview0</PackageVersion>
+		<PackageTags>rdf triplestore quadstore firebird</PackageTags>
+		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/mdesalvo/RDFSharp.Extensions.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<RootNamespace>RDFSharp.Extensions.Firebird</RootNamespace>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<OutputPath>bin\Debug\</OutputPath>
+		<DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
+		<WarningLevel>4</WarningLevel>
+		<DebugType>full</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<Optimize>false</Optimize>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DefineConstants>TRACE</DefineConstants>
+		<OutputPath>bin\Release\</OutputPath>
+		<DocumentationFile>bin\Release\netstandard2.0\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
+		<WarningLevel>0</WarningLevel>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<Optimize>true</Optimize>
+	</PropertyGroup>
+	<ItemGroup>
+		<!-- Firebird2 (ODS=11) -->
+		<EmbeddedResource Include="Template\RDFFirebirdTemplateODS11.fdb">
+			<Visible>True</Visible>
+		</EmbeddedResource>
+		<!-- Firebird3 (ODS=12) -->
+		<EmbeddedResource Include="Template\RDFFirebirdTemplateODS12.fdb">
+			<Visible>True</Visible>
+		</EmbeddedResource>
+		<!-- Firebird4 (ODS=13) -->
+		<EmbeddedResource Include="Template\RDFFirebirdTemplateODS13.fdb">
+			<Visible>True</Visible>
+		</EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="9.0.2" />
+		<PackageReference Include="RDFSharp" Version="3.0.0-preview0" />
+	</ItemGroup>
+</Project>
