@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2020 Marco De Salvo
+   Copyright 2012-2022 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,4 +18,3 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3")]
-[assembly: InternalsVisibleTo("RDFSharp.RDFPostgreSQLStore.Test")]
