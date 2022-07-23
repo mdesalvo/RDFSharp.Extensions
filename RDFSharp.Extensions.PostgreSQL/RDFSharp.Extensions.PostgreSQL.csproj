@@ -11,7 +11,7 @@
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
 		<PackageId>RDFSharp.Extensions.PostgreSQL</PackageId>
-		<PackageVersion>3.0.0-alpha0.1</PackageVersion>
+		<PackageVersion>3.0.0-preview0</PackageVersion>
 		<PackageTags>rdf triplestore quadstore postgresql</PackageTags>
 		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -44,6 +44,6 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 		<PackageReference Include="Npgsql" Version="6.0.5" />
-		<PackageReference Include="RDFSharp" Version="3.0.0-alpha0.1" />
+		<PackageReference Include="RDFSharp" Version="3.0.0-preview0" />
 	</ItemGroup>
 </Project>
