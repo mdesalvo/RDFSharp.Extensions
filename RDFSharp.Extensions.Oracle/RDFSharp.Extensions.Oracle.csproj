@@ -42,7 +42,6 @@
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.151" />
 		<PackageReference Include="RDFSharp" Version="3.0.0-preview1" />
 	</ItemGroup>
