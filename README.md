@@ -1,4 +1,7 @@
 # RDFSharp.Extensions
+
+<b>Are you looking for the <a href="https://github.com/mdesalvo/RDFSharp.Extensions/tree/legacy-v2">legacy version (v2.x)</a>?</b>
+<hr/>
 Storage extensions include support for saving RDF data on the following providers: 
 
 |Provider|NuGet Package|
