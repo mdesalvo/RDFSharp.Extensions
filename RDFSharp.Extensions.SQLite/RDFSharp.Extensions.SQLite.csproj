@@ -45,9 +45,6 @@
 		<EmbeddedResource Include="Template\RDFSQLiteTemplate.db">
 			<Visible>True</Visible>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Template\RDFSQLiteTemplate.sql">
-			<Visible>True</Visible>
-		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="2.1.14" />
