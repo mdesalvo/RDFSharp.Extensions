@@ -42,7 +42,7 @@
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Npgsql" Version="6.0.5" />
+		<PackageReference Include="Npgsql" Version="6.0.6" />
 		<PackageReference Include="RDFSharp" Version="3.0.0-preview1" />
 	</ItemGroup>
 </Project>
