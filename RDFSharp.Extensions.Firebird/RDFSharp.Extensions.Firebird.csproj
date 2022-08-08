@@ -11,7 +11,7 @@
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
 		<PackageId>RDFSharp.Extensions.Firebird</PackageId>
-		<PackageVersion>3.0.0-preview0</PackageVersion>
+		<PackageVersion>3.0.0-preview1</PackageVersion>
 		<PackageTags>rdf triplestore quadstore firebird</PackageTags>
 		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -56,8 +56,7 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
 		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="9.0.2" />
-		<PackageReference Include="RDFSharp" Version="3.0.0-preview0" />
+		<PackageReference Include="RDFSharp" Version="3.0.0-preview1" />
 	</ItemGroup>
 </Project>

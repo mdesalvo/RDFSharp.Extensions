@@ -11,7 +11,7 @@
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
 		<PackageId>RDFSharp.Extensions.SQLServer</PackageId>
-		<PackageVersion>3.0.0-preview0</PackageVersion>
+		<PackageVersion>3.0.0-preview1</PackageVersion>
 		<PackageTags>rdf triplestore quadstore sqlserver</PackageTags>
 		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -42,8 +42,7 @@
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
-		<PackageReference Include="Microsoft.Data.SqlClient" Version="4.1.0" />
-		<PackageReference Include="RDFSharp" Version="3.0.0-preview0" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="2.1.4" />
+		<PackageReference Include="RDFSharp" Version="3.0.0-preview1" />
 	</ItemGroup>
 </Project>
