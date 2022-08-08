@@ -6,7 +6,7 @@
 This is a set of RDFSharp extensions suited for storing RDF data on the following providers: 
 
 
-|Provider|NuGet Package (legacy v2)|NuGet Package (v3)|
+|Provider|NuGet (legacy-v2)|NuGet|
 |---|---|---|
 |SQLServer|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLServerStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLServerStore)|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.SQLServer?includePreReleases=true)](https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer)|
 |SQLite|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLiteStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLiteStore)|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.SQLite?includePreReleases=true)](https://www.nuget.org/packages/RDFSharp.Extensions.SQLite)|
