@@ -58,9 +58,9 @@ namespace RDFSharp.Extensions.SQLite
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a SQLite store instance
+        /// Default-ctor to build a SQLite store instance (with eventual options)
         /// </summary>
-        public RDFSQLiteStore(string sqliteDatabasePath, RDFSQLiteStoreOptions sqliteStoreOptions)
+        public RDFSQLiteStore(string sqliteDatabasePath, RDFSQLiteStoreOptions sqliteStoreOptions=null)
         {
             //Guard against tricky paths
             if (string.IsNullOrWhiteSpace(sqliteDatabasePath))
