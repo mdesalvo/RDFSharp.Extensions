@@ -1,6 +1,6 @@
 # RDFSharp.Extensions
 
-This is a set of RDFSharp extensions suited for storing RDF data on the following providers: 
+This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing RDF data on the following supported providers: 
 
 
 |Provider|NuGet (legacy-v2)|NuGet|
