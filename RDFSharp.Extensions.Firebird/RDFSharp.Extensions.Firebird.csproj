@@ -11,7 +11,7 @@
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
 		<PackageId>RDFSharp.Extensions.Firebird</PackageId>
-		<PackageVersion>$(Version)-preview1</PackageVersion>
+		<PackageVersion>$(Version)</PackageVersion>
 		<PackageTags>rdf triplestore quadstore firebird</PackageTags>
 		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -26,7 +26,7 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 		<DefineConstants>DEBUG;TRACE</DefineConstants>
 		<OutputPath>bin\Debug\</OutputPath>
-		<DocumentationFile>bin\Debug\netstandard2.0\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
+		<DocumentationFile>bin\Debug\$(TargetFramework)\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
 		<WarningLevel>4</WarningLevel>
 		<DebugType>full</DebugType>
 		<DebugSymbols>true</DebugSymbols>
@@ -35,17 +35,13 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 		<DefineConstants>TRACE</DefineConstants>
 		<OutputPath>bin\Release\</OutputPath>
-		<DocumentationFile>bin\Release\netstandard2.0\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
+		<DocumentationFile>bin\Release\$(TargetFramework)\RDFSharp.Extensions.Firebird.xml</DocumentationFile>
 		<WarningLevel>0</WarningLevel>
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<!-- Firebird2 (ODS=11) -->
-		<EmbeddedResource Include="Template\RDFFirebirdTemplateODS11.fdb">
-			<Visible>True</Visible>
-		</EmbeddedResource>
 		<!-- Firebird3 (ODS=12) -->
 		<EmbeddedResource Include="Template\RDFFirebirdTemplateODS12.fdb">
 			<Visible>True</Visible>
