@@ -3,7 +3,7 @@
 This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing RDF data on the following supported providers: 
 
 
-|Provider|NuGet (legacy)|NuGet|
+|Provider|NuGet (legacy-v2)|NuGet|
 |---|---|---|
 |SQL Server|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLServerStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLServerStore)|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.SQLServer?includePreReleases=true)](https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer)|
 |SQLite|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLiteStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLiteStore)|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.SQLite)](https://www.nuget.org/packages/RDFSharp.Extensions.SQLite)|
