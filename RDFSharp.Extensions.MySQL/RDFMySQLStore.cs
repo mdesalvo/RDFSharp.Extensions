@@ -32,7 +32,22 @@ namespace RDFSharp.Extensions.MySQL
         /// Connection to the MySQL database
         /// </summary>
         internal MySqlConnection Connection { get; set; }
-        
+
+        /// <summary>
+        /// Command to execute SELECT queries on the MySQL database
+        /// </summary>
+        internal MySqlCommand SelectCommand { get; set; }
+
+        /// <summary>
+        /// Command to execute INSERT queries on the MySQL database
+        /// </summary>
+        internal MySqlCommand InsertCommand { get; set; }
+
+        /// <summary>
+        /// Command to execute DELETE queries on the MySQL database
+        /// </summary>
+        internal MySqlCommand DeleteCommand { get; set; }
+
         /// <summary>
         /// Flag indicating that the MySQL store instance has already been disposed
         /// </summary>
@@ -41,27 +56,36 @@ namespace RDFSharp.Extensions.MySQL
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a MySQL store instance
+        /// Default-ctor to build a MySQL store instance (with eventual options)
         /// </summary>
-        public RDFMySQLStore(string mysqlConnectionString)
+        public RDFMySQLStore(string mysqlConnectionString, RDFMySQLStoreOptions mysqlStoreOptions = null)
         {
+            //Guard against tricky paths
             if (string.IsNullOrEmpty(mysqlConnectionString))
                 throw new RDFStoreException("Cannot connect to MySQL store because: given \"mysqlConnectionString\" parameter is null or empty.");
+
+            //Initialize options
+            if (mysqlStoreOptions == null)
+                mysqlStoreOptions = new RDFMySQLStoreOptions();
 
             //Initialize store structures
             StoreType = "MYSQL";
             Connection = new MySqlConnection(mysqlConnectionString);
+            SelectCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.SelectTimeout };
+            DeleteCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.DeleteTimeout };
+            InsertCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
             //Perform initial diagnostics
-            PrepareStore();
+            InitializeStore();
         }
 
         /// <summary>
         /// Destroys the MySQL store instance
         /// </summary>
-        ~RDFMySQLStore() => Dispose(false);
+        ~RDFMySQLStore()
+            => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -90,7 +114,15 @@ namespace RDFSharp.Extensions.MySQL
 
             if (disposing)
             {
+                //Dispose
+                SelectCommand?.Dispose();
+                InsertCommand?.Dispose();
+                DeleteCommand?.Dispose();
                 Connection?.Dispose();
+                //Delete
+                SelectCommand = null;
+                InsertCommand = null;
+                DeleteCommand = null;
                 Connection = null;
             }
 
@@ -111,17 +143,18 @@ namespace RDFSharp.Extensions.MySQL
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                MySqlCommand command = new MySqlCommand("INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", Connection);
-                command.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                command.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                InsertCommand.CommandText = "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
+                InsertCommand.Parameters.Clear();
+                InsertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                InsertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
 
                 try
                 {
@@ -129,32 +162,32 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    InsertCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    InsertCommand.Transaction = Connection.BeginTransaction();
 
                     //Iterate triples
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
-                        command.Parameters["TFV"].Value = triple.TripleFlavor;
-                        command.Parameters["CTX"].Value = graphCtx.ToString();
-                        command.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        command.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        command.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        command.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        command.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        command.Parameters["OBJ"].Value = triple.Object.ToString();
-                        command.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
 
                         //Execute command
-                        command.ExecuteNonQuery();
+                        InsertCommand.ExecuteNonQuery();
                     }
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    InsertCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -162,7 +195,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    InsertCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -182,29 +215,30 @@ namespace RDFSharp.Extensions.MySQL
             if (quadruple != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)", Connection);
-                command.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                command.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                InsertCommand.CommandText = "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
+                InsertCommand.Parameters.Clear();
+                InsertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                InsertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                InsertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["QID"].Value = quadruple.QuadrupleID;
-                command.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                command.Parameters["CTX"].Value = quadruple.Context.ToString();
-                command.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                command.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                command.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                command.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                command.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                command.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                command.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
+                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
 
                 try
                 {
@@ -212,16 +246,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    InsertCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    InsertCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    InsertCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    InsertCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -229,7 +263,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    InsertCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -251,11 +285,12 @@ namespace RDFSharp.Extensions.MySQL
             if (quadruple != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", Connection);
-                command.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE QuadrupleID = @QID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["QID"].Value = quadruple.QuadrupleID;
+                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
                 try
                 {
@@ -263,16 +298,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -280,7 +315,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -300,11 +335,12 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
 
                 try
                 {
@@ -312,16 +348,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -329,7 +365,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -349,11 +385,12 @@ namespace RDFSharp.Extensions.MySQL
             if (subjectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID", Connection);
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
 
                 try
                 {
@@ -361,16 +398,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -378,7 +415,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -398,11 +435,12 @@ namespace RDFSharp.Extensions.MySQL
             if (predicateResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID", Connection);
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -410,16 +448,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -427,7 +465,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -447,13 +485,14 @@ namespace RDFSharp.Extensions.MySQL
             if (objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -461,16 +500,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -478,7 +517,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -498,13 +537,14 @@ namespace RDFSharp.Extensions.MySQL
             if (literalObject != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["OBJID"].Value = literalObject.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["OBJID"].Value = literalObject.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -512,16 +552,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -529,7 +569,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -549,13 +589,14 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && subjectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
 
                 try
                 {
@@ -563,16 +604,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -580,7 +621,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -600,13 +641,14 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && predicateResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -614,16 +656,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -631,7 +673,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -651,15 +693,16 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -667,16 +710,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -684,7 +727,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -704,15 +747,16 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && objectLiteral != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -720,16 +764,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -737,7 +781,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -757,15 +801,16 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -773,16 +818,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -790,7 +835,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -810,17 +855,18 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -828,16 +874,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -845,7 +891,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -865,17 +911,18 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -883,16 +930,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -900,7 +947,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -920,17 +967,18 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -938,16 +986,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -955,7 +1003,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -975,17 +1023,18 @@ namespace RDFSharp.Extensions.MySQL
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -993,16 +1042,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1010,7 +1059,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1030,13 +1079,14 @@ namespace RDFSharp.Extensions.MySQL
             if (subjectResource != null && predicateResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -1044,16 +1094,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1061,7 +1111,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1081,15 +1131,16 @@ namespace RDFSharp.Extensions.MySQL
             if (subjectResource != null && objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -1097,16 +1148,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1114,7 +1165,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1134,15 +1185,16 @@ namespace RDFSharp.Extensions.MySQL
             if (subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -1150,16 +1202,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1167,7 +1219,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1187,15 +1239,16 @@ namespace RDFSharp.Extensions.MySQL
             if (predicateResource != null && objectResource != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -1203,16 +1256,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1220,7 +1273,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1240,15 +1293,16 @@ namespace RDFSharp.Extensions.MySQL
             if (predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                DeleteCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -1256,16 +1310,16 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1273,7 +1327,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1291,7 +1345,8 @@ namespace RDFSharp.Extensions.MySQL
         public override void ClearQuadruples()
         {
             //Create command
-            MySqlCommand command = new MySqlCommand("DELETE FROM Quadruples", Connection);
+            DeleteCommand.CommandText = "DELETE FROM Quadruples";
+            DeleteCommand.Parameters.Clear();
 
             try
             {
@@ -1299,16 +1354,16 @@ namespace RDFSharp.Extensions.MySQL
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
+                DeleteCommand.Prepare();
 
                 //Open transaction
-                command.Transaction = Connection.BeginTransaction();
+                DeleteCommand.Transaction = Connection.BeginTransaction();
 
                 //Execute command
-                command.ExecuteNonQuery();
+                DeleteCommand.ExecuteNonQuery();
 
                 //Close transaction
-                command.Transaction.Commit();
+                DeleteCommand.Transaction.Commit();
 
                 //Close connection
                 Connection.Close();
@@ -1316,7 +1371,7 @@ namespace RDFSharp.Extensions.MySQL
             catch (Exception ex)
             {
                 //Rollback transaction
-                command.Transaction.Rollback();
+                DeleteCommand.Transaction.Rollback();
 
                 //Close connection
                 Connection.Close();
@@ -1338,11 +1393,12 @@ namespace RDFSharp.Extensions.MySQL
                 return false;
 
             //Create command
-            MySqlCommand command = new MySqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", Connection);
-            command.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+            SelectCommand.CommandText = "SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)";
+            SelectCommand.Parameters.Clear();
+            SelectCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
 
             //Valorize parameters
-            command.Parameters["QID"].Value = quadruple.QuadrupleID;
+            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
             //Prepare and execute command
             try
@@ -1351,10 +1407,10 @@ namespace RDFSharp.Extensions.MySQL
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
+                SelectCommand.Prepare();
 
                 //Execute command
-                int result = int.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
@@ -1401,240 +1457,262 @@ namespace RDFSharp.Extensions.MySQL
                 queryFilters.Append('L');
 
             //Intersect the filters
-            MySqlCommand command = null;
             switch (queryFilters.ToString())
             {
                 case "C":
                     //C->->->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     break;
                 case "S":
                     //->S->->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     break;
                 case "P":
                     //->->P->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID", Connection);
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "O":
                     //->->->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "L":
                     //->->->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CS":
                     //C->S->->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     break;
                 case "CP":
                     //C->->P->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "CO":
                     //C->->->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CL":
                     //C->->->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSP":
                     //C->S->P->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "CSO":
                     //C->S->->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSL":
                     //C->S->->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CPO":
                     //C->->P->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CPL":
                     //C->->P->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSPO":
                     //C->S->P->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSPL":
                     //C->S->P->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SP":
                     //->S->P->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "SO":
                     //->S->->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SL":
                     //->S->->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "PO":
                     //->->P->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "PL":
                     //->->P->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SPO":
                     //->S->P->O
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SPL":
                     //->S->P->L
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV", Connection);
-                    command.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-                    command.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
+                    SelectCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 default:
                     //->->->
-                    command = new MySqlCommand("SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", Connection);
+                    SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples";
+                    SelectCommand.Parameters.Clear();
                     break;
             }
 
@@ -1645,11 +1723,10 @@ namespace RDFSharp.Extensions.MySQL
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
-                command.CommandTimeout = 180;
+                SelectCommand.Prepare();
 
                 //Execute command
-                using (MySqlDataReader quadruples = command.ExecuteReader())
+                using (MySqlDataReader quadruples = SelectCommand.ExecuteReader())
                 {
                     while (quadruples.Read())
                         result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
@@ -1683,10 +1760,11 @@ namespace RDFSharp.Extensions.MySQL
                 Connection.Open();
 
                 //Create command
-                MySqlCommand command = new MySqlCommand("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" + Connection.Database + "' AND table_name = 'Quadruples'", Connection);
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '" + Connection.Database + "' AND table_name = 'Quadruples'";
+                SelectCommand.Parameters.Clear();
 
                 //Execute command
-                int result = Int32.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
@@ -1706,13 +1784,13 @@ namespace RDFSharp.Extensions.MySQL
         }
 
         /// <summary>
-        /// Prepares the underlying MySQL database
+        /// Initializes the underlying MySQL database
         /// </summary>
-        private void PrepareStore()
+        private void InitializeStore()
         {
             RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
 
-            //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
+            //Prepare the database if diagnostics has not found the "Quadruples" table
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
             {
                 try
@@ -1721,8 +1799,9 @@ namespace RDFSharp.Extensions.MySQL
                     Connection.Open();
 
                     //Create & Execute command
-                    MySqlCommand command = new MySqlCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INT NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL) ENGINE=InnoDB;ALTER TABLE Quadruples ADD INDEX IDX_ContextID(ContextID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID(SubjectID);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID(PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_ObjectID(ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor);", Connection);
-                    command.ExecuteNonQuery();
+                    MySqlCommand createCommand = new MySqlCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INT NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL) ENGINE=InnoDB;ALTER TABLE Quadruples ADD INDEX IDX_ContextID(ContextID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID(SubjectID);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID(PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_ObjectID(ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor);", Connection);
+                    createCommand.CommandTimeout = 120;
+                    createCommand.ExecuteNonQuery();
 
                     //Close connection
                     Connection.Close();
@@ -1755,11 +1834,11 @@ namespace RDFSharp.Extensions.MySQL
                 Connection.Open();
 
                 //Create command
-                MySqlCommand command = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection);
-                command.CommandTimeout = 180;
+                MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection);
+                optimizeCommand.CommandTimeout = 120;
 
                 //Execute command
-                command.ExecuteNonQuery();
+                optimizeCommand.ExecuteNonQuery();
 
                 //Close connection
                 Connection.Close();
@@ -1775,6 +1854,29 @@ namespace RDFSharp.Extensions.MySQL
         }
         #endregion
 
+        #endregion
+    }
+
+    /// <summary>
+    /// RDFMySQLStoreOptions is a collector of options for customizing the default behaviour of a MySQL store
+    /// </summary>
+    public class RDFMySQLStoreOptions
+    {
+        #region Properties
+        /// <summary>
+        /// Timeout in seconds for SELECT queries executed on the MySQL store (default: 120)
+        /// </summary>
+        public int SelectTimeout { get; set; } = 120;
+
+        /// <summary>
+        /// Timeout in seconds for DELETE queries executed on the MySQL store (default: 120)
+        /// </summary>
+        public int DeleteTimeout { get; set; } = 120;
+
+        /// <summary>
+        /// Timeout in seconds for INSERT queries executed on the MySQL store (default: 120)
+        /// </summary>
+        public int InsertTimeout { get; set; } = 120;
         #endregion
     }
 }
