@@ -19,8 +19,9 @@ using System.Data;
 using System.Text;
 using Microsoft.Data.SqlClient;
 using RDFSharp.Model;
+using RDFSharp.Store;
 
-namespace RDFSharp.Store
+namespace RDFSharp.Extensions.SQLServer
 {
     /// <summary>
     /// RDFSQLServerStore represents a RDFStore backed on SQL Server engine
