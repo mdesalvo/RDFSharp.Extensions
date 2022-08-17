@@ -1,5 +1,5 @@
 ﻿/*
-   Copyright 2012-2020 Marco De Salvo
+   Copyright 2012-2022 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -32,7 +32,22 @@ namespace RDFSharp.Store
         /// Connection to the SQL Server database
         /// </summary>
         internal SqlConnection Connection { get; set; }
-        
+
+        /// <summary>
+        /// Command to execute SELECT queries on the SQL Server database
+        /// </summary>
+        internal SqlCommand SelectCommand { get; set; }
+
+        /// <summary>
+        /// Command to execute INSERT queries on the SQL Server database
+        /// </summary>
+        internal SqlCommand InsertCommand { get; set; }
+
+        /// <summary>
+        /// Command to execute DELETE queries on the SQL Server database
+        /// </summary>
+        internal SqlCommand DeleteCommand { get; set; }
+
         /// <summary>
         /// Flag indicating that the SQL Server store instance has already been disposed
         /// </summary>
@@ -41,27 +56,36 @@ namespace RDFSharp.Store
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a SQL Server store
+        /// Default-ctor to build a SQL Server store instance (with eventual options)
         /// </summary>
-        public RDFSQLServerStore(string sqlServerConnString)
+        public RDFSQLServerStore(string sqlserverConnectionString, RDFSQLServerStoreOptions sqlserverStoreOptions = null)
         {
-            if (string.IsNullOrEmpty(sqlServerConnString))
-            	throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlServerConnString\" parameter is null or empty.");
+            //Guard against tricky paths
+            if (string.IsNullOrEmpty(sqlserverConnectionString))
+            	throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlserverConnectionString\" parameter is null or empty.");
+
+            //Initialize options
+            if (sqlserverStoreOptions == null)
+                sqlserverStoreOptions = new RDFSQLServerStoreOptions();
 
             //Initialize store structures
             StoreType = "SQLSERVER";
-            Connection = new SqlConnection(sqlServerConnString);
+            Connection = new SqlConnection(sqlserverConnectionString);
+            SelectCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.SelectTimeout };
+            DeleteCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.DeleteTimeout };
+            InsertCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
             //Perform initial diagnostics
-            PrepareStore();
+            InitializeStore();
         }
         
         /// <summary>
         /// Destroys the SQL Server store instance
         /// </summary>
-        ~RDFSQLServerStore() => Dispose(false);
+        ~RDFSQLServerStore() 
+            => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -90,7 +114,15 @@ namespace RDFSharp.Store
 
             if (disposing)
             {
+                //Dispose
+                SelectCommand?.Dispose();
+                InsertCommand?.Dispose();
+                DeleteCommand?.Dispose();
                 Connection?.Dispose();
+                //Delete
+                SelectCommand = null;
+                InsertCommand = null;
+                DeleteCommand = null;
                 Connection = null;
             }
 
@@ -111,17 +143,18 @@ namespace RDFSharp.Store
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
                 //Create command
-                SqlCommand command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", Connection);
-                command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                command.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                InsertCommand.CommandText = "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END";
+                InsertCommand.Parameters.Clear();
+                InsertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                InsertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
 
                 try
                 {
@@ -129,32 +162,32 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    InsertCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    InsertCommand.Transaction = Connection.BeginTransaction();
 
                     //Iterate triples
-                    foreach (var triple in graph)
+                    foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        command.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
-                        command.Parameters["TFV"].Value = triple.TripleFlavor;
-                        command.Parameters["CTX"].Value = graphCtx.ToString();
-                        command.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        command.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        command.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        command.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        command.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        command.Parameters["OBJ"].Value = triple.Object.ToString();
-                        command.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
 
                         //Execute command
-                        command.ExecuteNonQuery();
+                        InsertCommand.ExecuteNonQuery();
                     }
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    InsertCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -162,7 +195,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    InsertCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -182,29 +215,30 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END", Connection);
-                command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                command.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                InsertCommand.CommandText = "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END";
+                InsertCommand.Parameters.Clear();
+                InsertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                InsertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                InsertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
+                InsertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["QID"].Value = quadruple.QuadrupleID;
-                command.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                command.Parameters["CTX"].Value = quadruple.Context.ToString();
-                command.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                command.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                command.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                command.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                command.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                command.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                command.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
+                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
 
                 try
                 {
@@ -212,16 +246,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    InsertCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    InsertCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    InsertCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    InsertCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -229,7 +263,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    InsertCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -251,11 +285,12 @@ namespace RDFSharp.Store
             if (quadruple != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID", Connection);
-                command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["QID"].Value = quadruple.QuadrupleID;
+                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
                 try
                 {
@@ -263,16 +298,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -280,7 +315,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -300,11 +335,12 @@ namespace RDFSharp.Store
             if (contextResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
 
                 try
                 {
@@ -312,16 +348,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -329,7 +365,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -349,11 +385,12 @@ namespace RDFSharp.Store
             if (subjectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", Connection);
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
 
                 try
                 {
@@ -361,16 +398,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -378,7 +415,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -398,11 +435,12 @@ namespace RDFSharp.Store
             if (predicateResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", Connection);
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -410,16 +448,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -427,7 +465,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -447,13 +485,14 @@ namespace RDFSharp.Store
             if (objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -461,16 +500,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -478,7 +517,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -498,13 +537,14 @@ namespace RDFSharp.Store
             if (literalObject != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["OBJID"].Value = literalObject.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["OBJID"].Value = literalObject.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -512,16 +552,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -529,7 +569,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -549,13 +589,14 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
 
                 try
                 {
@@ -563,16 +604,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -580,7 +621,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -600,13 +641,14 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -614,16 +656,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -631,7 +673,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -651,15 +693,16 @@ namespace RDFSharp.Store
             if (contextResource != null && objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -667,16 +710,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -684,7 +727,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -704,15 +747,16 @@ namespace RDFSharp.Store
             if (contextResource != null && objectLiteral != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -720,16 +764,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -737,7 +781,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -757,15 +801,16 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -773,16 +818,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -790,7 +835,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -810,17 +855,18 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -828,16 +874,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -845,7 +891,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -865,17 +911,18 @@ namespace RDFSharp.Store
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -883,16 +930,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -900,7 +947,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -920,17 +967,18 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -938,16 +986,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -955,7 +1003,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -975,17 +1023,18 @@ namespace RDFSharp.Store
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["CTXID"].Value = contextResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["CTXID"].Value = contextResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -993,16 +1042,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1010,7 +1059,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1030,13 +1079,14 @@ namespace RDFSharp.Store
             if (subjectResource != null && predicateResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
 
                 try
                 {
@@ -1044,16 +1094,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1061,7 +1111,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1081,15 +1131,16 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -1097,16 +1148,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1114,7 +1165,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1134,15 +1185,16 @@ namespace RDFSharp.Store
             if (subjectResource != null && objectLiteral != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["SUBJID"].Value = subjectResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -1150,16 +1202,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1167,7 +1219,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1187,15 +1239,16 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectResource != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -1203,16 +1256,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1220,7 +1273,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1240,15 +1293,16 @@ namespace RDFSharp.Store
             if (predicateResource != null && objectLiteral != null)
             {
                 //Create command
-                SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                DeleteCommand.Parameters.Clear();
+                DeleteCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                DeleteCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
 
                 //Valorize parameters
-                command.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
-                command.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
-                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                DeleteCommand.Parameters["PREDID"].Value = predicateResource.PatternMemberID;
+                DeleteCommand.Parameters["OBJID"].Value = objectLiteral.PatternMemberID;
+                DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
 
                 try
                 {
@@ -1256,16 +1310,16 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Prepare command
-                    command.Prepare();
+                    DeleteCommand.Prepare();
 
                     //Open transaction
-                    command.Transaction = Connection.BeginTransaction();
+                    DeleteCommand.Transaction = Connection.BeginTransaction();
 
                     //Execute command
-                    command.ExecuteNonQuery();
+                    DeleteCommand.ExecuteNonQuery();
 
                     //Close transaction
-                    command.Transaction.Commit();
+                    DeleteCommand.Transaction.Commit();
 
                     //Close connection
                     Connection.Close();
@@ -1273,7 +1327,7 @@ namespace RDFSharp.Store
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    command.Transaction.Rollback();
+                    DeleteCommand.Transaction.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1291,7 +1345,8 @@ namespace RDFSharp.Store
         public override void ClearQuadruples()
         {
             //Create command
-            SqlCommand command = new SqlCommand("DELETE FROM [dbo].[Quadruples]", Connection);
+            DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples]";
+            DeleteCommand.Parameters.Clear();
 
             try
             {
@@ -1299,16 +1354,16 @@ namespace RDFSharp.Store
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
+                DeleteCommand.Prepare();
 
                 //Open transaction
-                command.Transaction = Connection.BeginTransaction();
+                DeleteCommand.Transaction = Connection.BeginTransaction();
 
                 //Execute command
-                command.ExecuteNonQuery();
+                DeleteCommand.ExecuteNonQuery();
 
                 //Close transaction
-                command.Transaction.Commit();
+                DeleteCommand.Transaction.Commit();
 
                 //Close connection
                 Connection.Close();
@@ -1316,7 +1371,7 @@ namespace RDFSharp.Store
             catch (Exception ex)
             {
                 //Rollback transaction
-                command.Transaction.Rollback();
+                DeleteCommand.Transaction.Rollback();
 
                 //Close connection
                 Connection.Close();
@@ -1338,11 +1393,12 @@ namespace RDFSharp.Store
                 return false;
 
             //Create command
-            SqlCommand command = new SqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID)", Connection);
-            command.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));            
+            SelectCommand.CommandText = "SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID)";
+            SelectCommand.Parameters.Clear();
+            SelectCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
 
             //Valorize parameters
-            command.Parameters["QID"].Value = quadruple.QuadrupleID;
+            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
             //Prepare and execute command
             try
@@ -1351,10 +1407,10 @@ namespace RDFSharp.Store
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
+                SelectCommand.Prepare();
 
                 //Execute command
-                int result = int.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
@@ -1401,240 +1457,263 @@ namespace RDFSharp.Store
                 queryFilters.Append('L');
 
             //Intersect the filters
-            SqlCommand command = null;
             switch (queryFilters.ToString())
             {
                 case "C":
                     //C->->->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     break;
                 case "S":
                     //->S->->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     break;
                 case "P":
                     //->->P->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID", Connection);
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "O":
                     //->->->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "L":
                     //->->->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CS":
                     //C->S->->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     break;
                 case "CP":
                     //C->->P->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "CO":
                     //C->->->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CL":
                     //C->->->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSP":
                     //C->S->P->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "CSO":
                     //C->S->->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSL":
                     //C->S->->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CPO":
                     //C->->P->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CPL":
                     //C->->P->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSPO":
                     //C->S->P->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSPL":
                     //C->S->P->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["CTXID"].Value = ctx.PatternMemberID;
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [ContextID] = @CTXID AND [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SP":
                     //->S->P->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     break;
                 case "SO":
                     //->S->->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SL":
                     //->S->->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "PO":
                     //->->P->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "PL":
                     //->->P->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SPO":
                     //->S->P->O
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SPL":
                     //->S->P->L
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV", Connection);
-                    command.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-                    command.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                    command.Parameters["SUBJID"].Value = subj.PatternMemberID;
-                    command.Parameters["PREDID"].Value = pred.PatternMemberID;
-                    command.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples] WHERE [SubjectID] = @SUBJID AND [PredicateID] = @PREDID AND [ObjectID] = @OBJID AND [TripleFlavor] = @TFV";
+                    SelectCommand.Parameters.Clear();
+                    SelectCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+                    SelectCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                    SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
+                    SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
+                    SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 default:
                     //->->->
-                    command = new SqlCommand("SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]", Connection);
+                    SelectCommand.CommandText = "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]";
+                    SelectCommand.Parameters.Clear();
                     break;
             }
 
@@ -1645,10 +1724,10 @@ namespace RDFSharp.Store
                 Connection.Open();
 
                 //Prepare command
-                command.Prepare();
+                SelectCommand.Prepare();
 
                 //Execute command
-                using (SqlDataReader quadruples = command.ExecuteReader())
+                using (SqlDataReader quadruples = SelectCommand.ExecuteReader())
                 {
                     while (quadruples.Read())
                         result.AddQuadruple(RDFStoreUtilities.ParseQuadruple(quadruples));
@@ -1682,10 +1761,11 @@ namespace RDFSharp.Store
                 Connection.Open();
 
                 //Create command
-                SqlCommand command = new SqlCommand("SELECT COUNT(*) FROM sys.tables WHERE name='Quadruples' AND type_desc='USER_TABLE'", Connection);
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM sys.tables WHERE name='Quadruples' AND type_desc='USER_TABLE'";
+                SelectCommand.Parameters.Clear();
 
                 //Execute command
-                int result = int.Parse(command.ExecuteScalar().ToString());
+                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
@@ -1705,13 +1785,13 @@ namespace RDFSharp.Store
         }
 
         /// <summary>
-        /// Prepares the underlying SQL Server database
+        /// Initializes the underlying SQL Server database
         /// </summary>
-        private void PrepareStore()
+        private void InitializeStore()
         {
             RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
 
-            //Prepare the database only if diagnostics has detected the missing of "Quadruples" table in the store
+            //Prepare the database if diagnostics has not found the "Quadruples" table
             if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
             {
                 try
@@ -1720,8 +1800,9 @@ namespace RDFSharp.Store
                     Connection.Open();
 
                     //Create & Execute command
-                    SqlCommand command = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", Connection);
-                    command.ExecuteNonQuery();
+                    SqlCommand createCommand = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", Connection);
+                    createCommand.CommandTimeout = 120;
+                    createCommand.ExecuteNonQuery();
 
                     //Close connection
                     Connection.Close();
@@ -1754,10 +1835,11 @@ namespace RDFSharp.Store
                 Connection.Open();
 
                 //Create command
-                SqlCommand command = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", Connection);
+                SqlCommand optimizeCommand = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", Connection);
+                optimizeCommand.CommandTimeout = 120;
 
                 //Execute command
-                command.ExecuteNonQuery();
+                optimizeCommand.ExecuteNonQuery();
 
                 //Close connection
                 Connection.Close();
@@ -1773,6 +1855,29 @@ namespace RDFSharp.Store
         }
         #endregion
 
+        #endregion
+    }
+
+    /// <summary>
+    /// RDFSQLServerStoreOptions is a collector of options for customizing the default behaviour of an SQL Server store
+    /// </summary>
+    public class RDFSQLServerStoreOptions
+    {
+        #region Properties
+        /// <summary>
+        /// Timeout in seconds for SELECT queries executed on the SQL Server store (default: 120)
+        /// </summary>
+        public int SelectTimeout { get; set; } = 120;
+
+        /// <summary>
+        /// Timeout in seconds for DELETE queries executed on the SQL Server store (default: 120)
+        /// </summary>
+        public int DeleteTimeout { get; set; } = 120;
+
+        /// <summary>
+        /// Timeout in seconds for INSERT queries executed on the SQL Server store (default: 120)
+        /// </summary>
+        public int InsertTimeout { get; set; } = 120;
         #endregion
     }
 }
