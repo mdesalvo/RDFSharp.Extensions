@@ -14,7 +14,6 @@
    limitations under the License.
 */
 
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("5C96900F-2B4B-446A-B02F-32BB289E21E0")]

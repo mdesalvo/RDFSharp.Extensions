@@ -14,6 +14,7 @@
    limitations under the License.
 */
 
+using Azure.Data.Tables;
 using System;
 using System.Text;
 using RDFSharp.Model;
@@ -27,6 +28,11 @@ namespace RDFSharp.Extensions.AzureTable
     public class RDFAzureTableStore : RDFStore, IDisposable
     {
         #region Properties
+        /// <summary>
+        /// Client used for performing operations on the Azure Table service
+        /// </summary>
+        internal TableClient Client { get; set; }
+
         /// <summary>
         /// Flag indicating that the Azure Table store instance has already been disposed
         /// </summary>
@@ -45,6 +51,7 @@ namespace RDFSharp.Extensions.AzureTable
 
             //Initialize store structures
             StoreType = "AZURE-TABLE";
+            Client = new TableClient(azureStorageConnectionString, "Quadruples");
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
         }
@@ -52,8 +59,7 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Destroys the Azure Table store instance
         /// </summary>
-        ~RDFAzureTableStore() 
-            => Dispose(false);
+        ~RDFAzureTableStore() => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -61,7 +67,7 @@ namespace RDFSharp.Extensions.AzureTable
         /// Gives the string representation of the Azure Table store 
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|STORAGE-NAME=xxxx", ";TABLE-NAME=yyyy");
+            => string.Concat(base.ToString(), "|ACCOUNT-NAME=", Client.AccountName, ";TABLE-NAME=", Client.Name);
 
         /// <summary>
         /// Disposes the Azure Table store instance 
@@ -82,8 +88,10 @@ namespace RDFSharp.Extensions.AzureTable
 
             if (disposing)
             {
-                //Dispose                
-                //Delete           
+                //Dispose
+
+                //Delete
+                Client = null;
             }
 
             Disposed = true;

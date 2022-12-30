@@ -105,8 +105,7 @@ namespace RDFSharp.Extensions.Firebird
         /// <summary>
         /// Destroys the Firebird store instance
         /// </summary>
-        ~RDFFirebirdStore() 
-            => Dispose(false);
+        ~RDFFirebirdStore() => Dispose(false);
         #endregion
 
         #region Interfaces

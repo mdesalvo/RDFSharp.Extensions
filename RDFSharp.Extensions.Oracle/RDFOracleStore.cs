@@ -90,8 +90,7 @@ namespace RDFSharp.Extensions.Oracle
         /// <summary>
         /// Destroys the Oracle store instance
         /// </summary>
-        ~RDFOracleStore()
-            => Dispose(false);
+        ~RDFOracleStore() => Dispose(false);
         #endregion
 
         #region Interfaces

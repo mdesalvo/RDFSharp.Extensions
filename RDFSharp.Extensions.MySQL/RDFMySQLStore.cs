@@ -84,8 +84,7 @@ namespace RDFSharp.Extensions.MySQL
         /// <summary>
         /// Destroys the MySQL store instance
         /// </summary>
-        ~RDFMySQLStore()
-            => Dispose(false);
+        ~RDFMySQLStore() => Dispose(false);
         #endregion
 
         #region Interfaces

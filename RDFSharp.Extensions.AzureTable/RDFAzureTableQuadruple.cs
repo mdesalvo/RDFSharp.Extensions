@@ -14,6 +14,19 @@
    limitations under the License.
 */
 
-using System.Runtime.InteropServices;
-[assembly: ComVisible(false)]
-[assembly: Guid("6F7FE654-1B71-4433-B008-6DA0AB0FCBE1")]
+using Azure;
+using Azure.Data.Tables;
+using System;
+
+namespace RDFSharp.Extensions.AzureTable
+{
+    internal class RDFAzureTableQuadruple : ITableEntity
+    {
+        public string PartitionKey { get; set; }
+        public string RowKey { get; set; }
+        public DateTimeOffset? Timestamp { get; set; }
+        public ETag ETag { get; set; }
+
+
+    }
+}

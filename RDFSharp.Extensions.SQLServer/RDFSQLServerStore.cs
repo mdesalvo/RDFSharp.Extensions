@@ -85,8 +85,7 @@ namespace RDFSharp.Extensions.SQLServer
         /// <summary>
         /// Destroys the SQL Server store instance
         /// </summary>
-        ~RDFSQLServerStore() 
-            => Dispose(false);
+        ~RDFSQLServerStore() => Dispose(false);
         #endregion
 
         #region Interfaces

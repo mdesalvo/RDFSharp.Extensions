@@ -106,8 +106,7 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Destroys the SQLite store instance
         /// </summary>
-        ~RDFSQLiteStore() 
-            => Dispose(false);
+        ~RDFSQLiteStore() => Dispose(false);
         #endregion
 
         #region Interfaces

@@ -85,8 +85,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Destroys the PostgreSQL store instance
         /// </summary>
-        ~RDFPostgreSQLStore()
-            => Dispose(false);
+        ~RDFPostgreSQLStore() => Dispose(false);
         #endregion
 
         #region Interfaces
