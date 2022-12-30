@@ -3,7 +3,7 @@
 		<AssemblyTitle>RDFSharp.Extensions.SQLServer</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.SQLServer</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.0.0</Version>
+		<Version>3.1.0</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
 		<Description>RDFSharp extensions for storage of RDF data on SQLServer</Description>
@@ -42,11 +42,11 @@
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.0.1" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="RDFSharp" Version="3.0.0" />
+		<PackageReference Include="RDFSharp" Version="3.1.0" />
 	</ItemGroup>
 </Project>
