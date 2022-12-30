@@ -130,7 +130,15 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (quadruple != null)
             {
-                //TODO
+                try
+                {
+                    RDFAzureTableQuadruple azureQuadruple = new RDFAzureTableQuadruple(quadruple);
+                    Client.UpsertEntity(azureQuadruple);
+                }
+                catch (Exception ex)
+                {
+                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                }
             }
             return this;
         }
