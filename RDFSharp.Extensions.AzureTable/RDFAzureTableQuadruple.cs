@@ -16,17 +16,46 @@
 
 using Azure;
 using Azure.Data.Tables;
+using RDFSharp.Store;
 using System;
 
 namespace RDFSharp.Extensions.AzureTable
 {
     internal class RDFAzureTableQuadruple : ITableEntity
     {
+        private static readonly string RDFSHARP = "RDFSHARP";
+
+        #region Properties
+
+        //ITableEntity
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
         public ETag ETag { get; set; }
 
+        public string Context { get; set; }
+        public string Subject { get; set; }
+        public string Predicate { get; set; }
+        public string Object { get; set; }
+        public int Flavor { get; set; }
 
+        #endregion
+
+        #region Ctors
+
+        internal RDFAzureTableQuadruple(RDFQuadruple quadruple)
+        {
+            //ITableEntity
+            this.PartitionKey = RDFSHARP;
+            this.RowKey = quadruple.QuadrupleID.ToString();
+
+            this.Context = quadruple.Context.ToString();
+            this.Subject = quadruple.Subject.ToString();
+            this.Predicate = quadruple.Predicate.ToString();
+            this.Object = quadruple.Object.ToString();
+            this.Flavor = (int)quadruple.TripleFlavor;
+        }
+
+        #endregion
     }
 }
