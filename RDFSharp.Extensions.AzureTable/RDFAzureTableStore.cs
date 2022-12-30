@@ -28,14 +28,8 @@ namespace RDFSharp.Extensions.AzureTable
     public class RDFAzureTableStore : RDFStore, IDisposable
     {
         #region Properties
-        /// <summary>
-        /// Client used for performing operations on the Azure Table service
-        /// </summary>
+        internal TableServiceClient ServiceClient { get; set; }
         internal TableClient Client { get; set; }
-
-        /// <summary>
-        /// Flag indicating that the Azure Table store instance has already been disposed
-        /// </summary>
         internal bool Disposed { get; set; }
         #endregion
 
@@ -51,7 +45,8 @@ namespace RDFSharp.Extensions.AzureTable
 
             //Initialize store structures
             StoreType = "AZURE-TABLE";
-            Client = new TableClient(azureStorageConnectionString, "Quadruples");
+            ServiceClient = new TableServiceClient(azureStorageConnectionString);
+            Client = ServiceClient.GetTableClient("Quadruples");
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
         }
@@ -88,9 +83,7 @@ namespace RDFSharp.Extensions.AzureTable
 
             if (disposing)
             {
-                //Dispose
-
-                //Delete
+                ServiceClient = null;
                 Client = null;
             }
 
