@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32802.440
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.Firebird", "RDFSharp.Extensions.Firebird\RDFSharp.Extensions.Firebird.csproj", "{1EEA1A7E-A661-4745-810E-FBEB9F20B6FC}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLite", "RDFSharp.Extensions.SQLite\RDFSharp.Extensions.SQLite.csproj", "{5C96900F-2B4B-446A-B02F-32BB289E21E0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLServer", "RDFSharp.Extensions.SQLServer\RDFSharp.Extensions.SQLServer.csproj", "{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.AzureTable", "RDFSharp.Extensions.AzureTable\RDFSharp.Extensions.AzureTable.csproj", "{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
