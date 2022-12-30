@@ -19,6 +19,7 @@ using System;
 using System.Text;
 using RDFSharp.Model;
 using RDFSharp.Store;
+using Azure;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -117,8 +118,15 @@ namespace RDFSharp.Extensions.AzureTable
             if (graph != null)
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
+                try
+                {
+                    //TODO
 
-                //TODO
+                }
+                catch (Exception ex)
+                {
+                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                }
             }
             return this;
         }
@@ -133,7 +141,9 @@ namespace RDFSharp.Extensions.AzureTable
                 try
                 {
                     RDFAzureTableQuadruple azureQuadruple = new RDFAzureTableQuadruple(quadruple);
-                    Client.UpsertEntity(azureQuadruple);
+                    Response response = Client.UpsertEntity(azureQuadruple);
+                    if (response.IsError)
+                        throw new Exception(response.ToString());
                 }
                 catch (Exception ex)
                 {
