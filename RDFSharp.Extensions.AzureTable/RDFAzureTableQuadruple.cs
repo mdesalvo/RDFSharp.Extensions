@@ -23,8 +23,6 @@ namespace RDFSharp.Extensions.AzureTable
 {
     internal class RDFAzureTableQuadruple : ITableEntity
     {
-        private static readonly string RDFSHARP = "RDFSHARP";
-
         #region Properties
 
         //ITableEntity
@@ -46,7 +44,7 @@ namespace RDFSharp.Extensions.AzureTable
         internal RDFAzureTableQuadruple(RDFQuadruple quadruple)
         {
             //ITableEntity
-            this.PartitionKey = RDFSHARP;
+            this.PartitionKey = "RDFSHARP";
             this.RowKey = quadruple.QuadrupleID.ToString();
 
             this.Context = quadruple.Context.ToString();

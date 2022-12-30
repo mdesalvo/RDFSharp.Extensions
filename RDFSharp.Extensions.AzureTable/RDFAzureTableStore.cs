@@ -49,6 +49,16 @@ namespace RDFSharp.Extensions.AzureTable
             Client = ServiceClient.GetTableClient("Quadruples");
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
+
+            //Initialize working table
+            try
+            {
+                Client.CreateIfNotExists();
+            }
+            catch (Exception ex)
+            {
+                throw new RDFStoreException("Cannot create Azure Table store because: " + ex.Message, ex);
+            }
         }
         
         /// <summary>
