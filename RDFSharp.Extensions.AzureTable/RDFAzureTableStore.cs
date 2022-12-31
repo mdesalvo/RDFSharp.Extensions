@@ -702,8 +702,8 @@ namespace RDFSharp.Extensions.AzureTable
             if (quadruple == null)
                 return false;
 
-            //TODO
-            return false;
+            NullableResponse<RDFAzureTableQuadruple> response = Client.GetEntityIfExists<RDFAzureTableQuadruple>("RDFSHARP", quadruple.QuadrupleID.ToString());
+            return response.HasValue;
         }
 
         /// <summary>
