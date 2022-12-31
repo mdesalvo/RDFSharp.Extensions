@@ -164,7 +164,7 @@ namespace RDFSharp.Extensions.AzureTable
 
         #region Remove
         /// <summary>
-        /// Removes the given quadruples from the store
+        /// Removes the given quadruple from the store
         /// </summary>
         public override RDFStore RemoveQuadruple(RDFQuadruple quadruple)
         {
