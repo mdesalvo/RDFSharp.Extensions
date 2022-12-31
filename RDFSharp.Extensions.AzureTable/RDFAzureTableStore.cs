@@ -679,7 +679,7 @@ namespace RDFSharp.Extensions.AzureTable
         {
             //Fetch entities candidates for deletion
             Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                string.Equals(qent.PartitionKey, "RDFSHARP");
+                string.Equals(qent.PartitionKey, "RDFSHARP"));
 
             //Execute the remove operation as a set of delete batches
             foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
