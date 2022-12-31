@@ -195,7 +195,8 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 //Fetch entities candidates for deletion
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent => 
-                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Context, contextResource.ToString()));
+                    string.Equals(qent.PartitionKey, "RDFSHARP") 
+                     && string.Equals(qent.Context, contextResource.ToString()));
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -218,7 +219,8 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 //Fetch entities candidates for deletion
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Subject, subjectResource.ToString()));
+                    string.Equals(qent.PartitionKey, "RDFSHARP") 
+                     && string.Equals(qent.Subject, subjectResource.ToString()));
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -239,9 +241,10 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (predicateResource != null)
             {
-                // Fetch entities candidates for deletion
+                //Fetch entities candidates for deletion
                 Pageable < RDFAzureTableQuadruple > quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Predicate, predicateResource.ToString()));
+                    string.Equals(qent.PartitionKey, "RDFSHARP") 
+                     && string.Equals(qent.Predicate, predicateResource.ToString()));
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -262,9 +265,10 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (objectResource != null)
             {
-                // Fetch entities candidates for deletion
+                //Fetch entities candidates for deletion
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Object, objectResource.ToString()) && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                    string.Equals(qent.PartitionKey, "RDFSHARP") 
+                     && string.Equals(qent.Object, objectResource.ToString()) && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -285,9 +289,11 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (literalObject != null)
             {
-                // Fetch entities candidates for deletion
+                //Fetch entities candidates for deletion
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Object, literalObject.ToString()) && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                    string.Equals(qent.PartitionKey, "RDFSHARP") 
+                     && string.Equals(qent.Object, literalObject.ToString()) 
+                      && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -308,7 +314,20 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && subjectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Subject, subjectResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -320,7 +339,20 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && predicateResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Predicate, predicateResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -332,7 +364,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && objectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Object, objectResource.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -344,7 +390,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && objectLiteral != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Object, objectLiteral.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -356,7 +416,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Subject, subjectResource.ToString())
+                       && string.Equals(qent.Predicate, predicateResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -368,7 +442,22 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Subject, subjectResource.ToString())
+                       && string.Equals(qent.Object, objectResource.ToString())
+                        && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -380,7 +469,22 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Subject, subjectResource.ToString())
+                       && string.Equals(qent.Object, objectLiteral.ToString())
+                        && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -392,7 +496,22 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Predicate, predicateResource.ToString())
+                       && string.Equals(qent.Object, objectResource.ToString())
+                        && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -404,7 +523,22 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Context, contextResource.ToString())
+                      && string.Equals(qent.Predicate, predicateResource.ToString())
+                       && string.Equals(qent.Object, objectLiteral.ToString())
+                        && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -416,7 +550,20 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (subjectResource != null && predicateResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Subject, subjectResource.ToString())
+                      && string.Equals(qent.Predicate, predicateResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -428,7 +575,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (subjectResource != null && objectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Subject, subjectResource.ToString())
+                      && string.Equals(qent.Object, objectResource.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -440,7 +601,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (subjectResource != null && objectLiteral != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Subject, subjectResource.ToString())
+                      && string.Equals(qent.Object, objectLiteral.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -452,7 +627,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (predicateResource != null && objectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Predicate, predicateResource.ToString())
+                      && string.Equals(qent.Object, objectResource.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -464,7 +653,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (predicateResource != null && objectLiteral != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP")
+                     && string.Equals(qent.Predicate, predicateResource.ToString())
+                      && string.Equals(qent.Object, objectLiteral.ToString())
+                       && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
