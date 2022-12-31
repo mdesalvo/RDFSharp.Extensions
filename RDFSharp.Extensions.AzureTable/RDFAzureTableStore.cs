@@ -677,7 +677,18 @@ namespace RDFSharp.Extensions.AzureTable
         /// </summary>
         public override void ClearQuadruples()
         {
-            //TODO
+            //Fetch entities candidates for deletion
+            Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                string.Equals(qent.PartitionKey, "RDFSHARP");
+
+            //Execute the remove operation as a set of delete batches
+            foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+            {
+                Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                if (transactionResponse.GetRawResponse().IsError)
+                    throw new Exception(transactionResponse.ToString());
+            }
         }
         #endregion
 
