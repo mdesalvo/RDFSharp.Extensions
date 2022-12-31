@@ -22,6 +22,7 @@ using RDFSharp.Store;
 using Azure;
 using System.Collections.Generic;
 using System.Net;
+using System.Linq;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -191,7 +192,18 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (contextResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent => 
+                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Context, contextResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -565,6 +577,26 @@ namespace RDFSharp.Extensions.AzureTable
                     : new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object);
                 
                 batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, new RDFAzureTableQuadruple(quadruple)));
+                if (batch.Count == 100)
+                {
+                    yield return batch;
+                    batch = new List<TableTransactionAction>(100);
+                }
+            }
+
+            if (batch.Count > 0)
+                yield return batch;
+        }
+
+        /// <summary>
+        /// Chunks the given entities into delete batches of 100 items
+        /// </summary>
+        private static IEnumerable<IEnumerable<TableTransactionAction>> PrepareDeleteBatch(IEnumerable<RDFAzureTableQuadruple> quadruples)
+        {
+            List<TableTransactionAction> batch = new List<TableTransactionAction>(100);
+            foreach (RDFAzureTableQuadruple quadruple in quadruples)
+            {
+                batch.Add(new TableTransactionAction(TableTransactionActionType.Delete, quadruple));
                 if (batch.Count == 100)
                 {
                     yield return batch;

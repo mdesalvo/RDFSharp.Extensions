@@ -21,37 +21,78 @@ using System;
 
 namespace RDFSharp.Extensions.AzureTable
 {
-    internal class RDFAzureTableQuadruple : ITableEntity
+    /// <summary>
+    /// Represents an RDFQuadruple stored in Azure Table service
+    /// </summary>
+    public class RDFAzureTableQuadruple : ITableEntity
     {
         #region Properties
 
-        //ITableEntity
-        public string PartitionKey { get; set; }
+        /// <summary>
+        /// PartitionKey
+        /// </summary>
+        public string PartitionKey { get; set; } = "RDFSHARP";
+
+        /// <summary>
+        /// RowKey
+        /// </summary>
         public string RowKey { get; set; }
+
+        /// <summary>
+        /// Timestamp
+        /// </summary>
         public DateTimeOffset? Timestamp { get; set; }
+
+        /// <summary>
+        /// ETag
+        /// </summary>
         public ETag ETag { get; set; }
 
+        /// <summary>
+        /// Context of the quadruple
+        /// </summary>
         public string Context { get; set; }
+
+        /// <summary>
+        /// Subject of the quadruple
+        /// </summary>
         public string Subject { get; set; }
+
+        /// <summary>
+        /// Predicate of the quadruple
+        /// </summary>
         public string Predicate { get; set; }
+
+        /// <summary>
+        /// Object of the quadruple
+        /// </summary>
         public string Object { get; set; }
+
+        /// <summary>
+        /// Flavor of the quadruple (SPO=1, SPL=2)
+        /// </summary>
         public int Flavor { get; set; }
 
         #endregion
 
         #region Ctors
 
-        internal RDFAzureTableQuadruple(RDFQuadruple quadruple)
-        {
-            //ITableEntity
-            this.PartitionKey = "RDFSHARP";
-            this.RowKey = quadruple.QuadrupleID.ToString();
+        /// <summary>
+        /// Builds an empty entity
+        /// </summary>
+        public RDFAzureTableQuadruple() { }
 
-            this.Context = quadruple.Context.ToString();
-            this.Subject = quadruple.Subject.ToString();
-            this.Predicate = quadruple.Predicate.ToString();
-            this.Object = quadruple.Object.ToString();
-            this.Flavor = (int)quadruple.TripleFlavor;
+        /// <summary>
+        /// Builds an entity from the given quadruple
+        /// </summary>
+        public RDFAzureTableQuadruple(RDFQuadruple quadruple)
+        {
+            RowKey = quadruple.QuadrupleID.ToString();
+            Context = quadruple.Context.ToString();
+            Subject = quadruple.Subject.ToString();
+            Predicate = quadruple.Predicate.ToString();
+            Object = quadruple.Object.ToString();
+            Flavor = (int)quadruple.TripleFlavor;
         }
 
         #endregion
