@@ -23,6 +23,7 @@ using Azure;
 using System.Collections.Generic;
 using System.Net;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -215,7 +216,18 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (subjectResource != null)
             {
-                //TODO
+                //Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Subject, subjectResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -227,7 +239,18 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (predicateResource != null)
             {
-                //TODO
+                // Fetch entities candidates for deletion
+                Pageable < RDFAzureTableQuadruple > quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Predicate, predicateResource.ToString()));
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -239,7 +262,18 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (objectResource != null)
             {
-                //TODO
+                // Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Object, objectResource.ToString()) && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
@@ -251,7 +285,18 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (literalObject != null)
             {
-                //TODO
+                // Fetch entities candidates for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.Object, literalObject.ToString()) && qent.Flavor == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+
+                //Execute the remove operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
+                {
+                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
+                }
             }
             return this;
         }
