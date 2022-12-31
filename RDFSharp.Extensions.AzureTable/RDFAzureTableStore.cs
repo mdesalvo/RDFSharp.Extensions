@@ -553,13 +553,11 @@ namespace RDFSharp.Extensions.AzureTable
             List<TableTransactionAction> batch = new List<TableTransactionAction>(batchSize);
             foreach (RDFTriple triple in graph)
             {
-                if (triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO)
-                    batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, 
-                        new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object))));
-                else
-                    batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, 
-                        new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object))));
-
+                RDFQuadruple quadruple = triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO
+                    ? new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object)
+                    : new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object);
+                
+                batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, new RDFAzureTableQuadruple(quadruple)));
                 if (batch.Count == batchSize)
                 {
                     yield return batch;
