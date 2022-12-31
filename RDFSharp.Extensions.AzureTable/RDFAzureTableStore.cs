@@ -127,7 +127,6 @@ namespace RDFSharp.Extensions.AzureTable
                     {
                         Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
 
-                        //In case of error we have to signal
                         if (transactionResponse.GetRawResponse().IsError)
                             throw new Exception(transactionResponse.ToString());
                     }
@@ -151,7 +150,6 @@ namespace RDFSharp.Extensions.AzureTable
                 {
                     Response response = Client.UpsertEntity(new RDFAzureTableQuadruple(quadruple));
 
-                    //In case of error we have to signal
                     if (response.IsError)
                         throw new Exception(response.ToString());
                 }
@@ -172,7 +170,17 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (quadruple != null)
             {
-                //TODO
+                try
+                {
+                    Response response = Client.DeleteEntity("RDFSHARP", quadruple.QuadrupleID.ToString());
+
+                    if (response.IsError && response.Status != 404)
+                        throw new Exception(response.ToString());
+                }
+                catch (Exception ex)
+                {
+                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                }
             }
             return this;
         }
