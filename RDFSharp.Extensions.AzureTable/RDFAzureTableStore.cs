@@ -21,8 +21,7 @@ using RDFSharp.Model;
 using RDFSharp.Store;
 using Azure;
 using System.Collections.Generic;
-using System.Linq;
-using System.Transactions;
+using System.Net;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -174,7 +173,7 @@ namespace RDFSharp.Extensions.AzureTable
                 {
                     Response response = Client.DeleteEntity("RDFSHARP", quadruple.QuadrupleID.ToString());
 
-                    if (response.IsError && response.Status != 404)
+                    if (response.IsError && response.Status != (int)HttpStatusCode.NotFound)
                         throw new Exception(response.ToString());
                 }
                 catch (Exception ex)
