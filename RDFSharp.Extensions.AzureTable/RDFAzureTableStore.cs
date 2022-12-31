@@ -114,7 +114,7 @@ namespace RDFSharp.Extensions.AzureTable
 
         #region Add
         /// <summary>
-        /// Merges the given graph into the store within a single transaction, avoiding duplicate insertions
+        /// Merges the given graph into the store
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
         {
@@ -141,7 +141,7 @@ namespace RDFSharp.Extensions.AzureTable
         }
 
         /// <summary>
-        /// Adds the given quadruple to the store, avoiding duplicate insertions
+        /// Adds the given quadruple to the store
         /// </summary>
         public override RDFStore AddQuadruple(RDFQuadruple quadruple)
         {
