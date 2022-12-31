@@ -51,27 +51,27 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Context of the quadruple
         /// </summary>
-        public string Context { get; set; }
+        public string C { get; set; }
 
         /// <summary>
         /// Subject of the quadruple
         /// </summary>
-        public string Subject { get; set; }
+        public string S { get; set; }
 
         /// <summary>
         /// Predicate of the quadruple
         /// </summary>
-        public string Predicate { get; set; }
+        public string P { get; set; }
 
         /// <summary>
-        /// Object of the quadruple
+        /// Object/Literal of the quadruple
         /// </summary>
-        public string Object { get; set; }
+        public string O { get; set; }
 
         /// <summary>
         /// Flavor of the quadruple (SPO=1, SPL=2)
         /// </summary>
-        public int Flavor { get; set; }
+        public int F { get; set; }
 
         #endregion
 
@@ -88,11 +88,11 @@ namespace RDFSharp.Extensions.AzureTable
         public RDFAzureTableQuadruple(RDFQuadruple quadruple)
         {
             RowKey = quadruple.QuadrupleID.ToString();
-            Context = quadruple.Context.ToString();
-            Subject = quadruple.Subject.ToString();
-            Predicate = quadruple.Predicate.ToString();
-            Object = quadruple.Object.ToString();
-            Flavor = (int)quadruple.TripleFlavor;
+            C = quadruple.Context.ToString();
+            S = quadruple.Subject.ToString();
+            P = quadruple.Predicate.ToString();
+            O = quadruple.Object.ToString();
+            F = (int)quadruple.TripleFlavor;
         }
 
         #endregion
