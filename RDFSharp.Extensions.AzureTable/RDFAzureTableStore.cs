@@ -20,6 +20,9 @@ using System.Text;
 using RDFSharp.Model;
 using RDFSharp.Store;
 using Azure;
+using System.Collections.Generic;
+using System.Linq;
+using System.Transactions;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -117,15 +120,21 @@ namespace RDFSharp.Extensions.AzureTable
         {
             if (graph != null)
             {
-                RDFContext graphCtx = new RDFContext(graph.Context);
                 try
                 {
-                    //TODO
+                    //Execute the merge operation as a set of upsert batches of 100 items
+                    foreach (IEnumerable<TableTransactionAction> batch in PrepareBatch(graph, 100))
+                    {
+                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
 
+                        //In case of error we have to signal
+                        if (transactionResponse.GetRawResponse().IsError)
+                            throw new Exception(transactionResponse.ToString());
+                    }
                 }
                 catch (Exception ex)
                 {
-                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                    throw new RDFStoreException("Cannot insert batch data into Azure Table store because: " + ex.Message, ex);
                 }
             }
             return this;
@@ -140,8 +149,9 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 try
                 {
-                    RDFAzureTableQuadruple azureQuadruple = new RDFAzureTableQuadruple(quadruple);
-                    Response response = Client.UpsertEntity(azureQuadruple);
+                    Response response = Client.UpsertEntity(new RDFAzureTableQuadruple(quadruple));
+
+                    //In case of error we have to signal
                     if (response.IsError)
                         throw new Exception(response.ToString());
                 }
@@ -528,6 +538,38 @@ namespace RDFSharp.Extensions.AzureTable
             return result;
         }
         #endregion
+
+        #endregion
+
+        #region Utilities
+
+        /// <summary>
+        /// Chunks the triples of the given graph into upsert batches of 100 Azure Table entities
+        /// </summary>
+        private static IEnumerable<IEnumerable<TableTransactionAction>> PrepareBatch(RDFGraph graph, int batchSize=100)
+        {
+            RDFContext graphContext = new RDFContext(graph.Context);
+
+            List<TableTransactionAction> batch = new List<TableTransactionAction>(batchSize);
+            foreach (RDFTriple triple in graph)
+            {
+                if (triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO)
+                    batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, 
+                        new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object))));
+                else
+                    batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, 
+                        new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object))));
+
+                if (batch.Count == batchSize)
+                {
+                    yield return batch;
+                    batch = new List<TableTransactionAction>(batchSize);
+                }
+            }
+
+            if (batch.Count > 0)
+                yield return batch;
+        }
 
         #endregion
     }
