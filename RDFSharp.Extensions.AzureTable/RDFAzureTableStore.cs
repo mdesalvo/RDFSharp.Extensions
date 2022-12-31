@@ -122,8 +122,8 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 try
                 {
-                    //Execute the merge operation as a set of upsert batches of 100 items
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareBatch(graph, 100))
+                    //Execute the merge operation as a set of upsert batches
+                    foreach (IEnumerable<TableTransactionAction> batch in PrepareUpsertBatch(graph))
                     {
                         Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
 
@@ -179,7 +179,7 @@ namespace RDFSharp.Extensions.AzureTable
                 }
                 catch (Exception ex)
                 {
-                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                    throw new RDFStoreException("Cannot delete data from Azure Table store because: " + ex.Message, ex);
                 }
             }
             return this;
@@ -552,13 +552,13 @@ namespace RDFSharp.Extensions.AzureTable
         #region Utilities
 
         /// <summary>
-        /// Chunks the triples of the given graph into upsert batches of 100 Azure Table entities
+        /// Chunks the triples of the given graph into upsert batches of 100 entities
         /// </summary>
-        private static IEnumerable<IEnumerable<TableTransactionAction>> PrepareBatch(RDFGraph graph, int batchSize=100)
+        private static IEnumerable<IEnumerable<TableTransactionAction>> PrepareUpsertBatch(RDFGraph graph)
         {
             RDFContext graphContext = new RDFContext(graph.Context);
 
-            List<TableTransactionAction> batch = new List<TableTransactionAction>(batchSize);
+            List<TableTransactionAction> batch = new List<TableTransactionAction>(100);
             foreach (RDFTriple triple in graph)
             {
                 RDFQuadruple quadruple = triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO
@@ -566,10 +566,10 @@ namespace RDFSharp.Extensions.AzureTable
                     : new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object);
                 
                 batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, new RDFAzureTableQuadruple(quadruple)));
-                if (batch.Count == batchSize)
+                if (batch.Count == 100)
                 {
                     yield return batch;
-                    batch = new List<TableTransactionAction>(batchSize);
+                    batch = new List<TableTransactionAction>(100);
                 }
             }
 
