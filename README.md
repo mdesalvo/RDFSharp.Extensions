@@ -1,9 +1,9 @@
 # RDFSharp.Extensions
 
-This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing RDF data on the following supported providers: 
+This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing RDF data on the following providers: 
 
 
-|Provider|NuGet (legacy-v2)|NuGet|
+|Provider|NuGet (legacy)|NuGet|
 |---|---|---|
 |Azure Table|N/A|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.AzureTable)](https://www.nuget.org/packages/RDFSharp.Extensions.AzureTable)|
 |SQL Server|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.RDFSQLServerStore)](https://www.nuget.org/packages/RDFSharp.RDFSQLServerStore)|[![NuGet Badge](https://buildstats.info/nuget/RDFSharp.Extensions.SQLServer)](https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer)|
