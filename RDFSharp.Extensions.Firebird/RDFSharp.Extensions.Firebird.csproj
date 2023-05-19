@@ -3,7 +3,7 @@
 		<AssemblyTitle>RDFSharp.Extensions.Firebird</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.Firebird</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.1.0</Version>
+		<Version>3.4.4</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
 		<Description>RDFSharp extension for storage of RDF data on Firebird</Description>
@@ -52,11 +52,11 @@
 		</EmbeddedResource>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="9.1.0" />
+		<PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="9.1.1" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="RDFSharp" Version="3.1.0" />
+		<PackageReference Include="RDFSharp" Version="3.4.4" />
 	</ItemGroup>
 </Project>

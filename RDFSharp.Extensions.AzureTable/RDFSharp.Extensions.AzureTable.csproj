@@ -3,10 +3,10 @@
 		<AssemblyTitle>RDFSharp.Extensions.AzureTable</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.AzureTable</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.1.0</Version>
+		<Version>3.4.4</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
-		<Description>RDFSharp extensions for storage of RDF data on Azure Table service</Description>
+		<Description>RDFSharp extensions for storage of RDF data on Azure Table</Description>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
@@ -42,11 +42,11 @@
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Data.Tables" Version="12.7.1" />
+		<PackageReference Include="Azure.Data.Tables" Version="12.8.0" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="RDFSharp" Version="3.1.0" />
+		<PackageReference Include="RDFSharp" Version="3.4.4" />
 	</ItemGroup>
 </Project>

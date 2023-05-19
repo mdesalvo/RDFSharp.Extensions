@@ -3,7 +3,7 @@
     <AssemblyTitle>RDFSharp.Extensions.MySQL</AssemblyTitle>
     <AssemblyName>RDFSharp.Extensions.MySQL</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>3.1.0</Version>
+    <Version>3.4.4</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
     <Description>RDFSharp extension for storage of RDF data on MySQL</Description>
@@ -46,7 +46,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MySql.Data" Version="8.0.31" />
-    <PackageReference Include="RDFSharp" Version="3.1.0" />
+    <PackageReference Include="MySql.Data" Version="8.0.33" />
+    <PackageReference Include="RDFSharp" Version="3.4.4" />
   </ItemGroup>
 </Project>
