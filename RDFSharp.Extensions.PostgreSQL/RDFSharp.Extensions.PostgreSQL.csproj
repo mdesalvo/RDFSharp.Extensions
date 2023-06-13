@@ -3,7 +3,7 @@
 		<AssemblyTitle>RDFSharp.Extensions.PostgreSQL</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.PostgreSQL</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.4.4</Version>
+		<Version>3.5.0</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
 		<Description>RDFSharp extensions for storage of RDF data on PostgreSQL</Description>
@@ -47,6 +47,6 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Npgsql" Version="7.0.4" />
-		<PackageReference Include="RDFSharp" Version="3.4.4" />
+		<PackageReference Include="RDFSharp" Version="3.5.0" />
 	</ItemGroup>
 </Project>

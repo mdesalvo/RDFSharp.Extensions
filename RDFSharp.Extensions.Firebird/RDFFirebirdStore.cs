@@ -1451,7 +1451,7 @@ namespace RDFSharp.Extensions.Firebird
         /// <summary>
         /// Gets a memory store containing quadruples satisfying the given pattern
         /// </summary>
-        internal override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
+        public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
             StringBuilder queryFilters = new StringBuilder();
