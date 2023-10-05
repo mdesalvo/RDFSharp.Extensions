@@ -64,11 +64,12 @@ namespace RDFSharp.Extensions.SQLServer
         /// <summary>
         /// Default-ctor to build a SQL Server store instance (with eventual options)
         /// </summary>
-        public RDFSQLServerStore(string sqlserverConnectionString, RDFSQLServerStoreOptions sqlserverStoreOptions = null)
+        public RDFSQLServerStore(string sqlserverConnectionString, RDFSQLServerStoreOptions sqlserverStoreOptions=null)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrEmpty(sqlserverConnectionString))
             	throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlserverConnectionString\" parameter is null or empty.");
+            #endregion
 
             //Initialize options
             if (sqlserverStoreOptions == null)
