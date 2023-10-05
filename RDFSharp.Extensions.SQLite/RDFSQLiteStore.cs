@@ -32,6 +32,11 @@ namespace RDFSharp.Extensions.SQLite
     {
         #region Properties
         /// <summary>
+        /// Count of the SQLite database quadruples (-1 in case of errors)
+        /// </summary>
+        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+
+        /// <summary>
         /// Connection to the SQLite database
         /// </summary>
         internal SQLiteConnection Connection { get; set; }
@@ -63,9 +68,10 @@ namespace RDFSharp.Extensions.SQLite
         /// </summary>
         public RDFSQLiteStore(string sqliteDatabasePath, RDFSQLiteStoreOptions sqliteStoreOptions=null)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrWhiteSpace(sqliteDatabasePath))
             	throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDatabasePath\" parameter is null or empty.");
+            #endregion
 
             //Initialize options
             if (sqliteStoreOptions == null)
@@ -1769,6 +1775,39 @@ namespace RDFSharp.Extensions.SQLite
 
             return result;
         }
+        
+        /// <summary>
+        /// Counts the SQLite database quadruples
+        /// </summary>
+        private long GetQuadruplesCount()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
         #endregion
 
         #region Diagnostics
@@ -1822,8 +1861,7 @@ namespace RDFSharp.Extensions.SQLite
                     Connection.Open();
 
                     //Create command
-                    SQLiteCommand createCommand = new SQLiteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", Connection);
-                    createCommand.CommandTimeout = 120;
+                    SQLiteCommand createCommand = new SQLiteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", Connection) { CommandTimeout = 120 };
 
                     //Execute command
                     createCommand.ExecuteNonQuery();
@@ -1859,8 +1897,7 @@ namespace RDFSharp.Extensions.SQLite
                 Connection.Open();
 
                 //Create command
-                SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", Connection);
-                optimizeCommand.CommandTimeout = 120;
+                SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", Connection) { CommandTimeout = 120 };
 
                 //Execute command
                 optimizeCommand.ExecuteNonQuery();
