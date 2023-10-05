@@ -1,6 +1,6 @@
 # RDFSharp.Extensions [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing and querying massive RDF data on the following providers: 
+This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing and querying big RDF data on the following providers: 
 
 
 |Provider|NuGet (legacy)|NuGet|
