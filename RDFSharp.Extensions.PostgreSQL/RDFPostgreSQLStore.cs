@@ -30,6 +30,11 @@ namespace RDFSharp.Extensions.PostgreSQL
     {
         #region Properties
         /// <summary>
+        /// Count of the PostgreSQL database quadruples (-1 in case of errors)
+        /// </summary>
+        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+
+        /// <summary>
         /// Connection to the PostgreSQL database
         /// </summary>
         internal NpgsqlConnection Connection { get; set; }
@@ -61,9 +66,10 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// </summary>
         public RDFPostgreSQLStore(string pgsqlConnectionString, RDFPostgreSQLStoreOptions pgsqlStoreOptions = null)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrEmpty(pgsqlConnectionString))
             	throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlConnectionString\" parameter is null or empty.");
+            #endregion
 
             //Initialize options
             if (pgsqlStoreOptions == null)
@@ -1747,6 +1753,39 @@ namespace RDFSharp.Extensions.PostgreSQL
 
             return result;
         }
+        
+        /// <summary>
+        /// Counts the PostgreSQL database quadruples
+        /// </summary>
+        private long GetQuadruplesCount()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM quadruples";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
         #endregion
 
         #region Diagnostics
@@ -1800,8 +1839,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     Connection.Open();
 
                     //Create & Execute command
-                    NpgsqlCommand createCommand = new NpgsqlCommand("CREATE TABLE quadruples (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON quadruples USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON quadruples USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON quadruples USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON quadruples USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON quadruples USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON quadruples USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON quadruples USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", Connection);
-                    createCommand.CommandTimeout = 120;
+                    NpgsqlCommand createCommand = new NpgsqlCommand("CREATE TABLE quadruples (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON quadruples USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON quadruples USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON quadruples USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON quadruples USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON quadruples USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON quadruples USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON quadruples USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", Connection) { CommandTimeout = 120 };
                     createCommand.ExecuteNonQuery();
 
                     //Close connection
@@ -1835,8 +1873,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                 Connection.Open();
 
                 //Create command
-                NpgsqlCommand optimizeCommand = new NpgsqlCommand("VACUUM ANALYZE quadruples", Connection);
-                optimizeCommand.CommandTimeout = 120;
+                NpgsqlCommand optimizeCommand = new NpgsqlCommand("VACUUM ANALYZE quadruples", Connection) { CommandTimeout = 120 };
 
                 //Execute command
                 optimizeCommand.ExecuteNonQuery();
