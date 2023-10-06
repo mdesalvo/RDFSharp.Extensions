@@ -33,6 +33,11 @@ namespace RDFSharp.Extensions.AzureTable
     public class RDFAzureTableStore : RDFStore, IDisposable
     {
         #region Properties
+        /// <summary>
+        /// Count of the Azure Table service quadruples (-1 in case of errors)
+        /// </summary>
+        public override long QuadruplesCount { get => GetQuadruplesCount(); }
+
         internal TableServiceClient ServiceClient { get; set; }
         internal TableClient Client { get; set; }
         internal bool Disposed { get; set; }
@@ -979,6 +984,26 @@ namespace RDFSharp.Extensions.AzureTable
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Counts the Azure Table service quadruples
+        /// </summary>
+        private long GetQuadruplesCount()
+        {
+            try
+            {
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new string[] { "RowKey" });
+
+                //Return the quadruples count
+                return quadruples.LongCount();
+            }
+            catch
+            {
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
         }
         #endregion
 
