@@ -29,6 +29,11 @@ namespace RDFSharp.Extensions.Oracle
     {
         #region Properties
         /// <summary>
+        /// Count of the Oracle database quadruples (-1 in case of errors)
+        /// </summary>
+        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+
+        /// <summary>
         /// Connection to the Oracle database
         /// </summary>
         internal OracleConnection Connection { get; set; }
@@ -65,9 +70,10 @@ namespace RDFSharp.Extensions.Oracle
         /// </summary>
         public RDFOracleStore(string oracleConnectionString, RDFOracleStoreOptions oracleStoreOptions = null)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrEmpty(oracleConnectionString))
             	throw new RDFStoreException("Cannot connect to Oracle store because: given \"oracleConnectionString\" parameter is null or empty.");
+            #endregion
 
             //Initialize options
             if (oracleStoreOptions == null)
@@ -1752,6 +1758,39 @@ namespace RDFSharp.Extensions.Oracle
 
             return result;
         }
+        
+        /// <summary>
+        /// Counts the Oracle database quadruples
+        /// </summary>
+        private long GetQuadruplesCount()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
         #endregion
 
         #region Diagnostics
@@ -1805,8 +1844,7 @@ namespace RDFSharp.Extensions.Oracle
                     Connection.Open();
 
                     //Create & Execute command
-                    OracleCommand createCommand = new OracleCommand("CREATE TABLE \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", Connection);
-                    createCommand.CommandTimeout = 120;
+                    OracleCommand createCommand = new OracleCommand("CREATE TABLE \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", Connection) { CommandTimeout = 120 };
                     createCommand.ExecuteNonQuery();
                     createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" ON \"QUADRUPLES\"(\"CONTEXTID\")";
                     createCommand.ExecuteNonQuery();
@@ -1854,8 +1892,7 @@ namespace RDFSharp.Extensions.Oracle
                 Connection.Open();
 
                 //Create & Execute command
-                OracleCommand optimizeCommand = new OracleCommand("ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" REBUILD", Connection);
-                optimizeCommand.CommandTimeout = 120;
+                OracleCommand optimizeCommand = new OracleCommand("ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" REBUILD", Connection) { CommandTimeout = 120 };
                 optimizeCommand.ExecuteNonQuery();
                 optimizeCommand.CommandText = "ALTER INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\" REBUILD";
                 optimizeCommand.ExecuteNonQuery();
