@@ -31,6 +31,11 @@ namespace RDFSharp.Extensions.Firebird
     {
         #region Properties
         /// <summary>
+        /// Count of the Firebird database quadruples (-1 in case of errors)
+        /// </summary>
+        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+
+        /// <summary>
         /// Connection to the Firebird database
         /// </summary>
         internal FbConnection Connection { get; set; }
@@ -62,9 +67,10 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public RDFFirebirdStore(string firebirdConnectionString, RDFFirebirdStoreOptions firebirdStoreOptions=null)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrEmpty(firebirdConnectionString))
                 throw new RDFStoreException("Cannot connect to Firebird store because: given \"firebirdConnectionString\" parameter is null or empty.");
+            #endregion
 
             //Initialize options
             if (firebirdStoreOptions == null)
@@ -1767,6 +1773,39 @@ namespace RDFSharp.Extensions.Firebird
 
             return result;
         }
+        
+        /// <summary>
+        /// Counts the Firebird database quadruples
+        /// </summary>
+        private long GetQuadruplesCount()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
         #endregion
 
         #region Diagnostics
@@ -1820,8 +1859,7 @@ namespace RDFSharp.Extensions.Firebird
                     Connection.Open();
 
                     //Create & Execute command
-                    FbCommand createCommand = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", Connection);
-                    createCommand.CommandTimeout = 120;
+                    FbCommand createCommand = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", Connection) { CommandTimeout = 120 };
                     createCommand.ExecuteNonQuery();
                     createCommand.CommandText = "CREATE INDEX IDX_ContextID ON Quadruples(ContextID)";
                     createCommand.ExecuteNonQuery();
@@ -1888,9 +1926,9 @@ namespace RDFSharp.Extensions.Firebird
     {
         #region Properties
         /// <summary>
-        /// Indicates the Firebird ODS used when creating new databases (default: Firebird3)
+        /// Indicates the Firebird ODS used when creating new databases (default: Firebird4)
         /// </summary>
-        public RDFFirebirdStoreEnums.RDFFirebirdVersion DefaultFirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird3;
+        public RDFFirebirdStoreEnums.RDFFirebirdVersion DefaultFirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
 
         /// <summary>
         /// Timeout in seconds for SELECT queries executed on the Firebird store (default: 120)
