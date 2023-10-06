@@ -87,6 +87,11 @@ namespace RDFSharp.Extensions.AzureTable
         /// </summary>
         public RDFAzureTableQuadruple(RDFQuadruple quadruple)
         {
+            #region Guards
+            if (quadruple == null)
+                throw new RDFStoreException("Cannot create Azure Table quadruple because given \"quadruple\" parameter is null");
+            #endregion
+
             RowKey = quadruple.QuadrupleID.ToString();
             C = quadruple.Context.ToString();
             S = quadruple.Subject.ToString();
