@@ -54,9 +54,10 @@ namespace RDFSharp.Extensions.AzureTable
         /// </summary>
         public RDFAzureTableStore(string azureStorageConnectionString)
         {
-            //Guard against tricky paths
+            #region Guards
             if (string.IsNullOrEmpty(azureStorageConnectionString))
             	throw new RDFStoreException("Cannot connect to Azure Table store because: given \"azureStorageConnectionString\" parameter is null or empty.");
+            #endregion
 
             //Initialize store structures
             StoreType = "AZURE-TABLE";
