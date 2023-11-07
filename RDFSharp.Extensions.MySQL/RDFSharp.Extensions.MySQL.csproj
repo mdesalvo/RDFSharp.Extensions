@@ -3,7 +3,7 @@
     <AssemblyTitle>RDFSharp.Extensions.MySQL</AssemblyTitle>
     <AssemblyName>RDFSharp.Extensions.MySQL</AssemblyName>
     <AssemblyVersion>$(Version)</AssemblyVersion>
-    <Version>3.8.0</Version>
+    <Version>3.9.0</Version>
     <Authors>Marco De Salvo</Authors>
     <Copyright>Marco De Salvo</Copyright>
     <Description>RDFSharp extension for storage of RDF data on MySQL</Description>
