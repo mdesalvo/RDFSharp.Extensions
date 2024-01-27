@@ -3,7 +3,7 @@
 		<AssemblyTitle>RDFSharp.Extensions.Oracle</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.Oracle</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.9.0</Version>
+		<Version>3.10.0</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
 		<Description>RDFSharp extensions for storage of RDF data on Oracle</Description>
@@ -47,6 +47,6 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.220" />
-		<PackageReference Include="RDFSharp" Version="3.9.0" />
+		<PackageReference Include="RDFSharp" Version="3.10.0" />
 	</ItemGroup>
 </Project>
