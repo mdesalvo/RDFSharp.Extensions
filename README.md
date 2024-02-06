@@ -12,4 +12,4 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 |SQLite|<a href="https://github.com/mdesalvo/RDFSharp.Extensions/releases"><img src="https://img.shields.io/nuget/v/RDFSharp.Extensions.SQLite?style=flat-square&color=abcdef&logo=nuget&label=version"/></a> <a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLite"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLite?style=flat-square&color=abcdef&logo=nuget"/></a>|
 |SQLServer|<a href="https://github.com/mdesalvo/RDFSharp.Extensions/releases"><img src="https://img.shields.io/nuget/v/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget&label=version"/></a> <a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget"/></a>|
 
-Don't see your technology? Remember that RDFSharp works with any kind of provider exposing **SPARQL endpoints**!
+Don't see your technology? Remember that RDFSharp works with any providers exposing **SPARQL endpoint**!
