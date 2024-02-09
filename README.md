@@ -14,4 +14,4 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 
 Can't see your technology? Remember that RDFSharp works with any provider exposing a **SPARQL endpoint**!
 
-Feel free to contribute to the project by submitting your implementation of RDFStore targeting a new provider!
+Feel free to contribute by submitting your implementation of **RDFStore** targeting a new provider!
