@@ -13,4 +13,5 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 |SQL Server|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget"/></a>|
 
 Can't see your technology? Remember that RDFSharp works with any provider exposing a **SPARQL endpoint**!
+
 Feel free to contribute to the project by submitting your implementation of RDFStore targeting a new provider!
