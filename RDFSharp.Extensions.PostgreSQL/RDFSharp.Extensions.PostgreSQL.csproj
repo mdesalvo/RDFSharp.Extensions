@@ -3,10 +3,10 @@
 		<AssemblyTitle>RDFSharp.Extensions.PostgreSQL</AssemblyTitle>
 		<AssemblyName>RDFSharp.Extensions.PostgreSQL</AssemblyName>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.10.0</Version>
+		<Version>3.12.0</Version>
 		<Authors>Marco De Salvo</Authors>
 		<Copyright>Marco De Salvo</Copyright>
-		<Description>RDFSharp extensions for storage of RDF data on PostgreSQL</Description>
+		<Description>RDFSharp extensions for storage and query of RDF data on PostgreSQL</Description>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<SignAssembly>false</SignAssembly>
 		<Product>RDFSharp</Product>
