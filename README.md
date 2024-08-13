@@ -1,4 +1,4 @@
-# RDFSharp.Extensions <a href="https://github.com/mdesalvo/RDFSharp.Extensions/releases"><img src="https://img.shields.io/nuget/v/RDFSharp.Extensions.AzureTable?style=flat-square&color=abcdef&logo=nuget&label=version"/></a>
+# RDFSharp.Extensions
 
 This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> extensions suited for storing and querying big RDF data on the following providers: 
 
@@ -12,6 +12,4 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 |SQLite|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLite"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLite?style=flat-square&color=abcdef&logo=nuget"/></a>|
 |SQL Server|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget"/></a>|
 
-Can't see your technology? Remember that RDFSharp works with any provider exposing a **SPARQL endpoint**!
-
-Feel free to contribute by submitting your implementation of **RDFStore** targeting a new provider :)
+You are welcome to contribute your implementation of **RDFStore** targeting a new provider :)
