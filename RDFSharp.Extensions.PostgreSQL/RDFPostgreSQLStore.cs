@@ -16,6 +16,8 @@
 
 using System;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Npgsql;
 using NpgsqlTypes;
 using RDFSharp.Model;
@@ -32,7 +34,14 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Count of the PostgreSQL database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+        public override long QuadruplesCount 
+			=> GetQuadruplesCount();
+
+		/// <summary>
+        /// Asynchronous count of the PostgreSQL database quadruples (-1 in case of errors)
+        /// </summary>
+        public Task<long> QuadruplesCountAsync 
+			=> GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the PostgreSQL database
@@ -1776,6 +1785,39 @@ namespace RDFSharp.Extensions.PostgreSQL
 
                 //Return the quadruples count
                 return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
+
+		/// <summary>
+        /// Asynchronously counts the PostgreSQL database quadruples
+        /// </summary>
+        private async Task<long> GetQuadruplesCountAsync()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM quadruples";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return result;
             }
             catch
             {
