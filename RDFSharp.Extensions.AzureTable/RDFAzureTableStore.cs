@@ -154,32 +154,6 @@ namespace RDFSharp.Extensions.AzureTable
             return this;
         }
 
-		/// <summary>
-        /// Asynchronously merges the given graph into the store
-        /// </summary>
-        public async Task<RDFStore> MergeGraphAsync(RDFGraph graph)
-        {
-            if (graph != null)
-            {
-                try
-                {
-                    //Execute the merge operation as a set of upsert batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareUpsertBatch(graph))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = await Client.SubmitTransactionAsync(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot insert batch data into Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
         /// <summary>
         /// Adds the given quadruple to the store
         /// </summary>
@@ -190,28 +164,6 @@ namespace RDFSharp.Extensions.AzureTable
                 try
                 {
                     Response response = Client.UpsertEntity(new RDFAzureTableQuadruple(quadruple));
-
-                    if (response.IsError)
-                        throw new Exception(response.ToString());
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-		/// <summary>
-        /// Asynchronously adds the given quadruple to the store
-        /// </summary>
-        public async Task<RDFStore> AddQuadrupleAsync(RDFQuadruple quadruple)
-        {
-            if (quadruple != null)
-            {
-                try
-                {
-                    Response response = await Client.UpsertEntityAsync(new RDFAzureTableQuadruple(quadruple));
 
                     if (response.IsError)
                         throw new Exception(response.ToString());
