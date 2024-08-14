@@ -12,4 +12,5 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 |SQLite|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLite"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLite?style=flat-square&color=abcdef&logo=nuget"/></a>|
 |SQL Server|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget"/></a>|
 
-You are welcome to contribute your implementation of **RDFStore** targeting a new provider :)
+
+Current release is: <a href="https://github.com/mdesalvo/RDFSharp.Extensions/releases/tag/v3.8.0"><b>3.8.0</b></a>
