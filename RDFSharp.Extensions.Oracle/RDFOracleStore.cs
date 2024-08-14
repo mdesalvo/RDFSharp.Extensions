@@ -16,6 +16,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using Oracle.ManagedDataAccess.Client;
 using RDFSharp.Model;
 using RDFSharp.Store;
@@ -31,7 +32,14 @@ namespace RDFSharp.Extensions.Oracle
         /// <summary>
         /// Count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+        public override long QuadruplesCount 
+			=> GetQuadruplesCount(); 
+
+		/// <summary>
+        /// Asynchronous count of the Oracle database quadruples (-1 in case of errors)
+        /// </summary>
+        public Task<long> QuadruplesCountAsync 
+			=> GetQuadruplesCountAsync(); 
 
         /// <summary>
         /// Connection to the Oracle database
@@ -1791,6 +1799,12 @@ namespace RDFSharp.Extensions.Oracle
                 return -1;
             }
         }
+
+		/// <summary>
+        /// Asynchronously counts the Oracle database quadruples
+        /// </summary>
+        private Task<long> GetQuadruplesCountAsync()
+			=> Task.Run(() => GetQuadruplesCount()); //Just a wrapper because Oracle doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics
