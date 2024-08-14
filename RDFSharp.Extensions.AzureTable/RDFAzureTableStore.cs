@@ -201,6 +201,28 @@ namespace RDFSharp.Extensions.AzureTable
             }
             return this;
         }
+
+		/// <summary>
+        /// Asynchronously adds the given quadruple to the store
+        /// </summary>
+        public async Task<RDFStore> AddQuadrupleAsync(RDFQuadruple quadruple)
+        {
+            if (quadruple != null)
+            {
+                try
+                {
+                    Response response = await Client.UpsertEntityAsync(new RDFAzureTableQuadruple(quadruple));
+
+                    if (response.IsError)
+                        throw new Exception(response.ToString());
+                }
+                catch (Exception ex)
+                {
+                    throw new RDFStoreException("Cannot insert data into Azure Table store because: " + ex.Message, ex);
+                }
+            }
+            return this;
+        }
         #endregion
 
         #region Remove
