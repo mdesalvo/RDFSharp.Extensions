@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Linq;
 using RDFSharp.Query;
+using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -36,7 +37,14 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount { get => GetQuadruplesCount(); }
+        public override long QuadruplesCount 
+			=> GetQuadruplesCount();
+
+		/// <summary>
+        /// Asynchronous count of the Azure Table service quadruples (-1 in case of errors)
+        /// </summary>
+        public Task<long> QuadruplesCountAsync 
+			=> GetQuadruplesCountAsync();
 
         internal TableServiceClient ServiceClient { get; set; }
         internal TableClient Client { get; set; }
@@ -45,7 +53,7 @@ namespace RDFSharp.Extensions.AzureTable
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a local (emulator) Azure Table store instance
+        /// Default-ctor to build a local (emulator/azurite) Azure Table store instance
         /// </summary>
         public RDFAzureTableStore() : this("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;") { }
 
@@ -1004,6 +1012,31 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+        }
+
+		/// <summary>
+        /// Asynchronously counts the Azure Table service quadruples
+        /// </summary>
+        private async Task<long> GetQuadruplesCountAsync()
+        {
+            try
+            {
+                AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(qent =>
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new string[] { "RowKey" });
+
+				long quadruplesCount = 0;
+				IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
+				while (await quadruplesEnum.MoveNextAsync())
+					quadruplesCount++;
+
+                //Return the quadruples count
+                return quadruplesCount;
+            }
+            catch
+            {
+                //Return the quadruples count (-1 to indicate error)
+                return -1L;
             }
         }
         #endregion
