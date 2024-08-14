@@ -22,6 +22,7 @@ using System.Data;
 using System.Data.SQLite;
 using RDFSharp.Model;
 using RDFSharp.Store;
+using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.SQLite
 {
@@ -34,7 +35,14 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Count of the SQLite database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+        public override long QuadruplesCount 
+			=> GetQuadruplesCount();
+
+		/// <summary>
+        /// Asynchronous count of the SQLite database quadruples (-1 in case of errors)
+        /// </summary>
+        public Task<long> QuadruplesCountAsync 
+			=> GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the SQLite database
@@ -1808,6 +1816,12 @@ namespace RDFSharp.Extensions.SQLite
                 return -1;
             }
         }
+
+		/// <summary>
+        /// Asynchronously counts the SQLite database quadruples
+        /// </summary>
+        private Task<long> GetQuadruplesCountAsync()
+			=> Task.Run(() => GetQuadruplesCount()); //Just a wrapper because SQLite doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics
