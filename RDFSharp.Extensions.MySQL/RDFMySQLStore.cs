@@ -16,6 +16,8 @@
 
 using System;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using RDFSharp.Model;
 using RDFSharp.Store;
@@ -31,7 +33,14 @@ namespace RDFSharp.Extensions.MySQL
         /// <summary>
         /// Count of the MySQL database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount { get => GetQuadruplesCount(); } 
+        public override long QuadruplesCount 
+			=> GetQuadruplesCount();
+
+		/// <summary>
+        /// Asynchronous count of the MySQL database quadruples (-1 in case of errors)
+        /// </summary>
+        public Task<long> QuadruplesCountAsync 
+			=> GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the MySQL database
@@ -1768,6 +1777,39 @@ namespace RDFSharp.Extensions.MySQL
 
                 //Execute command
                 long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count
+                return  result;
+            }
+            catch
+            {
+                //Close connection
+                Connection.Close();
+
+                //Return the quadruples count (-1 to indicate error)
+                return -1;
+            }
+        }
+
+		/// <summary>
+        /// Asynchronously counts the MySQL database quadruples
+        /// </summary>
+        private async Task<long> GetQuadruplesCountAsync()
+        {
+            try
+            {
+                //Open connection
+                Connection.Open();
+
+                //Create command
+                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
+                SelectCommand.Parameters.Clear();
+
+                //Execute command
+                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
                 //Close connection
                 Connection.Close();
