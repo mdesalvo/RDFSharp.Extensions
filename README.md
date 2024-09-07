@@ -11,6 +11,3 @@ This is a set of <a href="https://github.com/mdesalvo/RDFSharp">RDFSharp</a> ext
 |PostgreSQL|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.PostgreSQL"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.PostgreSQL?style=flat-square&color=abcdef&logo=nuget"/></a>|
 |SQLite|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLite"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLite?style=flat-square&color=abcdef&logo=nuget"/></a>|
 |SQL Server|<a href="https://www.nuget.org/packages/RDFSharp.Extensions.SQLServer"><img src="https://img.shields.io/nuget/dt/RDFSharp.Extensions.SQLServer?style=flat-square&color=abcdef&logo=nuget"/></a>|
-
-
-Current release is: <a href="https://github.com/mdesalvo/RDFSharp.Extensions/releases/tag/v3.12.0"><b>3.12.0</b></a>
