@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.AzureTable", "RDFSharp.Extensions.AzureTable\RDFSharp.Extensions.AzureTable.csproj", "{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.Neo4j", "RDFSharp.Extensions.Neo4j\RDFSharp.Extensions.Neo4j.csproj", "{02CE62CB-32B8-4CF9-AB93-965E2BA06719}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A7FE654-1B71-4433-B008-6DA0AB0FCBE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02CE62CB-32B8-4CF9-AB93-965E2BA06719}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02CE62CB-32B8-4CF9-AB93-965E2BA06719}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02CE62CB-32B8-4CF9-AB93-965E2BA06719}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02CE62CB-32B8-4CF9-AB93-965E2BA06719}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
