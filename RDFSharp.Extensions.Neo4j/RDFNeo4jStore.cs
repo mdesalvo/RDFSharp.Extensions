@@ -57,16 +57,12 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Default-ctor to build a Neo4j store instance (with eventual options)
         /// </summary>
-        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, RDFNeo4jOptions neo4jStoreOptions=null)
+        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword)
         {
             #region Guards
             if (string.IsNullOrEmpty(neo4jUri))
             	throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jConnectionString\" parameter is null or empty.");
             #endregion
-
-            //Initialize options
-            if (neo4jStoreOptions == null)
-                neo4jStoreOptions = new RDFNeo4jOptions();
 
             //Initialize store structures
             StoreType = "NEO4J";
@@ -1335,29 +1331,6 @@ namespace RDFSharp.Extensions.Neo4j
         }
         #endregion
 
-        #endregion
-    }
-
-    /// <summary>
-    /// RDFNeo4jOptions is a collector of options for customizing the default behaviour of an Neo4j store
-    /// </summary>
-    public class RDFNeo4jOptions
-    {
-        #region Properties
-        /// <summary>
-        /// Timeout in seconds for MATCH queries executed on the Neo4j store(default: 120)
-        /// </summary>
-        public int MatchTimeout { get; set; } = 120;
-
-        /// <summary>
-        /// Timeout in seconds for REMOVE queries executed on the Neo4j store(default: 120)
-        /// </summary>
-        public int RemoveTimeout { get; set; } = 120;
-
-        /// <summary>
-        /// Timeout in seconds for MERGE queries executed on the Neo4j store(default: 120)
-        /// </summary>
-        public int MergeTimeout { get; set; } = 120;
         #endregion
     }
 }
