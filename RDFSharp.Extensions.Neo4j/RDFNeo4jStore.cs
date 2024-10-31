@@ -1294,6 +1294,13 @@ namespace RDFSharp.Extensions.Neo4j
                                 "CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
                             return await propertyIdxResult.ConsumeAsync();
                         });
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx =>
+                        {
+                            IResultCursor contextIdxResult = await tx.RunAsync(
+                                "CREATE INDEX ctxIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
+                            return await contextIdxResult.ConsumeAsync();
+                        });
 
                     //Indicize l:Literal nodes
                     await neo4jSession.ExecuteWriteAsync(
