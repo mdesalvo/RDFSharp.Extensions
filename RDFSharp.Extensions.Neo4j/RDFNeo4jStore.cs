@@ -55,7 +55,7 @@ namespace RDFSharp.Extensions.Neo4j
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a Neo4j store instance (with eventual options)
+        /// Default-ctor to build a Neo4j store instance with given credentials
         /// </summary>
         public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword)
         {
@@ -1277,7 +1277,7 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 try
                 {
-                    //Indicize :Resource nodes
+                    //Indicize r:Resource nodes
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
@@ -1286,7 +1286,7 @@ namespace RDFSharp.Extensions.Neo4j
                             return await resourceIdxResult.ConsumeAsync();
                         });
 
-                    //Indicize :Property arcs
+                    //Indicize p:Property arcs
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
@@ -1295,12 +1295,12 @@ namespace RDFSharp.Extensions.Neo4j
                             return await propertyIdxResult.ConsumeAsync();
                         });
 
-                    //Indicize :Literal nodes
+                    //Indicize l:Literal nodes
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
                             IResultCursor literalIdxResult = await tx.RunAsync(
-                                "CREATE INDEX litIdx IF NOT EXISTS FOR (l:Literal) ON (l.value, l.language, l.datatype) OPTIONS {}", null);
+                                "CREATE INDEX litIdx IF NOT EXISTS FOR (l:Literal) ON (l.value) OPTIONS {}", null);
                             return await literalIdxResult.ConsumeAsync();
                         });
 
