@@ -45,7 +45,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Driver to handle underlying Neo4j database
         /// </summary>
-        internal IDriver Driver { get; set; } //https://neo4j.com/docs/dotnet-manual/current/client-applications/
+        public IDriver Driver { get; set; }
 
         /// <summary>
         /// Flag indicating that the Neo4j store instance has already been disposed
@@ -71,7 +71,7 @@ namespace RDFSharp.Extensions.Neo4j
             Disposed = false;
 
             //Perform initial diagnostics
-            InitializeStore();
+            InitializeStoreAsync().GetAwaiter().GetResult();
         }
         
         /// <summary>
@@ -1269,65 +1269,51 @@ namespace RDFSharp.Extensions.Neo4j
 
         #region Diagnostics
         /// <summary>
-        /// Performs the preliminary diagnostics controls on the underlying Neo4j database
-        /// </summary>
-        private RDFStoreEnums.RDFStoreSQLErrors Diagnostics()
-        {
-            try
-            {
-                //Open connection
-                
-                //Create command
-                
-                //Execute command
-                
-                //Close connection
-                
-                //Return the diagnostics state
-                int result = 0;
-                return  result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
-                                    : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-            }
-            catch
-            {
-                //Close connection
-                
-                //Return the diagnostics state
-                return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
-            }
-        }
-
-        /// <summary>
         /// Initializes the underlying Neo4j database
         /// </summary>
-        private void InitializeStore()
+        private async Task InitializeStoreAsync()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            using (IAsyncSession neo4jSession = Driver.AsyncSession())
             {
                 try
                 {
-                    //Open connection
-                    
-                    //Create & Execute command
-                    
-                    //Close connection
-                    
+                    //Indicize :Resource nodes
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx =>
+                        {
+                            IResultCursor resourceIdxResult = await tx.RunAsync(
+                                "CREATE INDEX resIdx IF NOT EXISTS FOR (r:Resource) ON (r.uri) OPTIONS {}", null);
+                            return await resourceIdxResult.ConsumeAsync();
+                        });
+
+                    //Indicize :Property arcs
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx =>
+                        {
+                            IResultCursor propertyIdxResult = await tx.RunAsync(
+                                "CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
+                            return await propertyIdxResult.ConsumeAsync();
+                        });
+
+                    //Indicize :Literal nodes
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx =>
+                        {
+                            IResultCursor literalIdxResult = await tx.RunAsync(
+                                "CREATE INDEX litIdx IF NOT EXISTS FOR (l:Literal) ON (l.value, l.language, l.datatype) OPTIONS {}", null);
+                            return await literalIdxResult.ConsumeAsync();
+                        });
+
+                    await neo4jSession.CloseAsync();
                 }
                 catch (Exception ex)
                 {
-                    //Close connection
-                   
+                    await neo4jSession.CloseAsync();
+
                     //Propagate exception
                     throw new RDFStoreException("Cannot prepare Neo4j store because: " + ex.Message, ex);
                 }
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot prepare Neo4j store because: unable to connect to the server instance or to open the selected database.");
         }
         #endregion
 
