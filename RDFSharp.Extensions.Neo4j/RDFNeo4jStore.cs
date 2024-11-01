@@ -250,7 +250,7 @@ namespace RDFSharp.Extensions.Neo4j
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
                                         IResultCursor deleteSPOResult = await tx.RunAsync(
-                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) "+
+                                            "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) "+
                                             "DELETE p",
                                             new 
                                             { 
@@ -264,7 +264,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
                                         IResultCursor deleteSPLResult = await tx.RunAsync(
-                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) "+
+                                            "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) "+
                                             "DELETE p",
                                             new 
                                             { 
@@ -305,7 +305,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 IResultCursor deleteCResult = await tx.RunAsync(
-                                    "MATCH ()-[p:Property { ctx:$ctx }]->() "+
+                                    "MATCH (:Resource)-[p:Property { ctx:$ctx }]->() "+
                                     "DELETE p",
                                     new 
                                     { 
@@ -333,33 +333,30 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deleteCResult = await tx.RunAsync(
+                                    "MATCH (:Resource { uri:$subj })-[p:Property]->() "+
+                                    "DELETE p",
+                                    new 
+                                    { 
+                                        subj=subjectResource.ToString()
+                                    });
+                                await deleteCResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
