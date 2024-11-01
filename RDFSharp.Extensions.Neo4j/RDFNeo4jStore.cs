@@ -340,14 +340,14 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCResult = await tx.RunAsync(
+                                IResultCursor deleteSResult = await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property]->() "+
                                     "DELETE p",
                                     new 
                                     { 
                                         subj=subjectResource.ToString()
                                     });
-                                await deleteCResult.ConsumeAsync();                                
+                                await deleteSResult.ConsumeAsync();                                
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -369,33 +369,30 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deletePResult = await tx.RunAsync(
+                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->() "+
+                                    "DELETE p",
+                                    new 
+                                    { 
+                                        pred=predicateResource.ToString()
+                                    });
+                                await deletePResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
