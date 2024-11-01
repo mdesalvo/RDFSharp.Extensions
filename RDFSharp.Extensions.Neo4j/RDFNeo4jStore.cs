@@ -51,6 +51,9 @@ namespace RDFSharp.Extensions.Neo4j
         /// Flag indicating that the Neo4j store instance has already been disposed
         /// </summary>
         internal bool Disposed { get; set; }
+
+        private const string MergeSPO = "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o";
+        private const string MergeSPL = "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l";
         #endregion
 
         #region Ctors
@@ -120,85 +123,116 @@ namespace RDFSharp.Extensions.Neo4j
 
         #region Add
         /// <summary>
-        /// Merges the given graph into the store within a single transaction, avoiding duplicate insertions
+        /// Merges the given graph into the store
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
         {
             if (graph != null)
             {
-                RDFContext graphCtx = new RDFContext(graph.Context);
-
-                //Create command
-                
-                try
+                string graphContext = graph.Context.ToString();
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Iterate triples
                     foreach (RDFTriple triple in graph)
-                    {
-                        //Valorize parameters
-                        
-                        //Execute command
-                        
-                    }
+                        try
+                        {
+                            neo4jSession.ExecuteWriteAsync(
+                                async tx =>
+                                {
+                                    switch (triple.TripleFlavor)
+                                    {
+                                        case RDFModelEnums.RDFTripleFlavors.SPO:
+                                            IResultCursor insertSPOResult = await tx.RunAsync(
+                                                MergeSPO,
+                                                new 
+                                                { 
+                                                    subj=triple.Subject.ToString(), 
+                                                    pred=triple.Predicate.ToString(), 
+                                                    ctx=graphContext,
+                                                    obj=triple.Object.ToString()
+                                                });
+                                            await insertSPOResult.ConsumeAsync();
+                                            break;
 
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
+                                        case RDFModelEnums.RDFTripleFlavors.SPL:
+                                            IResultCursor insertSPLResult = await tx.RunAsync(
+                                                MergeSPL,
+                                                new 
+                                                { 
+                                                    subj=triple.Subject.ToString(), 
+                                                    pred=triple.Predicate.ToString(), 
+                                                    ctx=graphContext,
+                                                    val=triple.Object.ToString()
+                                                });
+                                            await insertSPLResult.ConsumeAsync();
+                                            break;
+                                    }
+                                    
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
+                        }
                 }
             }
             return this;
         }
 
         /// <summary>
-        /// Adds the given quadruple to the store, avoiding duplicate insertions
+        /// Adds the given quadruple to the store
         /// </summary>
         public override RDFStore AddQuadruple(RDFQuadruple quadruple)
         {
             if (quadruple != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                switch (quadruple.TripleFlavor)
+                                {
+                                    case RDFModelEnums.RDFTripleFlavors.SPO:
+                                        IResultCursor insertSPOResult = await tx.RunAsync(
+                                            MergeSPO,
+                                            new 
+                                            { 
+                                                subj=quadruple.Subject.ToString(), 
+                                                pred=quadruple.Predicate.ToString(), 
+                                                ctx=quadruple.Context.ToString(),
+                                                obj=quadruple.Object.ToString()
+                                            });
+                                        await insertSPOResult.ConsumeAsync();
+                                        break;
+
+                                    case RDFModelEnums.RDFTripleFlavors.SPL:
+                                        IResultCursor insertSPLResult = await tx.RunAsync(
+                                            MergeSPL,
+                                            new 
+                                            { 
+                                                subj=quadruple.Subject.ToString(), 
+                                                pred=quadruple.Predicate.ToString(), 
+                                                ctx=quadruple.Context.ToString(),
+                                                val=quadruple.Object.ToString()
+                                            });
+                                        await insertSPLResult.ConsumeAsync();
+                                        break;
+                                }
+                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
