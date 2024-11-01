@@ -815,33 +815,31 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && predicateResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deleteSPResult = await tx.RunAsync(
+                                    "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred }]->() "+
+                                    "DELETE p",
+                                    new 
+                                    {
+                                        subj=subjectResource.ToString(),
+                                        pred=predicateResource.ToString()     
+                                    });
+                                await deleteSPResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
@@ -854,33 +852,31 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deleteSOResult = await tx.RunAsync(
+                                    "MATCH (:Resource { uri:$subj })-[p:Property]->(:Resource { uri:$obj }) "+
+                                    "DELETE p",
+                                    new 
+                                    {
+                                        subj=subjectResource.ToString(),
+                                        obj=objectResource.ToString()     
+                                    });
+                                await deleteSOResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
@@ -893,34 +889,31 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectLiteral != null)
             {
-                //Create command
-               
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                {
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deleteSLResult = await tx.RunAsync(
+                                    "MATCH (:Resource { uri:$subj })-[p:Property]->(:Literal { value:$val }) "+
+                                    "DELETE p",
+                                    new 
+                                    {
+                                        subj=subjectResource.ToString(),
+                                        val=objectLiteral.ToString()     
+                                    });
+                                await deleteSLResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
 
-                //Valorize parameters
-                
-                try
-                {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
@@ -933,33 +926,31 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deletePOResult = await tx.RunAsync(
+                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Resource { uri:$obj }) "+
+                                    "DELETE p",
+                                    new 
+                                    {
+                                        pred=predicateResource.ToString(),
+                                        obj=objectResource.ToString()     
+                                    });
+                                await deletePOResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
@@ -972,33 +963,31 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectLiteral != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deletePLResult = await tx.RunAsync(
+                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Literal { value:$val }) "+
+                                    "DELETE p",
+                                    new 
+                                    {
+                                        pred=predicateResource.ToString(),
+                                        val=objectLiteral.ToString()     
+                                    });
+                                await deletePLResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
