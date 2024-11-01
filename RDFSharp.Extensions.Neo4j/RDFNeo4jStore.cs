@@ -159,8 +159,7 @@ namespace RDFSharp.Extensions.Neo4j
                                                 });
                                             await insertSPLResult.ConsumeAsync();
                                             break;
-                                    }
-                                    
+                                    }                                    
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
                         }
@@ -216,8 +215,7 @@ namespace RDFSharp.Extensions.Neo4j
                                             });
                                         await insertSPLResult.ConsumeAsync();
                                         break;
-                                }
-                                
+                                }                                
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -277,8 +275,7 @@ namespace RDFSharp.Extensions.Neo4j
                                             });
                                         await deleteSPLResult.ConsumeAsync();
                                         break;
-                                }
-                                
+                                }                                
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -300,33 +297,30 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                IResultCursor deleteCResult = await tx.RunAsync(
+                                    "MATCH ()-[p:Property { ctx:$ctx }]->() "+
+                                    "DELETE p",
+                                    new 
+                                    { 
+                                        ctx=contextResource.ToString()
+                                    });
+                                await deleteCResult.ConsumeAsync();                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
