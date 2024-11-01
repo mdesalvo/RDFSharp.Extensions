@@ -17,7 +17,6 @@
 using Neo4j.Driver;
 using System;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using RDFSharp.Model;
 using RDFSharp.Store;
@@ -33,14 +32,12 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Count of the Neo4j database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+        public override long QuadruplesCount => GetQuadruplesCount();
 
 		/// <summary>
         /// Asynchronous count of the Neo4jdatabase quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+        public Task<long> QuadruplesCountAsync => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Driver to handle underlying Neo4j database
@@ -51,9 +48,6 @@ namespace RDFSharp.Extensions.Neo4j
         /// Flag indicating that the Neo4j store instance has already been disposed
         /// </summary>
         internal bool Disposed { get; set; }
-
-        private const string MergeSPO = "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o";
-        private const string MergeSPL = "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l";
         #endregion
 
         #region Ctors
@@ -142,7 +136,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     {
                                         case RDFModelEnums.RDFTripleFlavors.SPO:
                                             IResultCursor insertSPOResult = await tx.RunAsync(
-                                                MergeSPO,
+                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o",
                                                 new 
                                                 { 
                                                     subj=triple.Subject.ToString(), 
@@ -155,7 +149,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                         case RDFModelEnums.RDFTripleFlavors.SPL:
                                             IResultCursor insertSPLResult = await tx.RunAsync(
-                                                MergeSPL,
+                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l",
                                                 new 
                                                 { 
                                                     subj=triple.Subject.ToString(), 
@@ -199,7 +193,7 @@ namespace RDFSharp.Extensions.Neo4j
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
                                         IResultCursor insertSPOResult = await tx.RunAsync(
-                                            MergeSPO,
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o",
                                             new 
                                             { 
                                                 subj=quadruple.Subject.ToString(), 
@@ -212,7 +206,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
                                         IResultCursor insertSPLResult = await tx.RunAsync(
-                                            MergeSPL,
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l",
                                             new 
                                             { 
                                                 subj=quadruple.Subject.ToString(), 
@@ -247,33 +241,53 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (quadruple != null)
             {
-                //Create command
-                
-                //Valorize parameters
-                
-                try
+                using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    //Open connection
-                    
-                    //Prepare command
-                    
-                    //Open transaction
-                    
-                    //Execute command
-                    
-                    //Close transaction
-                    
-                    //Close connection
-                    
-                }
-                catch (Exception ex)
-                {
-                    //Rollback transaction
-                    
-                    //Close connection
-                    
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    try
+                    {
+                        neo4jSession.ExecuteWriteAsync(
+                            async tx =>
+                            {
+                                switch (quadruple.TripleFlavor)
+                                {
+                                    case RDFModelEnums.RDFTripleFlavors.SPO:
+                                        IResultCursor deleteSPOResult = await tx.RunAsync(
+                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) "+
+                                            "DELETE p",
+                                            new 
+                                            { 
+                                                subj=quadruple.Subject.ToString(), 
+                                                pred=quadruple.Predicate.ToString(), 
+                                                ctx=quadruple.Context.ToString(),
+                                                obj=quadruple.Object.ToString()
+                                            });
+                                        await deleteSPOResult.ConsumeAsync();
+                                        break;
+
+                                    case RDFModelEnums.RDFTripleFlavors.SPL:
+                                        IResultCursor deleteSPLResult = await tx.RunAsync(
+                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) "+
+                                            "DELETE p",
+                                            new 
+                                            { 
+                                                subj=quadruple.Subject.ToString(), 
+                                                pred=quadruple.Predicate.ToString(), 
+                                                ctx=quadruple.Context.ToString(),
+                                                val=quadruple.Object.ToString()
+                                            });
+                                        await deleteSPLResult.ConsumeAsync();
+                                        break;
+                                }
+                                
+                            }).GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
