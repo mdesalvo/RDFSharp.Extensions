@@ -1822,11 +1822,63 @@ namespace RDFSharp.Extensions.Neo4j
                     break;
                 case "SPO":
                     //->S->P->O
-                    
+                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchSPOResult = await tx.RunAsync(
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
+                                        new 
+                                        {
+                                            subj=subj.ToString(),
+                                            pred=pred.ToString(),
+                                            obj=obj.ToString()
+                                        });
+                                    await FetchSPOQuadruplesAsync(matchSPOResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
                 case "SPL":
                     //->S->P->L
-                    
+                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchSPLResult = await tx.RunAsync(
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
+                                        new 
+                                        {
+                                            subj=subj.ToString(),
+                                            pred=pred.ToString(),
+                                            val=lit.ToString()
+                                        });
+                                    await FetchSPLQuadruplesAsync(matchSPLResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
                 default:
                     //->->->
