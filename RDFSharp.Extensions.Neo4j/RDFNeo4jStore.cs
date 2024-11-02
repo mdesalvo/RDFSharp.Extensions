@@ -1882,7 +1882,35 @@ namespace RDFSharp.Extensions.Neo4j
                     break;
                 default:
                     //->->->
-                    
+                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchALLResult = await tx.RunAsync(
+                                        "MATCH (s:Resource)-[p:Property]->(o:Resource) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object", null);
+                                    await FetchSPOQuadruplesAsync(matchALLResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchALLResult = await tx.RunAsync(
+                                        "MATCH (s:Resource)-[p:Property]->(l:Literal) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal", null);
+                                    await FetchSPLQuadruplesAsync(matchALLResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
             }
 
