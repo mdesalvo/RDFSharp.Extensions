@@ -1031,30 +1031,58 @@ namespace RDFSharp.Extensions.Neo4j
             if (quadruple == null)
                 return false;
 
-            //Create command
-            
-            //Valorize parameters
-            
-            //Prepare and execute command
-            try
+            using (IAsyncSession neo4jSession = Driver.AsyncSession())
             {
-                //Open connection
-                
-                //Prepare command
-                
-                //Execute command
-                
-                //Close connection               
+                try
+                {
+                    bool result = false;
 
-                //Give result
-                return false; //TODO
-            }
-            catch (Exception ex)
-            {
-                //Close connection
-                
-                //Propagate exception
-                throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                    neo4jSession.ExecuteReadAsync(
+                        async tx =>
+                        {
+                            switch (quadruple.TripleFlavor)
+                            {
+                                case RDFModelEnums.RDFTripleFlavors.SPO:
+                                    IResultCursor matchSPOResult = await tx.RunAsync(
+                                        "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) "+
+                                        "RETURN (COUNT(*) > 0) AS checkExists",
+                                        new 
+                                        { 
+                                            subj=quadruple.Subject.ToString(), 
+                                            pred=quadruple.Predicate.ToString(), 
+                                            ctx=quadruple.Context.ToString(),
+                                            obj=quadruple.Object.ToString()
+                                        });
+                                    IRecord matchSPORecord = await matchSPOResult.SingleAsync();
+                                    result = matchSPORecord.Get<bool>("checkExists");
+                                    break;
+
+                                case RDFModelEnums.RDFTripleFlavors.SPL:
+                                    IResultCursor matchSPLResult = await tx.RunAsync(
+                                        "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) "+
+                                        "RETURN (COUNT(*) > 0) AS checkExists",
+                                        new 
+                                        { 
+                                            subj=quadruple.Subject.ToString(), 
+                                            pred=quadruple.Predicate.ToString(), 
+                                            ctx=quadruple.Context.ToString(),
+                                            val=quadruple.Object.ToString()
+                                        });
+                                    IRecord matchSPLRecord = await matchSPLResult.SingleAsync();
+                                    result = matchSPLRecord.Get<bool>("checkExists");
+                                    break;
+                            }                                
+                        }).GetAwaiter().GetResult();
+                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                    throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                }
             }
         }
 
