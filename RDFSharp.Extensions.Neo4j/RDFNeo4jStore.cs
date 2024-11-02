@@ -20,6 +20,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RDFSharp.Model;
 using RDFSharp.Store;
+using RDFSharp.Query;
 
 namespace RDFSharp.Extensions.Neo4j
 {
@@ -42,7 +43,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Driver to handle underlying Neo4j database
         /// </summary>
-        public IDriver Driver { get; set; }
+        internal IDriver Driver { get; set; }
 
         /// <summary>
         /// Flag indicating that the Neo4j store instance has already been disposed
@@ -1091,7 +1092,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
-            RDFMemoryStore result = new RDFMemoryStore();
+            RDFMemoryStore store = new RDFMemoryStore();
             StringBuilder queryFilters = new StringBuilder();
 
             //Filter by Context
@@ -1119,7 +1120,43 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 case "C":
                     //C->->->
-                    
+                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchCResult = await tx.RunAsync(
+                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
+                                        new 
+                                        { 
+                                            ctx=ctx.ToString(),
+                                        });
+                                    await FetchSPOQuadruplesAsync(matchCResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchCResult = await tx.RunAsync(
+                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
+                                        new 
+                                        { 
+                                            ctx=ctx.ToString(),
+                                        });
+                                    await FetchSPLQuadruplesAsync(matchCResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
                 case "S":
                     //->S->->
@@ -1215,29 +1252,36 @@ namespace RDFSharp.Extensions.Neo4j
                     break;
             }
 
-            //Prepare and execute command
-            try
-            {
-                //Open connection               
-
-                //Prepare command                
-
-                //Execute command
-               
-                //Close connection
-                
-            }
-            catch (Exception ex)
-            {
-                //Close connection
-                
-                //Propagate exception
-                throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-            }
-
-            return result;
+            return store;
         }
         
+        /// <summary>
+        /// Fetches the SPO quadruples from the given result cursor and adds them to the given store
+        /// </summary>
+        private async Task FetchSPOQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
+        {
+            while (await resultCursor.FetchAsync())
+                store.AddQuadruple(new RDFQuadruple(
+                    new RDFContext(resultCursor.Current.Get<string>("context")),
+                    new RDFResource(resultCursor.Current.Get<string>("subject")), 
+                    new RDFResource(resultCursor.Current.Get<string>("predicate")), 
+                    new RDFResource(resultCursor.Current.Get<string>("object"))));
+        }
+
+        /// <summary>
+        /// Fetches the SPL quadruples from the given result cursor and adds them to the given store
+        /// </summary>
+        private async Task FetchSPLQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
+        {
+            while (await resultCursor.FetchAsync())
+                if (RDFQueryUtilities.ParseRDFPatternMember(resultCursor.Current.Get<string>("literal")) is RDFLiteral literal)
+                    store.AddQuadruple(new RDFQuadruple(
+                        new RDFContext(resultCursor.Current.Get<string>("context")),
+                        new RDFResource(resultCursor.Current.Get<string>("subject")), 
+                        new RDFResource(resultCursor.Current.Get<string>("predicate")), 
+                        literal));
+        }
+
         /// <summary>
         /// Counts the Neo4j database quadruples
         /// </summary>
