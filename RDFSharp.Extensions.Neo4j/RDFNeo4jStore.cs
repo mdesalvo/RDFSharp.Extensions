@@ -1242,53 +1242,38 @@ namespace RDFSharp.Extensions.Neo4j
         /// Counts the Neo4j database quadruples
         /// </summary>
         private long GetQuadruplesCount()
-        {
-            try
-            {
-                //Open connection
-                
-                //Create command
-               
-                //Execute command
-                
-                //Close connection
-                
-                //Return the quadruples count
-                return  0; //TODO
-            }
-            catch
-            {
-                //Close connection
-                
-                //Return the quadruples count (-1 to indicate error)
-                return -1;
-            }
-        }
+            => GetQuadruplesCountAsync().GetAwaiter().GetResult();
 
 		/// <summary>
         /// Asynchronously counts the Neo4j database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
-            try
+            using (IAsyncSession neo4jSession = Driver.AsyncSession())
             {
-                //Open connection
-                
-                //Create command
-                
-                //Execute command
-                
-                //Close connection
-                
-                //Return the quadruples count
-                return  0;
-            }
-            catch
-            {
-                //Close connection
-                
-                //Return the quadruples count (-1 to indicate error)
-                return -1;
+                try
+                {
+                    long quadruplesCount = 0;
+
+                    await neo4jSession.ExecuteReadAsync(
+                        async tx =>
+                        {
+                            IResultCursor countResult = await tx.RunAsync(
+                                "MATCH (:Resource)-[:Property]->() "+
+                                "RETURN (COUNT(*)) AS quadruplesCount", null);
+                            IRecord countRecord = await countResult.SingleAsync();
+                            quadruplesCount = countRecord.Get<long>("quadruplesCount");
+                        });
+                    await neo4jSession.CloseAsync();
+
+                    return quadruplesCount;
+                }
+                catch
+                {
+                    await neo4jSession.CloseAsync();
+
+                    return -1;
+                }
             }
         }
         #endregion
