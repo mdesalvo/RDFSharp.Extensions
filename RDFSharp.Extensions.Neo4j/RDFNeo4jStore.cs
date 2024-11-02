@@ -1664,7 +1664,45 @@ namespace RDFSharp.Extensions.Neo4j
                     break;
                 case "SP":
                     //->S->P->
-                    
+                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchSPResult = await tx.RunAsync(
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
+                                        new 
+                                        {
+                                            subj=subj.ToString(),
+                                            pred=pred.ToString()
+                                        });
+                                    await FetchSPOQuadruplesAsync(matchSPResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchSPResult = await tx.RunAsync(
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
+                                        new 
+                                        {
+                                            subj=subj.ToString(),
+                                            pred=pred.ToString()
+                                        });
+                                    await FetchSPLQuadruplesAsync(matchSPResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
                 case "SO":
                     //->S->->O
