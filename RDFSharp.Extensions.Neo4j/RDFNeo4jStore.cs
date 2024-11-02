@@ -46,6 +46,11 @@ namespace RDFSharp.Extensions.Neo4j
         internal IDriver Driver { get; set; }
 
         /// <summary>
+        /// Name of underlying Neo4j database
+        /// </summary>
+        internal string DatabaseName { get; set; }
+
+        /// <summary>
         /// Flag indicating that the Neo4j store instance has already been disposed
         /// </summary>
         internal bool Disposed { get; set; }
@@ -55,7 +60,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Default-ctor to build a Neo4j store instance with given credentials
         /// </summary>
-        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword)
+        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, string databaseName="neo4j")
         {
             #region Guards
             if (string.IsNullOrEmpty(neo4jUri))
@@ -66,6 +71,7 @@ namespace RDFSharp.Extensions.Neo4j
             StoreType = "NEO4J";
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Driver = GraphDatabase.Driver(neo4jUri, AuthTokens.Basic(neo4jUsername, neo4jPassword));
+            DatabaseName = databaseName;
             Disposed = false;
 
             //Perform initial diagnostics
@@ -83,7 +89,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// Gives the string representation of the Neo4j store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString());
+            => string.Concat(base.ToString(), "|DATABASE=", DatabaseName);
 
         /// <summary>
         /// Disposes the Neo4j storeinstance 
@@ -125,7 +131,7 @@ namespace RDFSharp.Extensions.Neo4j
             if (graph != null)
             {
                 string graphContext = graph.Context.ToString();
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -182,7 +188,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -240,7 +246,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -298,7 +304,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -334,7 +340,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -370,7 +376,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -406,7 +412,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -442,7 +448,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (literalObject != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -478,7 +484,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -515,7 +521,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -552,7 +558,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -589,7 +595,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -626,7 +632,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -664,7 +670,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -702,7 +708,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -740,7 +746,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -778,7 +784,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -816,7 +822,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -853,7 +859,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -890,7 +896,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -927,7 +933,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -964,7 +970,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
                 {
                     try
                     {
@@ -999,7 +1005,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         public override void ClearQuadruples()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1032,7 +1038,7 @@ namespace RDFSharp.Extensions.Neo4j
             if (quadruple == null)
                 return false;
 
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1116,7 +1122,7 @@ namespace RDFSharp.Extensions.Neo4j
                 queryFilters.Append('L');
 
             //Intersect the filters
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1679,7 +1685,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1714,7 +1720,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task InitializeStoreAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write).WithDatabase(DatabaseName)))
             {
                 try
                 {
