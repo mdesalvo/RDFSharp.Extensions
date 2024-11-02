@@ -125,7 +125,7 @@ namespace RDFSharp.Extensions.Neo4j
             if (graph != null)
             {
                 string graphContext = graph.Context.ToString();
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -182,7 +182,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -240,7 +240,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -298,7 +298,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -334,7 +334,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -370,7 +370,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -406,7 +406,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -442,7 +442,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (literalObject != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -478,7 +478,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -515,7 +515,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -552,7 +552,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -589,7 +589,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -626,7 +626,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -664,7 +664,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -702,7 +702,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && subjectResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -740,7 +740,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -778,7 +778,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (contextResource != null && predicateResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -816,7 +816,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && predicateResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -853,7 +853,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -890,7 +890,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (subjectResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -927,7 +927,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectResource != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -964,7 +964,7 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (predicateResource != null && objectLiteral != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
                 {
                     try
                     {
@@ -999,7 +999,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         public override void ClearQuadruples()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession())
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
             {
                 try
                 {
@@ -1679,7 +1679,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession())
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
             {
                 try
                 {
@@ -1714,7 +1714,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task InitializeStoreAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession())
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Write)))
             {
                 try
                 {
