@@ -1549,7 +1549,7 @@ namespace RDFSharp.Extensions.Neo4j
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
-                                    IResultCursor matchCSOResult = await tx.RunAsync(
+                                    IResultCursor matchCPOResult = await tx.RunAsync(
                                         "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) "+
                                         "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
                                         new 
@@ -1558,7 +1558,7 @@ namespace RDFSharp.Extensions.Neo4j
                                             ctx=ctx.ToString(),
                                             obj=obj.ToString()
                                         });
-                                    await FetchSPOQuadruplesAsync(matchCSOResult, store);
+                                    await FetchSPOQuadruplesAsync(matchCPOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
                         }
@@ -1572,7 +1572,33 @@ namespace RDFSharp.Extensions.Neo4j
                     break;
                 case "CPL":
                     //C->->P->L
-                   
+                   using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                    {
+                        try
+                        {
+                            neo4jSession.ExecuteReadAsync(
+                                async tx =>
+                                {
+                                    IResultCursor matchCPLResult = await tx.RunAsync(
+                                        "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) "+
+                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
+                                        new 
+                                        {
+                                            pred=pred.ToString(),
+                                            ctx=ctx.ToString(),
+                                            val=lit.ToString()
+                                        });
+                                    await FetchSPLQuadruplesAsync(matchCPLResult, store);
+                                }).GetAwaiter().GetResult();
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        }
+                        catch (Exception ex)
+                        {
+                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                        }
+                    }
                     break;
                 case "CSPO":
                     //C->S->P->O
