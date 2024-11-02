@@ -1032,7 +1032,7 @@ namespace RDFSharp.Extensions.Neo4j
             if (quadruple == null)
                 return false;
 
-            using (IAsyncSession neo4jSession = Driver.AsyncSession())
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
             {
                 try
                 {
@@ -1116,14 +1116,14 @@ namespace RDFSharp.Extensions.Neo4j
                 queryFilters.Append('L');
 
             //Intersect the filters
-            switch (queryFilters.ToString())
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDefaultAccessMode(AccessMode.Read)))
             {
-                case "C":
-                    //C->->->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
+                try
+                {
+                    switch (queryFilters.ToString())
                     {
-                        try
-                        {
+                        case "C":
+                            //C->->->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1149,21 +1149,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "S":
-                    //->S->->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "S":
+                            //->S->->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1189,21 +1177,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchSResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "P":
-                    //->->P->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "P":
+                            //->->P->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1229,21 +1205,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchPResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "O":
-                    //->->->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "O":
+                            //->->->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1257,21 +1221,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "L":
-                    //->->->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "L":
+                            //->->->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1285,21 +1237,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CS":
-                    //C->S->->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CS":
+                            //C->S->->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1327,21 +1267,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCSResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CP":
-                    //C->->P->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CP":
+                            //C->->P->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1369,21 +1297,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCPResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CO":
-                    //C->->->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CO":
+                            //C->->->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1398,21 +1314,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchCOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CL":
-                    //C->->->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CL":
+                            //C->->->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1427,21 +1331,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CSP":
-                    //C->S->P->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CSP":
+                            //C->S->P->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1471,21 +1363,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCSPResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CSO":
-                    //C->S->->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CSO":
+                            //C->S->->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1501,21 +1381,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchCSOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CSL":
-                    //C->S->->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CSL":
+                            //C->S->->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1531,21 +1399,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCSLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CPO":
-                    //C->->P->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CPO":
+                            //C->->P->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1561,21 +1417,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchCPOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CPL":
-                    //C->->P->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CPL":
+                            //C->->P->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1591,21 +1435,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCPLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CSPO":
-                    //C->S->P->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CSPO":
+                            //C->S->P->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1622,21 +1454,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchCSPOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "CSPL":
-                    //C->S->P->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "CSPL":
+                            //C->S->P->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1653,21 +1473,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchCSPLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "SP":
-                    //->S->P->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "SP":
+                            //->S->P->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1695,21 +1503,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchSPResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "SO":
-                    //->S->->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "SO":
+                            //->S->->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1724,21 +1520,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchSOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "SL":
-                    //->S->->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "SL":
+                            //->S->->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1753,21 +1537,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchSLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "PO":
-                    //->->P->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "PO":
+                            //->->P->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1782,21 +1554,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchPOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "PL":
-                    //->->P->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "PL":
+                            //->->P->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1811,21 +1571,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchPLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "SPO":
-                    //->S->P->O
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "SPO":
+                            //->S->P->O
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1841,21 +1589,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPOQuadruplesAsync(matchSPOResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                case "SPL":
-                    //->S->P->L
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        case "SPL":
+                            //->S->P->L
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1871,21 +1607,9 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchSPLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
-                    }
-                    break;
-                default:
-                    //->->->
-                    using (IAsyncSession neo4jSession = Driver.AsyncSession())
-                    {
-                        try
-                        {
+                            break;
+                        default:
+                            //->->->
                             neo4jSession.ExecuteReadAsync(
                                 async tx =>
                                 {
@@ -1903,15 +1627,15 @@ namespace RDFSharp.Extensions.Neo4j
                                     await FetchSPLQuadruplesAsync(matchALLResult, store);
                                 }).GetAwaiter().GetResult();
                             neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                            throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
-                        }
+                            break;
                     }
-                    break;
+                }
+                catch (Exception ex)
+                {
+                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                    throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
+                }    
             }
 
             return store;
