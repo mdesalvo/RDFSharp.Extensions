@@ -127,9 +127,9 @@ namespace RDFSharp.Extensions.Neo4j
                 string graphContext = graph.Context.ToString();
                 using (IAsyncSession neo4jSession = Driver.AsyncSession())
                 {
-                    foreach (RDFTriple triple in graph)
-                        try
-                        {
+                    try
+                    {
+                        foreach (RDFTriple triple in graph)
                             neo4jSession.ExecuteWriteAsync(
                                 async tx =>
                                 {
@@ -162,14 +162,14 @@ namespace RDFSharp.Extensions.Neo4j
                                             break;
                                     }                                    
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
 
-                            throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
-                        }
+                        throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
+                    }
                 }
             }
             return this;
