@@ -197,7 +197,7 @@ namespace RDFSharp.Extensions.Neo4j
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
                                         await tx.RunAsync(
-                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o",
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj })",
                                             new 
                                             { 
                                                 subj=quadruple.Subject.ToString(), 
@@ -209,7 +209,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
                                         await tx.RunAsync(
-                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l",
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val })",
                                             new 
                                             { 
                                                 subj=quadruple.Subject.ToString(), 
@@ -1697,37 +1697,15 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 try
                 {
-                    //Indicize r:Resource nodes
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
-                            await tx.RunAsync("CREATE INDEX resIdx IF NOT EXISTS FOR (r:Resource) ON (r.uri) OPTIONS {}", null);
-                        });
-
-                    //Indicize p:Property arcs
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            await tx.RunAsync("CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
-                        });
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            await tx.RunAsync("CREATE INDEX ctxIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
-                        });
-                     await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
+                            await tx.RunAsync("CREATE INDEX resIdx     IF NOT EXISTS FOR (r:Resource) ON (r.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX propIdx    IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX ctxIdx     IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
                             await tx.RunAsync("CREATE INDEX propctxIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri,p.ctx) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX litIdx     IF NOT EXISTS FOR (l:Literal) ON (l.value) OPTIONS {}", null);
                         });
-
-                    //Indicize l:Literal nodes
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            await tx.RunAsync("CREATE INDEX litIdx IF NOT EXISTS FOR (l:Literal) ON (l.value) OPTIONS {}", null);
-                        });
-
                     await neo4jSession.CloseAsync();
                 }
                 catch (Exception ex)
