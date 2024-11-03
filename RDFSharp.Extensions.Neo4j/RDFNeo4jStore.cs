@@ -124,7 +124,8 @@ namespace RDFSharp.Extensions.Neo4j
 
         #region Add
         /// <summary>
-        /// Merges the given graph into the store
+        /// Merges the given graph into the store<br/>
+        /// (WARNING: may be slow due to Cypher MERGE)
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
         {
