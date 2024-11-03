@@ -1662,11 +1662,10 @@ namespace RDFSharp.Extensions.Neo4j
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
-                            await tx.RunAsync("CREATE INDEX resIdx     IF NOT EXISTS FOR (r:Resource) ON (r.uri) OPTIONS {}", null);
-                            await tx.RunAsync("CREATE INDEX propIdx    IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
-                            await tx.RunAsync("CREATE INDEX ctxIdx     IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
-                            await tx.RunAsync("CREATE INDEX propctxIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri,p.ctx) OPTIONS {}", null);
-                            await tx.RunAsync("CREATE INDEX litIdx     IF NOT EXISTS FOR (l:Literal) ON (l.value) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX resIdx  IF NOT EXISTS FOR (r:Resource)        ON (r.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX ctxIdx  IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX litIdx  IF NOT EXISTS FOR (l:Literal)         ON (l.value) OPTIONS {}", null);
                         });
                     await neo4jSession.CloseAsync();
                 }
