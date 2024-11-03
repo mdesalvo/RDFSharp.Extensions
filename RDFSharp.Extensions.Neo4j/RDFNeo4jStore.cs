@@ -131,51 +131,12 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (graph != null)
             {
-                string graphContext = graph.Context.ToString();
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        foreach (RDFTriple triple in graph)
-                            neo4jSession.ExecuteWriteAsync(
-                                async tx =>
-                                {
-                                    switch (triple.TripleFlavor)
-                                    {
-                                        case RDFModelEnums.RDFTripleFlavors.SPO:
-                                            await tx.RunAsync(
-                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj })",
-                                                new 
-                                                { 
-                                                    subj=triple.Subject.ToString(), 
-                                                    pred=triple.Predicate.ToString(), 
-                                                    ctx=graphContext,
-                                                    obj=triple.Object.ToString()
-                                                });
-                                            break;
-
-                                        case RDFModelEnums.RDFTripleFlavors.SPL:
-                                            await tx.RunAsync(
-                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val })",
-                                                new 
-                                                { 
-                                                    subj=triple.Subject.ToString(), 
-                                                    pred=triple.Predicate.ToString(), 
-                                                    ctx=graphContext,
-                                                    val=triple.Object.ToString()
-                                                });
-                                            break;
-                                    }                                    
-                                }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
-                    }
-                }
+                RDFContext graphContext = new RDFContext(graph.Context);
+                foreach (RDFTriple triple in graph)
+                    if (triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO)
+                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object));
+                    else
+                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object));
             }
             return this;
         }
