@@ -131,8 +131,9 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 //Dispose
                 Driver.Dispose();
-                //remove
+                //Remove
                 Driver = null;
+                ServerInfo = null;
             }
 
             Disposed = true;
