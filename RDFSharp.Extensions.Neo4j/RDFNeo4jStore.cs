@@ -80,8 +80,15 @@ namespace RDFSharp.Extensions.Neo4j
             //Initialize driver
             IAuthToken token = AuthTokens.Basic(neo4jUsername, neo4jPassword);
             Driver = GraphDatabase.Driver(neo4jUri, token);
-            Driver.VerifyConnectivityAsync().GetAwaiter().GetResult();
-            Driver.VerifyAuthenticationAsync(token).GetAwaiter().GetResult();
+            try
+            {
+                Driver.VerifyConnectivityAsync().GetAwaiter().GetResult();
+                Driver.VerifyAuthenticationAsync(token).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                throw new RDFStoreException("Cannot connect to Neo4j store because: " + ex.Message, ex);
+            }
 
             //Prepare store
             InitializeStoreAsync().GetAwaiter().GetResult();
