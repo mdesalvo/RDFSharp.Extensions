@@ -64,17 +64,26 @@ namespace RDFSharp.Extensions.Neo4j
         {
             #region Guards
             if (string.IsNullOrEmpty(neo4jUri))
-                throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jConnectionString\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jUri\" parameter is null or empty.");
+            if (string.IsNullOrEmpty(neo4jUsername))
+                throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jUsername\" parameter is null or empty.");
+            if (string.IsNullOrEmpty(neo4jPassword))
+                throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jPassword\" parameter is null or empty.");
             #endregion
 
             //Initialize store structures
+            DatabaseName = databaseName;
             StoreType = "NEO4J";
             StoreID = RDFModelUtilities.CreateHash(ToString());
-            Driver = GraphDatabase.Driver(neo4jUri, AuthTokens.Basic(neo4jUsername, neo4jPassword));
-            DatabaseName = databaseName;
             Disposed = false;
 
-            //Perform initial diagnostics
+            //Initialize driver
+            IAuthToken token = AuthTokens.Basic(neo4jUsername, neo4jPassword);
+            Driver = GraphDatabase.Driver(neo4jUri, token);
+            Driver.VerifyConnectivityAsync().GetAwaiter().GetResult();
+            Driver.VerifyAuthenticationAsync(token).GetAwaiter().GetResult();
+
+            //Prepare store
             InitializeStoreAsync().GetAwaiter().GetResult();
         }
 
