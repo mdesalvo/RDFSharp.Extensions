@@ -44,6 +44,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// Driver to handle underlying Neo4j database
         /// </summary>
         internal IDriver Driver { get; set; }
+        internal IServerInfo ServerInfo { get; set; }
 
         /// <summary>
         /// Name of underlying Neo4j database
@@ -71,12 +72,6 @@ namespace RDFSharp.Extensions.Neo4j
                 throw new RDFStoreException("Cannot connect to Neo4j store because: given \"neo4jPassword\" parameter is null or empty.");
             #endregion
 
-            //Initialize store structures
-            DatabaseName = databaseName;
-            StoreType = "NEO4J";
-            StoreID = RDFModelUtilities.CreateHash(ToString());
-            Disposed = false;
-
             //Initialize driver
             IAuthToken token = AuthTokens.Basic(neo4jUsername, neo4jPassword);
             Driver = GraphDatabase.Driver(neo4jUri, token);
@@ -84,11 +79,19 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 Driver.VerifyConnectivityAsync().GetAwaiter().GetResult();
                 Driver.VerifyAuthenticationAsync(token).GetAwaiter().GetResult();
+                //Fetch server info
+                ServerInfo = Driver.GetServerInfoAsync().GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
                 throw new RDFStoreException("Cannot connect to Neo4j store because: " + ex.Message, ex);
             }
+
+            //Initialize store 
+            DatabaseName = databaseName;
+            StoreType = "NEO4J";
+            StoreID = RDFModelUtilities.CreateHash(ToString());
+            Disposed = false;
 
             //Prepare store
             InitializeStoreAsync().GetAwaiter().GetResult();
@@ -105,7 +108,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// Gives the string representation of the Neo4j store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|DATABASE=", DatabaseName);
+            => string.Concat(base.ToString(), "|ADDRESS=", ServerInfo.Address, "|AGENT=", ServerInfo.Agent, "|PROTOCOL=", ServerInfo.ProtocolVersion, "|DATABASE=", DatabaseName);
 
         /// <summary>
         /// Disposes the Neo4j storeinstance 
