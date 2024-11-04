@@ -60,7 +60,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Default-ctor to build a Neo4j store instance with given credentials
         /// </summary>
-        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, string databaseName="neo4j")
+        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, string databaseName = "neo4j")
         {
             #region Guards
             if (string.IsNullOrEmpty(neo4jUri))
@@ -130,53 +130,12 @@ namespace RDFSharp.Extensions.Neo4j
         {
             if (graph != null)
             {
-                string graphContext = graph.Context.ToString();
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        foreach (RDFTriple triple in graph)
-                            neo4jSession.ExecuteWriteAsync(
-                                async tx =>
-                                {
-                                    switch (triple.TripleFlavor)
-                                    {
-                                        case RDFModelEnums.RDFTripleFlavors.SPO:
-                                            IResultCursor insertSPOResult = await tx.RunAsync(
-                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj })",
-                                                new
-                                                {
-                                                    subj = triple.Subject.ToString(),
-                                                    pred = triple.Predicate.ToString(),
-                                                    ctx = graphContext,
-                                                    obj = triple.Object.ToString()
-                                                });
-                                            await insertSPOResult.ConsumeAsync();
-                                            break;
-
-                                        case RDFModelEnums.RDFTripleFlavors.SPL:
-                                            IResultCursor insertSPLResult = await tx.RunAsync(
-                                                "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val })",
-                                                new
-                                                {
-                                                    subj = triple.Subject.ToString(),
-                                                    pred = triple.Predicate.ToString(),
-                                                    ctx = graphContext,
-                                                    val = triple.Object.ToString()
-                                                });
-                                            await insertSPLResult.ConsumeAsync();
-                                            break;
-                                    }
-                                }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
-                    }
-                }
+                RDFContext graphContext = new RDFContext(graph.Context);
+                foreach (RDFTriple triple in graph)
+                    if (triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO)
+                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object));
+                    else
+                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object));
             }
             return this;
         }
@@ -198,8 +157,8 @@ namespace RDFSharp.Extensions.Neo4j
                                 switch (quadruple.TripleFlavor)
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
-                                        IResultCursor insertSPOResult = await tx.RunAsync(
-                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s,p,o",
+                                        await tx.RunAsync(
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj })",
                                             new
                                             {
                                                 subj = quadruple.Subject.ToString(),
@@ -207,12 +166,11 @@ namespace RDFSharp.Extensions.Neo4j
                                                 ctx = quadruple.Context.ToString(),
                                                 obj = quadruple.Object.ToString()
                                             });
-                                        await insertSPOResult.ConsumeAsync();
                                         break;
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
-                                        IResultCursor insertSPLResult = await tx.RunAsync(
-                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s,p,l",
+                                        await tx.RunAsync(
+                                            "MERGE (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val })",
                                             new
                                             {
                                                 subj = quadruple.Subject.ToString(),
@@ -220,7 +178,6 @@ namespace RDFSharp.Extensions.Neo4j
                                                 ctx = quadruple.Context.ToString(),
                                                 val = quadruple.Object.ToString()
                                             });
-                                        await insertSPLResult.ConsumeAsync();
                                         break;
                                 }
                             }).GetAwaiter().GetResult();
@@ -256,7 +213,7 @@ namespace RDFSharp.Extensions.Neo4j
                                 switch (quadruple.TripleFlavor)
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
-                                        IResultCursor deleteSPOResult = await tx.RunAsync(
+                                        await tx.RunAsync(
                                             "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) " +
                                             "DELETE p",
                                             new
@@ -266,11 +223,10 @@ namespace RDFSharp.Extensions.Neo4j
                                                 ctx = quadruple.Context.ToString(),
                                                 obj = quadruple.Object.ToString()
                                             });
-                                        await deleteSPOResult.ConsumeAsync();
                                         break;
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
-                                        IResultCursor deleteSPLResult = await tx.RunAsync(
+                                        await tx.RunAsync(
                                             "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) " +
                                             "DELETE p",
                                             new
@@ -280,7 +236,6 @@ namespace RDFSharp.Extensions.Neo4j
                                                 ctx = quadruple.Context.ToString(),
                                                 val = quadruple.Object.ToString()
                                             });
-                                        await deleteSPLResult.ConsumeAsync();
                                         break;
                                 }
                             }).GetAwaiter().GetResult();
@@ -311,14 +266,13 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
                                     {
                                         ctx = contextResource.ToString()
                                     });
-                                await deleteCResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -347,14 +301,13 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteSResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property]->() " +
                                     "DELETE p",
                                     new
                                     {
                                         subj = subjectResource.ToString()
                                     });
-                                await deleteSResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -383,14 +336,13 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deletePResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred }]->() " +
                                     "DELETE p",
                                     new
                                     {
                                         pred = predicateResource.ToString()
                                     });
-                                await deletePResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -419,14 +371,13 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
                                         obj = objectResource.ToString()
                                     });
-                                await deleteOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -455,14 +406,13 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
                                         val = literalObject.ToString()
                                     });
-                                await deleteLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -491,7 +441,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCSResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
@@ -499,7 +449,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         subj = subjectResource.ToString(),
                                         ctx = contextResource.ToString()
                                     });
-                                await deleteCSResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -528,7 +477,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCPResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
@@ -536,7 +485,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         pred = predicateResource.ToString(),
                                         ctx = contextResource.ToString()
                                     });
-                                await deleteCPResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -565,7 +513,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { ctx:$ctx }]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
@@ -573,7 +521,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         obj = objectResource.ToString()
                                     });
-                                await deleteCOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -602,7 +549,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { ctx:$ctx }]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
@@ -610,7 +557,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         val = objectLiteral.ToString()
                                     });
-                                await deleteCLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -639,7 +585,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCSPResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
@@ -648,7 +594,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         pred = predicateResource.ToString(),
                                         ctx = contextResource.ToString()
                                     });
-                                await deleteCSPResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -677,7 +622,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCSOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
@@ -686,7 +631,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         obj = objectResource.ToString(),
                                     });
-                                await deleteCSOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -715,7 +659,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCSLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
@@ -724,7 +668,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         val = objectLiteral.ToString(),
                                     });
-                                await deleteCSLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -753,7 +696,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCPOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
@@ -762,7 +705,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         obj = objectResource.ToString(),
                                     });
-                                await deleteCPOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -791,7 +733,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteCPLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
@@ -800,7 +742,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         ctx = contextResource.ToString(),
                                         val = objectLiteral.ToString(),
                                     });
-                                await deleteCPLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -829,7 +770,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteSPResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred }]->() " +
                                     "DELETE p",
                                     new
@@ -837,7 +778,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         subj = subjectResource.ToString(),
                                         pred = predicateResource.ToString()
                                     });
-                                await deleteSPResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -866,7 +806,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteSOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
@@ -874,7 +814,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         subj = subjectResource.ToString(),
                                         obj = objectResource.ToString()
                                     });
-                                await deleteSOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -903,7 +842,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deleteSLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource { uri:$subj })-[p:Property]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
@@ -911,7 +850,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         subj = subjectResource.ToString(),
                                         val = objectLiteral.ToString()
                                     });
-                                await deleteSLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -940,7 +878,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deletePOResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
@@ -948,7 +886,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         pred = predicateResource.ToString(),
                                         obj = objectResource.ToString()
                                     });
-                                await deletePOResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -977,7 +914,7 @@ namespace RDFSharp.Extensions.Neo4j
                         neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
-                                IResultCursor deletePLResult = await tx.RunAsync(
+                                await tx.RunAsync(
                                     "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
@@ -985,7 +922,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         pred = predicateResource.ToString(),
                                         val = objectLiteral.ToString()
                                     });
-                                await deletePLResult.ConsumeAsync();
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
                     }
@@ -1012,9 +948,7 @@ namespace RDFSharp.Extensions.Neo4j
                     neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
-                            IResultCursor deleteAllResult = await tx.RunAsync(
-                                "MATCH (n) DETACH DELETE (n)", null);
-                            await deleteAllResult.ConsumeAsync();
+                            await tx.RunAsync("MATCH (n) DETACH DELETE (n)", null);
                         }).GetAwaiter().GetResult();
                     neo4jSession.CloseAsync().GetAwaiter().GetResult();
                 }
@@ -1724,40 +1658,14 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 try
                 {
-                    //Indicize r:Resource nodes
                     await neo4jSession.ExecuteWriteAsync(
                         async tx =>
                         {
-                            IResultCursor resourceIdxResult = await tx.RunAsync(
-                                "CREATE INDEX resIdx IF NOT EXISTS FOR (r:Resource) ON (r.uri) OPTIONS {}", null);
-                            return await resourceIdxResult.ConsumeAsync();
+                            await tx.RunAsync("CREATE INDEX resIdx  IF NOT EXISTS FOR (r:Resource)        ON (r.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX ctxIdx  IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
+                            await tx.RunAsync("CREATE INDEX litIdx  IF NOT EXISTS FOR (l:Literal)         ON (l.value) OPTIONS {}", null);
                         });
-
-                    //Indicize p:Property arcs
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            IResultCursor propertyIdxResult = await tx.RunAsync(
-                                "CREATE INDEX propIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.uri) OPTIONS {}", null);
-                            return await propertyIdxResult.ConsumeAsync();
-                        });
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            IResultCursor contextIdxResult = await tx.RunAsync(
-                                "CREATE INDEX ctxIdx IF NOT EXISTS FOR ()-[p:Property]->() ON (p.ctx) OPTIONS {}", null);
-                            return await contextIdxResult.ConsumeAsync();
-                        });
-
-                    //Indicize l:Literal nodes
-                    await neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            IResultCursor literalIdxResult = await tx.RunAsync(
-                                "CREATE INDEX litIdx IF NOT EXISTS FOR (l:Literal) ON (l.value) OPTIONS {}", null);
-                            return await literalIdxResult.ConsumeAsync();
-                        });
-
                     await neo4jSession.CloseAsync();
                 }
                 catch (Exception ex)
