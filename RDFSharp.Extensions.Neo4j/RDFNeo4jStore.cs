@@ -152,10 +152,7 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 RDFContext graphContext = new RDFContext(graph.Context);
                 foreach (RDFTriple triple in graph)
-                    if (triple.TripleFlavor == RDFModelEnums.RDFTripleFlavors.SPO)
-                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFResource)triple.Object));
-                    else
-                        AddQuadruple(new RDFQuadruple(graphContext, (RDFResource)triple.Subject, (RDFResource)triple.Predicate, (RDFLiteral)triple.Object));
+                    AddQuadruple(new RDFQuadruple(graphContext, triple));
             }
             return this;
         }
@@ -234,7 +231,7 @@ namespace RDFSharp.Extensions.Neo4j
                                 {
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
                                         await tx.RunAsync(
-                                            "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) " +
+                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
                                             "DELETE p",
                                             new
                                             {
@@ -247,7 +244,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
                                         await tx.RunAsync(
-                                            "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) " +
+                                            "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
                                             "DELETE p",
                                             new
                                             {
@@ -287,7 +284,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { ctx:$ctx }]->() " +
+                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -322,7 +319,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property]->() " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -357,7 +354,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->() " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -392,7 +389,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource)-[p:Property]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -427,7 +424,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -462,7 +459,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -498,7 +495,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -534,7 +531,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { ctx:$ctx }]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -570,7 +567,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { ctx:$ctx }]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -606,7 +603,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -643,7 +640,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -680,7 +677,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -717,7 +714,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -754,7 +751,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -791,7 +788,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred }]->() " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->() " +
                                     "DELETE p",
                                     new
                                     {
@@ -827,7 +824,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -863,7 +860,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource { uri:$subj })-[p:Property]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -899,7 +896,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Resource { uri:$obj }) " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -935,7 +932,7 @@ namespace RDFSharp.Extensions.Neo4j
                             async tx =>
                             {
                                 await tx.RunAsync(
-                                    "MATCH (:Resource)-[p:Property { uri:$pred }]->(:Literal { value:$val }) " +
+                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) " +
                                     "DELETE p",
                                     new
                                     {
@@ -1005,7 +1002,7 @@ namespace RDFSharp.Extensions.Neo4j
                             {
                                 case RDFModelEnums.RDFTripleFlavors.SPO:
                                     IResultCursor matchSPOResult = await tx.RunAsync(
-                                        "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Resource { uri:$obj }) " +
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
                                         "RETURN (COUNT(*) > 0) AS checkExists",
                                         new
                                         {
@@ -1020,7 +1017,7 @@ namespace RDFSharp.Extensions.Neo4j
 
                                 case RDFModelEnums.RDFTripleFlavors.SPL:
                                     IResultCursor matchSPLResult = await tx.RunAsync(
-                                        "MATCH (:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(:Literal { value:$val }) " +
+                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
                                         "RETURN (COUNT(*) > 0) AS checkExists",
                                         new
                                         {
@@ -1649,7 +1646,7 @@ namespace RDFSharp.Extensions.Neo4j
                         async tx =>
                         {
                             IResultCursor countResult = await tx.RunAsync(
-                                "MATCH (:Resource)-[:Property]->() " +
+                                "MATCH (s:Resource)-[p:Property]->() " +
                                 "RETURN (COUNT(*)) AS quadruplesCount", null);
                             IRecord countRecord = await countResult.SingleAsync();
                             quadruplesCount = countRecord.Get<long>("quadruplesCount");
