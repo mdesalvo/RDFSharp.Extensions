@@ -46,7 +46,7 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.250" />
+		<PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.260" />
 		<PackageReference Include="RDFSharp" Version="3.14.0" />
 	</ItemGroup>
 </Project>
