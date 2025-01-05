@@ -35,13 +35,13 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// Count of the PostgreSQL database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the PostgreSQL database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the PostgreSQL database
@@ -77,7 +77,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         {
             #region Guards
             if (string.IsNullOrEmpty(pgsqlConnectionString))
-            	throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlConnectionString\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to PostgreSQL store because: given \"pgsqlConnectionString\" parameter is null or empty.");
             #endregion
 
             //Initialize options
@@ -1796,7 +1796,7 @@ namespace RDFSharp.Extensions.PostgreSQL
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the PostgreSQL database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()

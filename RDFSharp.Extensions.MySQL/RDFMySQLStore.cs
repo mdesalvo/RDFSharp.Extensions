@@ -34,13 +34,13 @@ namespace RDFSharp.Extensions.MySQL
         /// Count of the MySQL database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the MySQL database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the MySQL database
@@ -1794,7 +1794,7 @@ namespace RDFSharp.Extensions.MySQL
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the MySQL database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()

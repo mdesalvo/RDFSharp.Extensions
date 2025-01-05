@@ -38,13 +38,13 @@ namespace RDFSharp.Extensions.AzureTable
         /// Count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         internal TableServiceClient ServiceClient { get; set; }
         internal TableClient Client { get; set; }
@@ -64,7 +64,7 @@ namespace RDFSharp.Extensions.AzureTable
         {
             #region Guards
             if (string.IsNullOrEmpty(azureStorageConnectionString))
-            	throw new RDFStoreException("Cannot connect to Azure Table store because: given \"azureStorageConnectionString\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to Azure Table store because: given \"azureStorageConnectionString\" parameter is null or empty.");
             #endregion
 
             //Initialize store structures
@@ -1015,7 +1015,7 @@ namespace RDFSharp.Extensions.AzureTable
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the Azure Table service quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
@@ -1025,10 +1025,10 @@ namespace RDFSharp.Extensions.AzureTable
                 AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(qent =>
                     string.Equals(qent.PartitionKey, "RDFSHARP"), select: new string[] { "RowKey" });
 
-				long quadruplesCount = 0;
-				IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
-				while (await quadruplesEnum.MoveNextAsync())
-					quadruplesCount++;
+                long quadruplesCount = 0;
+                IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
+                while (await quadruplesEnum.MoveNextAsync())
+                    quadruplesCount++;
 
                 //Return the quadruples count
                 return quadruplesCount;

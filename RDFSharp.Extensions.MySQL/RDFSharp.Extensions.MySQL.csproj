@@ -11,7 +11,7 @@
     <SignAssembly>false</SignAssembly>
     <Product>RDFSharp</Product>
     <PackageId>RDFSharp.Extensions.MySQL</PackageId>
-	<PackageVersion>$(Version)</PackageVersion>
+    <PackageVersion>$(Version)</PackageVersion>
     <PackageTags>rdf triplestore quadstore mysql</PackageTags>
     <PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

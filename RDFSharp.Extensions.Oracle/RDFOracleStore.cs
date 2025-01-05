@@ -33,13 +33,13 @@ namespace RDFSharp.Extensions.Oracle
         /// Count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount(); 
+            => GetQuadruplesCount(); 
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync(); 
+            => GetQuadruplesCountAsync(); 
 
         /// <summary>
         /// Connection to the Oracle database
@@ -80,7 +80,7 @@ namespace RDFSharp.Extensions.Oracle
         {
             #region Guards
             if (string.IsNullOrEmpty(oracleConnectionString))
-            	throw new RDFStoreException("Cannot connect to Oracle store because: given \"oracleConnectionString\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to Oracle store because: given \"oracleConnectionString\" parameter is null or empty.");
             #endregion
 
             //Initialize options
@@ -1800,11 +1800,11 @@ namespace RDFSharp.Extensions.Oracle
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the Oracle database quadruples
         /// </summary>
         private Task<long> GetQuadruplesCountAsync()
-			=> Task.Run(() => GetQuadruplesCount()); //Just a wrapper because Oracle doesn't provide ExecuteScalarAsync override
+            => Task.Run(() => GetQuadruplesCount()); //Just a wrapper because Oracle doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics

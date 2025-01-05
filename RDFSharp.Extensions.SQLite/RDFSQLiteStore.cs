@@ -36,13 +36,13 @@ namespace RDFSharp.Extensions.SQLite
         /// Count of the SQLite database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the SQLite database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the SQLite database
@@ -78,7 +78,7 @@ namespace RDFSharp.Extensions.SQLite
         {
             #region Guards
             if (string.IsNullOrWhiteSpace(sqliteDatabasePath))
-            	throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDatabasePath\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteDatabasePath\" parameter is null or empty.");
             #endregion
 
             //Initialize options
@@ -1817,11 +1817,11 @@ namespace RDFSharp.Extensions.SQLite
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the SQLite database quadruples
         /// </summary>
         private Task<long> GetQuadruplesCountAsync()
-			=> Task.Run(() => GetQuadruplesCount()); //Just a wrapper because SQLite doesn't provide ExecuteScalarAsync override
+            => Task.Run(() => GetQuadruplesCount()); //Just a wrapper because SQLite doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics
@@ -1897,7 +1897,7 @@ namespace RDFSharp.Extensions.SQLite
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
                 throw new RDFStoreException("Cannot initialize SQLite store because: unable to open the database.");
         }
-        #endregion		
+        #endregion        
 
         #region Optimize
         /// <summary>

@@ -35,13 +35,13 @@ namespace RDFSharp.Extensions.SQLServer
         /// Count of the SQL Server database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the SQL Server database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the SQL Server database
@@ -77,7 +77,7 @@ namespace RDFSharp.Extensions.SQLServer
         {
             #region Guards
             if (string.IsNullOrEmpty(sqlserverConnectionString))
-            	throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlserverConnectionString\" parameter is null or empty.");
+                throw new RDFStoreException("Cannot connect to SQL Server store because: given \"sqlserverConnectionString\" parameter is null or empty.");
             #endregion
 
             //Initialize options
@@ -1796,7 +1796,7 @@ namespace RDFSharp.Extensions.SQLServer
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the SQL Server database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()

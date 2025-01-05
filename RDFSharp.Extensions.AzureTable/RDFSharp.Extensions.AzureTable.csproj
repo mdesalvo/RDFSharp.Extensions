@@ -1,52 +1,52 @@
 <Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<AssemblyTitle>RDFSharp.Extensions.AzureTable</AssemblyTitle>
-		<AssemblyName>RDFSharp.Extensions.AzureTable</AssemblyName>
-		<AssemblyVersion>$(Version)</AssemblyVersion>
-		<Version>3.14.0</Version>
-		<Authors>Marco De Salvo</Authors>
-		<Copyright>Marco De Salvo</Copyright>
-		<Description>RDFSharp extensions for storage and query of RDF data on Azure Table</Description>
-		<TargetFramework>netstandard2.0</TargetFramework>
-		<SignAssembly>false</SignAssembly>
-		<Product>RDFSharp</Product>
-		<PackageId>RDFSharp.Extensions.AzureTable</PackageId>
-		<PackageVersion>$(Version)</PackageVersion>
-		<PackageTags>rdf triplestore quadstore azure</PackageTags>
-		<PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/mdesalvo/RDFSharp.Extensions.git</RepositoryUrl>
-		<RepositoryType>git</RepositoryType>
-		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<RootNamespace>RDFSharp.Extensions.AzureTable</RootNamespace>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-		<OutputPath>bin\Debug\</OutputPath>
-		<DocumentationFile>bin\Debug\$(TargetFramework)\RDFSharp.Extensions.AzureTable.xml</DocumentationFile>
-		<WarningLevel>4</WarningLevel>
-		<DebugType>full</DebugType>
-		<DebugSymbols>true</DebugSymbols>
-		<Optimize>false</Optimize>
-	</PropertyGroup>
-	<PropertyGroup Condition="'$(Configuration)'=='Release'">
-		<DefineConstants>TRACE</DefineConstants>
-		<OutputPath>bin\Release\</OutputPath>
-		<DocumentationFile>bin\Release\$(TargetFramework)\RDFSharp.Extensions.AzureTable.xml</DocumentationFile>
-		<WarningLevel>0</WarningLevel>
-		<DebugType>portable</DebugType>
-		<DebugSymbols>true</DebugSymbols>
-		<Optimize>true</Optimize>
-	</PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="Azure.Data.Tables" Version="12.9.1" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="RDFSharp" Version="3.14.0" />
-	</ItemGroup>
+    <PropertyGroup>
+        <AssemblyTitle>RDFSharp.Extensions.AzureTable</AssemblyTitle>
+        <AssemblyName>RDFSharp.Extensions.AzureTable</AssemblyName>
+        <AssemblyVersion>$(Version)</AssemblyVersion>
+        <Version>3.14.0</Version>
+        <Authors>Marco De Salvo</Authors>
+        <Copyright>Marco De Salvo</Copyright>
+        <Description>RDFSharp extensions for storage and query of RDF data on Azure Table</Description>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <SignAssembly>false</SignAssembly>
+        <Product>RDFSharp</Product>
+        <PackageId>RDFSharp.Extensions.AzureTable</PackageId>
+        <PackageVersion>$(Version)</PackageVersion>
+        <PackageTags>rdf triplestore quadstore azure</PackageTags>
+        <PackageProjectUrl>https://github.com/mdesalvo/RDFSharp.Extensions</PackageProjectUrl>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/mdesalvo/RDFSharp.Extensions.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <RootNamespace>RDFSharp.Extensions.AzureTable</RootNamespace>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+        <DefineConstants>DEBUG;TRACE</DefineConstants>
+        <OutputPath>bin\Debug\</OutputPath>
+        <DocumentationFile>bin\Debug\$(TargetFramework)\RDFSharp.Extensions.AzureTable.xml</DocumentationFile>
+        <WarningLevel>4</WarningLevel>
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>false</Optimize>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <DefineConstants>TRACE</DefineConstants>
+        <OutputPath>bin\Release\</OutputPath>
+        <DocumentationFile>bin\Release\$(TargetFramework)\RDFSharp.Extensions.AzureTable.xml</DocumentationFile>
+        <WarningLevel>0</WarningLevel>
+        <DebugType>portable</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Azure.Data.Tables" Version="12.9.1" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="RDFSharp" Version="3.14.0" />
+    </ItemGroup>
 </Project>

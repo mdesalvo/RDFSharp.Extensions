@@ -36,13 +36,13 @@ namespace RDFSharp.Extensions.Firebird
         /// Count of the Firebird database quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount 
-			=> GetQuadruplesCount();
+            => GetQuadruplesCount();
 
-		/// <summary>
+        /// <summary>
         /// Asynchronous count of the Firebird service quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-			=> GetQuadruplesCountAsync();
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the Firebird database
@@ -1816,7 +1816,7 @@ namespace RDFSharp.Extensions.Firebird
             }
         }
 
-		/// <summary>
+        /// <summary>
         /// Asynchronously counts the Firebird database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
@@ -1935,7 +1935,7 @@ namespace RDFSharp.Extensions.Firebird
             else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
                 throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the given datasource.");
         }
-        #endregion		
+        #endregion        
 
         #endregion
     }
