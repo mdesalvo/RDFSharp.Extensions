@@ -3,7 +3,7 @@
         <AssemblyTitle>RDFSharp.Extensions.SQLite</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.SQLite</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.14.0</Version>
+        <Version>3.15.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on SQLite</Description>
@@ -52,6 +52,6 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="RDFSharp" Version="3.14.0" />
+        <PackageReference Include="RDFSharp" Version="3.15.0" />
     </ItemGroup>
 </Project>
