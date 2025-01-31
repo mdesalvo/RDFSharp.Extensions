@@ -3,7 +3,7 @@
         <AssemblyTitle>RDFSharp.Extensions.Neo4j</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.Neo4j</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.15.0</Version>
+        <Version>3.16.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on Neo4j</Description>
@@ -46,7 +46,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="RDFSharp" Version="3.15.0" />
+        <PackageReference Include="RDFSharp" Version="3.16.0" />
         <PackageReference Include="Neo4j.Driver" Version="5.27.0" />
     </ItemGroup>
 </Project>
