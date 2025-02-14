@@ -849,7 +849,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 //Intersect the filters
-                Pageable<RDFAzureTableQuadruple> quadruples = null;
+                Pageable<RDFAzureTableQuadruple> quadruples;
                 switch (queryFilters.ToString())
                 {
                     case "C":

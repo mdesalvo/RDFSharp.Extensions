@@ -36,7 +36,7 @@ namespace RDFSharp.Extensions.Neo4j
         public override long QuadruplesCount => GetQuadruplesCount();
 
         /// <summary>
-        /// Asynchronous count of the Neo4jdatabase quadruples (-1 in case of errors)
+        /// Asynchronous count of the Neo4j database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync => GetQuadruplesCountAsync();
 
