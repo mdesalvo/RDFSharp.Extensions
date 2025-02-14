@@ -3,7 +3,7 @@
         <AssemblyTitle>RDFSharp.Extensions.SQLServer</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.SQLServer</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.16.0</Version>
+        <Version>3.16.1</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on SQLServer</Description>
