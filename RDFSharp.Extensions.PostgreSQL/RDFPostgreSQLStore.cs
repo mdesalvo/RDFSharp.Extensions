@@ -87,9 +87,9 @@ namespace RDFSharp.Extensions.PostgreSQL
             //Initialize store structures
             StoreType = "POSTGRESQL";
             Connection = new NpgsqlConnection(pgsqlConnectionString);
-            SelectCommand = new NpgsqlCommand() { Connection = Connection, CommandTimeout = pgsqlStoreOptions.SelectTimeout };
-            DeleteCommand = new NpgsqlCommand() { Connection = Connection, CommandTimeout = pgsqlStoreOptions.DeleteTimeout };
-            InsertCommand = new NpgsqlCommand() { Connection = Connection, CommandTimeout = pgsqlStoreOptions.InsertTimeout };
+            SelectCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.SelectTimeout };
+            DeleteCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.DeleteTimeout };
+            InsertCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
@@ -507,7 +507,7 @@ namespace RDFSharp.Extensions.PostgreSQL
 
                 //Valorize parameters
                 DeleteCommand.Parameters["OBJID"].Value = objectResource.PatternMemberID;
-                DeleteCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
 
                 try
                 {
@@ -1502,7 +1502,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "L":
                     //->->->L
@@ -1511,7 +1511,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CS":
                     //C->S->->
@@ -1540,7 +1540,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CL":
                     //C->->->L
@@ -1551,7 +1551,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSP":
                     //C->S->P->
@@ -1575,7 +1575,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSL":
                     //C->S->->L
@@ -1588,7 +1588,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CPO":
                     //C->->P->O
@@ -1601,7 +1601,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CPL":
                     //C->->P->L
@@ -1614,7 +1614,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["CTXID"].Value = ctx.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CSPO":
                     //C->S->P->O
@@ -1629,7 +1629,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "CSPL":
                     //C->S->P->L
@@ -1644,7 +1644,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SP":
                     //->S->P->
@@ -1664,7 +1664,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SL":
                     //->S->->L
@@ -1675,7 +1675,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "PO":
                     //->->P->O
@@ -1686,7 +1686,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "PL":
                     //->->P->L
@@ -1697,7 +1697,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "SPO":
                     //->S->P->O
@@ -1710,7 +1710,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPO;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
                 case "SPL":
                     //->S->P->L
@@ -1723,7 +1723,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     SelectCommand.Parameters["SUBJID"].Value = subj.PatternMemberID;
                     SelectCommand.Parameters["PREDID"].Value = pred.PatternMemberID;
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = (Int32)RDFModelEnums.RDFTripleFlavors.SPL;
+                    SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 default:
                     //->->->
@@ -1814,7 +1814,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                 long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
                 //Close connection
-                Connection.Close();
+                await Connection.CloseAsync();
 
                 //Return the quadruples count
                 return result;
@@ -1822,7 +1822,7 @@ namespace RDFSharp.Extensions.PostgreSQL
             catch
             {
                 //Close connection
-                Connection.Close();
+                await Connection.CloseAsync();
 
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
@@ -1870,36 +1870,36 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// </summary>
         private void InitializeStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            switch (Diagnostics())
             {
-                try
-                {
-                    //Open connection
-                    Connection.Open();
+                //Prepare the database if diagnostics has not found the "Quadruples" table
+                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
+                    try
+                    {
+                        //Open connection
+                        Connection.Open();
 
-                    //Create & Execute command
-                    NpgsqlCommand createCommand = new NpgsqlCommand("CREATE TABLE quadruples (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON quadruples USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON quadruples USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON quadruples USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON quadruples USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON quadruples USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON quadruples USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON quadruples USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", Connection) { CommandTimeout = 120 };
-                    createCommand.ExecuteNonQuery();
+                        //Create & Execute command
+                        NpgsqlCommand createCommand = new NpgsqlCommand("CREATE TABLE quadruples (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON quadruples USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON quadruples USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON quadruples USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON quadruples USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON quadruples USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON quadruples USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON quadruples USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", Connection) { CommandTimeout = 120 };
+                        createCommand.ExecuteNonQuery();
 
-                    //Close connection
-                    Connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    //Close connection
-                    Connection.Close();
+                        //Close connection
+                        Connection.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Close connection
+                        Connection.Close();
 
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot prepare PostgreSQL store because: " + ex.Message, ex);
-                }
+                        //Propagate exception
+                        throw new RDFStoreException("Cannot prepare PostgreSQL store because: " + ex.Message, ex);
+                    }
+
+                    break;
+                //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
+                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
+                    throw new RDFStoreException("Cannot prepare PostgreSQL store because: unable to connect to the server instance or to open the selected database.");
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot prepare PostgreSQL store because: unable to connect to the server instance or to open the selected database.");
         }
         #endregion
 

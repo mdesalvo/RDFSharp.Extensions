@@ -86,9 +86,9 @@ namespace RDFSharp.Extensions.MySQL
             //Initialize store structures
             StoreType = "MYSQL";
             Connection = new MySqlConnection(mysqlConnectionString);
-            SelectCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.SelectTimeout };
-            DeleteCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.DeleteTimeout };
-            InsertCommand = new MySqlCommand() { Connection = Connection, CommandTimeout = mysqlStoreOptions.InsertTimeout };
+            SelectCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.SelectTimeout };
+            DeleteCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.DeleteTimeout };
+            InsertCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
@@ -1812,7 +1812,7 @@ namespace RDFSharp.Extensions.MySQL
                 long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
                 //Close connection
-                Connection.Close();
+                await Connection.CloseAsync();
 
                 //Return the quadruples count
                 return  result;
@@ -1820,7 +1820,7 @@ namespace RDFSharp.Extensions.MySQL
             catch
             {
                 //Close connection
-                Connection.Close();
+                await Connection.CloseAsync();
 
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
@@ -1868,36 +1868,36 @@ namespace RDFSharp.Extensions.MySQL
         /// </summary>
         private void InitializeStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            switch (Diagnostics())
             {
-                try
-                {
-                    //Open connection
-                    Connection.Open();
+                //Prepare the database if diagnostics has not found the "Quadruples" table
+                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
+                    try
+                    {
+                        //Open connection
+                        Connection.Open();
 
-                    //Create & Execute command
-                    MySqlCommand createCommand = new MySqlCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INT NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL) ENGINE=InnoDB;ALTER TABLE Quadruples ADD INDEX IDX_ContextID(ContextID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID(SubjectID);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID(PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_ObjectID(ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor);", Connection) { CommandTimeout = 120 };
-                    createCommand.ExecuteNonQuery();
+                        //Create & Execute command
+                        MySqlCommand createCommand = new MySqlCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INT NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL) ENGINE=InnoDB;ALTER TABLE Quadruples ADD INDEX IDX_ContextID(ContextID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID(SubjectID);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID(PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_ObjectID(ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID);ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor);ALTER TABLE Quadruples ADD INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor);", Connection) { CommandTimeout = 120 };
+                        createCommand.ExecuteNonQuery();
 
-                    //Close connection
-                    Connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    //Close connection
-                    Connection.Close();
+                        //Close connection
+                        Connection.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Close connection
+                        Connection.Close();
 
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot prepare MySQL store because: " + ex.Message, ex);
-                }
+                        //Propagate exception
+                        throw new RDFStoreException("Cannot prepare MySQL store because: " + ex.Message, ex);
+                    }
+
+                    break;
+                //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
+                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
+                    throw new RDFStoreException("Cannot prepare MySQL store because: unable to connect to the server instance or to open the selected database.");
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot prepare MySQL store because: unable to connect to the server instance or to open the selected database.");
         }
         #endregion
 

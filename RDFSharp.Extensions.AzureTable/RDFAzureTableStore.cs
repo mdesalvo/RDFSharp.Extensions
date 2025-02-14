@@ -825,7 +825,6 @@ namespace RDFSharp.Extensions.AzureTable
         {
             RDFMemoryStore result = new RDFMemoryStore();
             StringBuilder queryFilters = new StringBuilder();
-            Pageable<RDFAzureTableQuadruple> quadruples = default;
 
             //Filter by Context
             if (ctx != null)
@@ -850,6 +849,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 //Intersect the filters
+                Pageable<RDFAzureTableQuadruple> quadruples = null;
                 switch (queryFilters.ToString())
                 {
                     case "C":
@@ -981,10 +981,9 @@ namespace RDFSharp.Extensions.AzureTable
                     RDFPatternMember qSubject = RDFQueryUtilities.ParseRDFPatternMember(quadruple.S);
                     RDFPatternMember qPredicate = RDFQueryUtilities.ParseRDFPatternMember(quadruple.P);
                     RDFPatternMember qObject = RDFQueryUtilities.ParseRDFPatternMember(quadruple.O);
-                    if (quadruple.F == (int)RDFModelEnums.RDFTripleFlavors.SPO)
-                        result.AddQuadruple(new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFResource)qObject));
-                    else
-                        result.AddQuadruple(new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFLiteral)qObject));
+                    result.AddQuadruple(quadruple.F == (int)RDFModelEnums.RDFTripleFlavors.SPO
+                        ? new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFResource)qObject)
+                        : new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFLiteral)qObject));
                 }
             }
             catch (Exception ex)
@@ -1003,7 +1002,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new string[] { "RowKey" });
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new[] { "RowKey" });
 
                 //Return the quadruples count
                 return quadruples.LongCount();
@@ -1023,7 +1022,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new string[] { "RowKey" });
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new[] { "RowKey" });
 
                 long quadruplesCount = 0;
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();

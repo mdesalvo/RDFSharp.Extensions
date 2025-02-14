@@ -86,10 +86,10 @@ namespace RDFSharp.Extensions.SQLite
 
             //Initialize store
             StoreType = "SQLITE";
-            Connection = new SqliteConnection(@"Data Source=" + sqliteDatabasePath + ";");
-            SelectCommand = new SqliteCommand() { Connection = Connection, CommandTimeout = sqliteStoreOptions.SelectTimeout };
-            DeleteCommand = new SqliteCommand() { Connection = Connection, CommandTimeout = sqliteStoreOptions.DeleteTimeout };
-            InsertCommand = new SqliteCommand() { Connection = Connection, CommandTimeout = sqliteStoreOptions.InsertTimeout };
+            Connection = new SqliteConnection("Data Source=" + sqliteDatabasePath + ";");
+            SelectCommand = new SqliteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.SelectTimeout };
+            DeleteCommand = new SqliteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.DeleteTimeout };
+            InsertCommand = new SqliteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
@@ -1820,7 +1820,7 @@ namespace RDFSharp.Extensions.SQLite
         /// Asynchronously counts the SQLite database quadruples
         /// </summary>
         private Task<long> GetQuadruplesCountAsync()
-            => Task.Run(() => GetQuadruplesCount()); //Just a wrapper because SQLite doesn't provide ExecuteScalarAsync override
+            => Task.Run(GetQuadruplesCount); //Just a wrapper because SQLite doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics
@@ -1863,38 +1863,38 @@ namespace RDFSharp.Extensions.SQLite
         /// </summary>
         private void InitializeStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            switch (Diagnostics())
             {
-                try
-                {
-                    //Open connection
-                    Connection.Open();
+                //Prepare the database if diagnostics has not found the "Quadruples" table
+                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
+                    try
+                    {
+                        //Open connection
+                        Connection.Open();
 
-                    //Create command
-                    SqliteCommand createCommand = new SqliteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", Connection) { CommandTimeout = 120 };
+                        //Create command
+                        SqliteCommand createCommand = new SqliteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", Connection) { CommandTimeout = 120 };
 
-                    //Execute command
-                    createCommand.ExecuteNonQuery();
+                        //Execute command
+                        createCommand.ExecuteNonQuery();
 
-                    //Close connection
-                    Connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    //Close connection
-                    Connection.Close();
+                        //Close connection
+                        Connection.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Close connection
+                        Connection.Close();
 
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot initialize SQLite store because: " + ex.Message, ex);
-                }
+                        //Propagate exception
+                        throw new RDFStoreException("Cannot initialize SQLite store because: " + ex.Message, ex);
+                    }
+
+                    break;
+                //Otherwise, an exception must be thrown because it has not been possible to connect to the database
+                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
+                    throw new RDFStoreException("Cannot initialize SQLite store because: unable to open the database.");
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot initialize SQLite store because: unable to open the database.");
         }
         #endregion        
 

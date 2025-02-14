@@ -646,7 +646,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     {
                                         subj = subjectResource.ToString(),
                                         ctx = contextResource.ToString(),
-                                        obj = objectResource.ToString(),
+                                        obj = objectResource.ToString()
                                     });
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
@@ -683,7 +683,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     {
                                         subj = subjectResource.ToString(),
                                         ctx = contextResource.ToString(),
-                                        val = objectLiteral.ToString(),
+                                        val = objectLiteral.ToString()
                                     });
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
@@ -720,7 +720,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     {
                                         pred = predicateResource.ToString(),
                                         ctx = contextResource.ToString(),
-                                        obj = objectResource.ToString(),
+                                        obj = objectResource.ToString()
                                     });
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
@@ -757,7 +757,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     {
                                         pred = predicateResource.ToString(),
                                         ctx = contextResource.ToString(),
-                                        val = objectLiteral.ToString(),
+                                        val = objectLiteral.ToString()
                                     });
                             }).GetAwaiter().GetResult();
                         neo4jSession.CloseAsync().GetAwaiter().GetResult();
@@ -1105,7 +1105,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "S":
                             //->S->->
@@ -1133,7 +1132,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchSResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "P":
                             //->->P->
@@ -1161,7 +1159,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchPResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "O":
                             //->->->O
@@ -1177,7 +1174,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "L":
                             //->->->L
@@ -1193,7 +1189,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CS":
                             //C->S->->
@@ -1223,7 +1218,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCSResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CP":
                             //C->->P->
@@ -1253,7 +1247,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCPResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CO":
                             //C->->->O
@@ -1270,7 +1263,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchCOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CL":
                             //C->->->L
@@ -1287,7 +1279,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CSP":
                             //C->S->P->
@@ -1319,7 +1310,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCSPResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CSO":
                             //C->S->->O
@@ -1337,7 +1327,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchCSOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CSL":
                             //C->S->->L
@@ -1355,7 +1344,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCSLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CPO":
                             //C->->P->O
@@ -1373,7 +1361,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchCPOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CPL":
                             //C->->P->L
@@ -1391,7 +1378,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCPLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CSPO":
                             //C->S->P->O
@@ -1410,7 +1396,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchCSPOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "CSPL":
                             //C->S->P->L
@@ -1429,7 +1414,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchCSPLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "SP":
                             //->S->P->
@@ -1459,7 +1443,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchSPResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "SO":
                             //->S->->O
@@ -1476,7 +1459,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchSOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "SL":
                             //->S->->L
@@ -1493,7 +1475,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchSLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "PO":
                             //->->P->O
@@ -1510,7 +1491,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchPOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "PL":
                             //->->P->L
@@ -1527,7 +1507,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchPLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "SPO":
                             //->S->P->O
@@ -1545,7 +1524,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPOQuadruplesAsync(matchSPOResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         case "SPL":
                             //->S->P->L
@@ -1563,7 +1541,6 @@ namespace RDFSharp.Extensions.Neo4j
                                         });
                                     await FetchSPLQuadruplesAsync(matchSPLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                         default:
                             //->->->
@@ -1583,9 +1560,9 @@ namespace RDFSharp.Extensions.Neo4j
                                         "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal", null);
                                     await FetchSPLQuadruplesAsync(matchALLResult, store);
                                 }).GetAwaiter().GetResult();
-                            neo4jSession.CloseAsync().GetAwaiter().GetResult();
                             break;
                     }
+                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {

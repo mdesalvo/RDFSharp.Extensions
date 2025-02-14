@@ -91,9 +91,9 @@ namespace RDFSharp.Extensions.Oracle
             StoreType = "ORACLE";
             Connection = new OracleConnection(oracleConnectionString);
             ConnectionBuilder = new OracleConnectionStringBuilder(Connection.ConnectionString);
-            SelectCommand = new OracleCommand() { Connection = Connection, CommandTimeout = oracleStoreOptions.SelectTimeout };
-            DeleteCommand = new OracleCommand() { Connection = Connection, CommandTimeout = oracleStoreOptions.DeleteTimeout };
-            InsertCommand = new OracleCommand() { Connection = Connection, CommandTimeout = oracleStoreOptions.InsertTimeout };
+            SelectCommand = new OracleCommand { Connection = Connection, CommandTimeout = oracleStoreOptions.SelectTimeout };
+            DeleteCommand = new OracleCommand { Connection = Connection, CommandTimeout = oracleStoreOptions.DeleteTimeout };
+            InsertCommand = new OracleCommand { Connection = Connection, CommandTimeout = oracleStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
@@ -1804,7 +1804,7 @@ namespace RDFSharp.Extensions.Oracle
         /// Asynchronously counts the Oracle database quadruples
         /// </summary>
         private Task<long> GetQuadruplesCountAsync()
-            => Task.Run(() => GetQuadruplesCount()); //Just a wrapper because Oracle doesn't provide ExecuteScalarAsync override
+            => Task.Run(GetQuadruplesCount); //Just a wrapper because Oracle doesn't provide ExecuteScalarAsync override
         #endregion
 
         #region Diagnostics
@@ -1847,50 +1847,50 @@ namespace RDFSharp.Extensions.Oracle
         /// </summary>
         private void InitializeStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            switch (Diagnostics())
             {
-                try
-                {
-                    //Open connection
-                    Connection.Open();
+                //Prepare the database if diagnostics has not found the "Quadruples" table
+                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
+                    try
+                    {
+                        //Open connection
+                        Connection.Open();
 
-                    //Create & Execute command
-                    OracleCommand createCommand = new OracleCommand("CREATE TABLE \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", Connection) { CommandTimeout = 120 };
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" ON \"QUADRUPLES\"(\"CONTEXTID\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\" ON \"QUADRUPLES\"(\"PREDICATEID\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\" ON \"QUADRUPLES\"(\"OBJECTID\",\"TRIPLEFLAVOR\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"PREDICATEID\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
-                    createCommand.ExecuteNonQuery();
-                    createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\" ON \"QUADRUPLES\"(\"PREDICATEID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
-                    createCommand.ExecuteNonQuery();
+                        //Create & Execute command
+                        OracleCommand createCommand = new OracleCommand("CREATE TABLE \"" + ConnectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", Connection) { CommandTimeout = 120 };
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_CONTEXTID\" ON \"QUADRUPLES\"(\"CONTEXTID\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID\" ON \"QUADRUPLES\"(\"PREDICATEID\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_OBJECTID\" ON \"QUADRUPLES\"(\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"PREDICATEID\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                        createCommand.ExecuteNonQuery();
+                        createCommand.CommandText = "CREATE INDEX \"" + ConnectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\" ON \"QUADRUPLES\"(\"PREDICATEID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                        createCommand.ExecuteNonQuery();
 
-                    //Close connection
-                    Connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    //Close connection
-                    Connection.Close();
+                        //Close connection
+                        Connection.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Close connection
+                        Connection.Close();
 
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot prepare Oracle store because: " + ex.Message, ex);
-                }
+                        //Propagate exception
+                        throw new RDFStoreException("Cannot prepare Oracle store because: " + ex.Message, ex);
+                    }
+
+                    break;
+                //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
+                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
+                    throw new RDFStoreException("Cannot prepare Oracle store because: unable to connect to the server instance or to open the selected database.");
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot prepare Oracle store because: unable to connect to the server instance or to open the selected database.");
         }
         #endregion
 

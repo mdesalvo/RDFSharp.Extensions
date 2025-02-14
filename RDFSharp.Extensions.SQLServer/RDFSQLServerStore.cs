@@ -87,9 +87,9 @@ namespace RDFSharp.Extensions.SQLServer
             //Initialize store structures
             StoreType = "SQLSERVER";
             Connection = new SqlConnection(sqlserverConnectionString);
-            SelectCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.SelectTimeout };
-            DeleteCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.DeleteTimeout };
-            InsertCommand = new SqlCommand() { Connection = Connection, CommandTimeout = sqlserverStoreOptions.InsertTimeout };
+            SelectCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.SelectTimeout };
+            DeleteCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.DeleteTimeout };
+            InsertCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.InsertTimeout };
             StoreID = RDFModelUtilities.CreateHash(ToString());
             Disposed = false;
 
@@ -1870,36 +1870,36 @@ namespace RDFSharp.Extensions.SQLServer
         /// </summary>
         private void InitializeStore()
         {
-            RDFStoreEnums.RDFStoreSQLErrors check = Diagnostics();
-
-            //Prepare the database if diagnostics has not found the "Quadruples" table
-            if (check == RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound)
+            switch (Diagnostics())
             {
-                try
-                {
-                    //Open connection
-                    Connection.Open();
+                //Prepare the database if diagnostics has not found the "Quadruples" table
+                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
+                    try
+                    {
+                        //Open connection
+                        Connection.Open();
 
-                    //Create & Execute command
-                    SqlCommand createCommand = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", Connection) { CommandTimeout = 120 };
-                    createCommand.ExecuteNonQuery();
+                        //Create & Execute command
+                        SqlCommand createCommand = new SqlCommand("CREATE TABLE [dbo].[Quadruples] ([QuadrupleID] BIGINT PRIMARY KEY NOT NULL, [TripleFlavor] INTEGER NOT NULL, [Context] VARCHAR(1000) NOT NULL, [ContextID] BIGINT NOT NULL, [Subject] VARCHAR(1000) NOT NULL, [SubjectID] BIGINT NOT NULL, [Predicate] VARCHAR(1000) NOT NULL, [PredicateID] BIGINT NOT NULL, [Object] VARCHAR(1000) NOT NULL, [ObjectID] BIGINT NOT NULL); CREATE NONCLUSTERED INDEX [IDX_ContextID] ON [dbo].[Quadruples]([ContextID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID] ON [dbo].[Quadruples]([SubjectID]);CREATE NONCLUSTERED INDEX [IDX_PredicateID] ON [dbo].[Quadruples]([PredicateID]);CREATE NONCLUSTERED INDEX [IDX_ObjectID] ON [dbo].[Quadruples]([ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_PredicateID] ON [dbo].[Quadruples]([SubjectID],[PredicateID]);CREATE NONCLUSTERED INDEX [IDX_SubjectID_ObjectID] ON [dbo].[Quadruples]([SubjectID],[ObjectID],[TripleFlavor]);CREATE NONCLUSTERED INDEX [IDX_PredicateID_ObjectID] ON [dbo].[Quadruples]([PredicateID],[ObjectID],[TripleFlavor]);", Connection) { CommandTimeout = 120 };
+                        createCommand.ExecuteNonQuery();
 
-                    //Close connection
-                    Connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    //Close connection
-                    Connection.Close();
+                        //Close connection
+                        Connection.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        //Close connection
+                        Connection.Close();
 
-                    //Propagate exception
-                    throw new RDFStoreException("Cannot prepare SQL Server store because: " + ex.Message, ex);
-                }
+                        //Propagate exception
+                        throw new RDFStoreException("Cannot prepare SQL Server store because: " + ex.Message, ex);
+                    }
+
+                    break;
+                //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
+                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
+                    throw new RDFStoreException("Cannot prepare SQL Server store because: unable to connect to the server instance or to open the selected database.");
             }
-
-            //Otherwise, an exception must be thrown because it has not been possible to connect to the instance/database
-            else if (check == RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource)
-                throw new RDFStoreException("Cannot prepare SQL Server store because: unable to connect to the server instance or to open the selected database.");
         }
         #endregion
 
