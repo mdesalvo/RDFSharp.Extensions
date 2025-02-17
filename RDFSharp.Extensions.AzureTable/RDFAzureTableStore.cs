@@ -31,7 +31,7 @@ namespace RDFSharp.Extensions.AzureTable
     /// <summary>
     /// RDFAzureTableStore represents a RDFStore backed on Azure Table service
     /// </summary>
-    public class RDFAzureTableStore : RDFStore, IDisposable
+    public sealed class RDFAzureTableStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -46,9 +46,9 @@ namespace RDFSharp.Extensions.AzureTable
         public Task<long> QuadruplesCountAsync 
             => GetQuadruplesCountAsync();
 
-        internal TableServiceClient ServiceClient { get; set; }
-        internal TableClient Client { get; set; }
-        internal bool Disposed { get; set; }
+        private TableServiceClient ServiceClient { get; set; }
+        private TableClient Client { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -110,7 +110,7 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Disposes the Azure Table store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

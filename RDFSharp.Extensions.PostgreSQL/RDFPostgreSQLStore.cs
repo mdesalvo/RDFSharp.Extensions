@@ -28,7 +28,7 @@ namespace RDFSharp.Extensions.PostgreSQL
     /// <summary>
     /// RDFPostgreSQLStore represents a store backed on PostgreSQL engine
     /// </summary>
-    public class RDFPostgreSQLStore : RDFStore, IDisposable
+    public sealed class RDFPostgreSQLStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -46,27 +46,27 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Connection to the PostgreSQL database
         /// </summary>
-        internal NpgsqlConnection Connection { get; set; }
+        private NpgsqlConnection Connection { get; set; }
 
         /// <summary>
         /// Command to execute SELECT queries on the PostgreSQL database
         /// </summary>
-        internal NpgsqlCommand SelectCommand { get; set; }
+        private NpgsqlCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the PostgreSQL database
         /// </summary>
-        internal NpgsqlCommand InsertCommand { get; set; }
+        private NpgsqlCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the PostgreSQL database
         /// </summary>
-        internal NpgsqlCommand DeleteCommand { get; set; }
+        private NpgsqlCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the PostgreSQL store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -122,7 +122,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Disposes the PostgreSQL store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

@@ -29,7 +29,7 @@ namespace RDFSharp.Extensions.Firebird
     /// <summary>
     /// RDFFirebirdStore represents a store backed on Firebird engine
     /// </summary>
-    public class RDFFirebirdStore : RDFStore, IDisposable
+    public sealed class RDFFirebirdStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -47,27 +47,27 @@ namespace RDFSharp.Extensions.Firebird
         /// <summary>
         /// Connection to the Firebird database
         /// </summary>
-        internal FbConnection Connection { get; set; }
+        private FbConnection Connection { get; set; }
 
         /// <summary>
         /// Command to execute SELECT queries on the Firebird database
         /// </summary>
-        internal FbCommand SelectCommand { get; set; }
+        private FbCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the Firebird database
         /// </summary>
-        internal FbCommand InsertCommand { get; set; }
+        private FbCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the Firebird database
         /// </summary>
-        internal FbCommand DeleteCommand { get; set; }
+        private FbCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the Firebird store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -142,7 +142,7 @@ namespace RDFSharp.Extensions.Firebird
         /// <summary>
         /// Disposes the Firebird store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

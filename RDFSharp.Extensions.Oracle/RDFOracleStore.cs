@@ -26,7 +26,7 @@ namespace RDFSharp.Extensions.Oracle
     /// <summary>
     /// RDFOracleStore represents a store backed on Oracle engine
     /// </summary>
-    public class RDFOracleStore : RDFStore, IDisposable
+    public sealed class RDFOracleStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -39,37 +39,37 @@ namespace RDFSharp.Extensions.Oracle
         /// Asynchronous count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
         public Task<long> QuadruplesCountAsync 
-            => GetQuadruplesCountAsync(); 
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Connection to the Oracle database
         /// </summary>
-        internal OracleConnection Connection { get; set; }
+        private OracleConnection Connection { get; set; }
 
         /// <summary>
         /// Utility for getting fields of the connection
         /// </summary>
-        internal OracleConnectionStringBuilder ConnectionBuilder { get; set; }
+        private OracleConnectionStringBuilder ConnectionBuilder { get; set; }
 
         /// <summary>
         /// Command to execute SELECT queries on the Oracle database
         /// </summary>
-        internal OracleCommand SelectCommand { get; set; }
+        private OracleCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the Oracle database
         /// </summary>
-        internal OracleCommand InsertCommand { get; set; }
+        private OracleCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the Oracle database
         /// </summary>
-        internal OracleCommand DeleteCommand { get; set; }
+        private OracleCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the Oracle store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -126,7 +126,7 @@ namespace RDFSharp.Extensions.Oracle
         /// <summary>
         /// Disposes the Oracle store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

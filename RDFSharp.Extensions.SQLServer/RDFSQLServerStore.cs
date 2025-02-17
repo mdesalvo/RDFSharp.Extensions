@@ -28,7 +28,7 @@ namespace RDFSharp.Extensions.SQLServer
     /// <summary>
     /// RDFSQLServerStore represents a RDFStore backed on SQL Server engine
     /// </summary>
-    public class RDFSQLServerStore : RDFStore, IDisposable
+    public sealed class RDFSQLServerStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -46,27 +46,27 @@ namespace RDFSharp.Extensions.SQLServer
         /// <summary>
         /// Connection to the SQL Server database
         /// </summary>
-        internal SqlConnection Connection { get; set; }
+        private SqlConnection Connection { get; set; }
 
         /// <summary>
         /// Command to execute SELECT queries on the SQL Server database
         /// </summary>
-        internal SqlCommand SelectCommand { get; set; }
+        private SqlCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the SQL Server database
         /// </summary>
-        internal SqlCommand InsertCommand { get; set; }
+        private SqlCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the SQL Server database
         /// </summary>
-        internal SqlCommand DeleteCommand { get; set; }
+        private SqlCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the SQL Server store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -122,7 +122,7 @@ namespace RDFSharp.Extensions.SQLServer
         /// <summary>
         /// Disposes the SQL Server store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

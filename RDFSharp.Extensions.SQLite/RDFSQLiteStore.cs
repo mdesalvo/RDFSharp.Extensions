@@ -28,7 +28,7 @@ namespace RDFSharp.Extensions.SQLite
     /// <summary>
     /// RDFSQLiteStore represents a store backed on SQLite engine
     /// </summary>
-    public class RDFSQLiteStore : RDFStore, IDisposable
+    public sealed class RDFSQLiteStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -46,27 +46,27 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Connection to the SQLite database
         /// </summary>
-        internal SqliteConnection Connection { get; set; }
-        
+        private SqliteConnection Connection { get; set; }
+
         /// <summary>
         /// Command to execute SELECT queries on the SQLite database
         /// </summary>
-        internal SqliteCommand SelectCommand { get; set; }
+        private SqliteCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the SQLite database
         /// </summary>
-        internal SqliteCommand InsertCommand { get; set; }
+        private SqliteCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the SQLite database
         /// </summary>
-        internal SqliteCommand DeleteCommand { get; set; }
+        private SqliteCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the SQLite store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -141,7 +141,7 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Disposes the SQLite store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

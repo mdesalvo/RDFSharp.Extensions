@@ -27,7 +27,7 @@ namespace RDFSharp.Extensions.MySQL
     /// <summary>
     /// RDFMySQLStore represents a store backed on MySQL engine
     /// </summary>
-    public class RDFMySQLStore : RDFStore, IDisposable
+    public sealed class RDFMySQLStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -45,27 +45,27 @@ namespace RDFSharp.Extensions.MySQL
         /// <summary>
         /// Connection to the MySQL database
         /// </summary>
-        internal MySqlConnection Connection { get; set; }
+        private MySqlConnection Connection { get; set; }
 
         /// <summary>
         /// Command to execute SELECT queries on the MySQL database
         /// </summary>
-        internal MySqlCommand SelectCommand { get; set; }
+        private MySqlCommand SelectCommand { get; set; }
 
         /// <summary>
         /// Command to execute INSERT queries on the MySQL database
         /// </summary>
-        internal MySqlCommand InsertCommand { get; set; }
+        private MySqlCommand InsertCommand { get; set; }
 
         /// <summary>
         /// Command to execute DELETE queries on the MySQL database
         /// </summary>
-        internal MySqlCommand DeleteCommand { get; set; }
+        private MySqlCommand DeleteCommand { get; set; }
 
         /// <summary>
         /// Flag indicating that the MySQL store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
@@ -121,7 +121,7 @@ namespace RDFSharp.Extensions.MySQL
         /// <summary>
         /// Disposes the MySQL store instance  (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

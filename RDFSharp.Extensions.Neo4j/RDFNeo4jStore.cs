@@ -27,7 +27,7 @@ namespace RDFSharp.Extensions.Neo4j
     /// <summary>
     /// RDFNeo4jStore represents a RDFStore backed on Neo4j engine
     /// </summary>
-    public class RDFNeo4jStore : RDFStore, IDisposable
+    public sealed class RDFNeo4jStore : RDFStore, IDisposable
     {
         #region Properties
         /// <summary>
@@ -43,25 +43,25 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Driver to handle underlying Neo4j database
         /// </summary>
-        internal IDriver Driver { get; set; }
-        internal IServerInfo ServerInfo { get; set; }
+        private IDriver Driver { get; set; }
+        private IServerInfo ServerInfo { get; set; }
 
         /// <summary>
         /// Name of underlying Neo4j database
         /// </summary>
-        internal string DatabaseName { get; set; }
+        private string DatabaseName { get; set; }
 
         /// <summary>
         /// Flag indicating that the Neo4j store instance has already been disposed
         /// </summary>
-        internal bool Disposed { get; set; }
+        private bool Disposed { get; set; }
         #endregion
 
         #region Ctors
         /// <summary>
         /// Default-ctor to build a Neo4j store instance with given credentials
         /// </summary>
-        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, string databaseName = "neo4j")
+        public RDFNeo4jStore(string neo4jUri, string neo4jUsername, string neo4jPassword, string databaseName="neo4j")
         {
             #region Guards
             if (string.IsNullOrEmpty(neo4jUri))
@@ -122,7 +122,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Disposes the Neo4j store instance (business logic of resources disposal)
         /// </summary>
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (Disposed)
                 return;
