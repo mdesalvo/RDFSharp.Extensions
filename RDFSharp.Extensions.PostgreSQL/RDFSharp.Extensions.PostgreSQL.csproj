@@ -46,7 +46,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Npgsql" Version="8.0.*" />
+        <PackageReference Include="Npgsql" Version="8.*" />
         <PackageReference Include="RDFSharp" Version="3.16.1" />
     </ItemGroup>
 </Project>
