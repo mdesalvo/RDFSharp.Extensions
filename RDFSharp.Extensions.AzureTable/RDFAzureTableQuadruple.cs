@@ -24,7 +24,7 @@ namespace RDFSharp.Extensions.AzureTable
     /// <summary>
     /// Represents an RDFQuadruple stored in Azure Table service
     /// </summary>
-    public class RDFAzureTableQuadruple : ITableEntity
+    public sealed class RDFAzureTableQuadruple : ITableEntity
     {
         #region Properties
 
