@@ -1,0 +1,21 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/RDFSharp.Extensions.AzureTable/bin
+/RDFSharp.Extensions.AzureTable/obj
+/RDFSharp.Extensions.Firebird/bin
+/RDFSharp.Extensions.Firebird/obj
+/RDFSharp.Extensions.MySQL/bin
+/RDFSharp.Extensions.MySQL/obj
+/RDFSharp.Extensions.Neo4j/bin
+/RDFSharp.Extensions.Neo4j/obj
+/RDFSharp.Extensions.Oracle/bin
+/RDFSharp.Extensions.Oracle/obj
+/RDFSharp.Extensions.PostgreSQL/bin
+/RDFSharp.Extensions.PostgreSQL/obj
+/RDFSharp.Extensions.SQLite/bin
+/RDFSharp.Extensions.SQLite/obj
+/RDFSharp.Extensions.SQLServer/bin
+/RDFSharp.Extensions.SQLServer/obj
