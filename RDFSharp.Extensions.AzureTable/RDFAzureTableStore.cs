@@ -49,6 +49,8 @@ namespace RDFSharp.Extensions.AzureTable
         private TableServiceClient ServiceClient { get; set; }
         private TableClient Client { get; set; }
         private bool Disposed { get; set; }
+
+        private static readonly string[] SelectColumns = { "RowKey" };
         #endregion
 
         #region Ctors
@@ -1002,7 +1004,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new[] { "RowKey" });
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
 
                 //Return the quadruples count
                 return quadruples.LongCount();
@@ -1022,7 +1024,7 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: new[] { "RowKey" });
+                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
 
                 long quadruplesCount = 0;
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
