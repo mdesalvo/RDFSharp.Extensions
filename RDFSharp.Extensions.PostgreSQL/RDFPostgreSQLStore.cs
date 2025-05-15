@@ -34,13 +34,13 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Count of the PostgreSQL database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the PostgreSQL database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -105,13 +105,13 @@ namespace RDFSharp.Extensions.PostgreSQL
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the PostgreSQL store 
+        /// Gives the string representation of the PostgreSQL store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the PostgreSQL store instance 
+        /// Disposes the PostgreSQL store instance
         /// </summary>
         public void Dispose()
         {
@@ -186,7 +186,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = (int)triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1450,7 +1450,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         {
             RDFMemoryStore result = new RDFMemoryStore();
             StringBuilder queryFilters = new StringBuilder();
-            
+
             //Filter by Context
             if (ctx != null)
                 queryFilters.Append('C');
@@ -1762,7 +1762,7 @@ namespace RDFSharp.Extensions.PostgreSQL
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the PostgreSQL database quadruples
         /// </summary>

@@ -49,7 +49,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Name of underlying Neo4j database
         /// </summary>
-        private string DatabaseName { get; set; }
+        private string DatabaseName { get; }
 
         /// <summary>
         /// Flag indicating that the Neo4j store instance has already been disposed
@@ -87,7 +87,7 @@ namespace RDFSharp.Extensions.Neo4j
                 throw new RDFStoreException("Cannot connect to Neo4j store because: " + ex.Message, ex);
             }
 
-            //Initialize store 
+            //Initialize store
             DatabaseName = databaseName;
             StoreType = "NEO4J";
             StoreID = RDFModelUtilities.CreateHash(ToString());
@@ -108,10 +108,10 @@ namespace RDFSharp.Extensions.Neo4j
         /// Gives the string representation of the Neo4j store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|ADDRESS=", ServerInfo.Address, "|AGENT=", ServerInfo.Agent, "|PROTOCOL=", ServerInfo.ProtocolVersion, "|DATABASE=", DatabaseName);
+            => $"{base.ToString()}|ADDRESS={ServerInfo.Address}|AGENT={ServerInfo.Agent}|PROTOCOL={ServerInfo.ProtocolVersion}|DATABASE={DatabaseName}";
 
         /// <summary>
-        /// Disposes the Neo4j storeinstance 
+        /// Disposes the Neo4j store instance
         /// </summary>
         public void Dispose()
         {
@@ -962,11 +962,7 @@ namespace RDFSharp.Extensions.Neo4j
             {
                 try
                 {
-                    neo4jSession.ExecuteWriteAsync(
-                        async tx =>
-                        {
-                            await tx.RunAsync("MATCH (n) DETACH DELETE (n)", null);
-                        }).GetAwaiter().GetResult();
+                    neo4jSession.ExecuteWriteAsync(tx => tx.RunAsync("MATCH (n) DETACH DELETE (n)", null)).GetAwaiter().GetResult();
                     neo4jSession.CloseAsync().GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
@@ -1581,11 +1577,13 @@ namespace RDFSharp.Extensions.Neo4j
         private async Task FetchSPOQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
         {
             while (await resultCursor.FetchAsync())
+            {
                 store.AddQuadruple(new RDFQuadruple(
                     new RDFContext(resultCursor.Current.Get<string>("context")),
                     new RDFResource(resultCursor.Current.Get<string>("subject")),
                     new RDFResource(resultCursor.Current.Get<string>("predicate")),
                     new RDFResource(resultCursor.Current.Get<string>("object"))));
+            }
         }
 
         /// <summary>
@@ -1594,12 +1592,14 @@ namespace RDFSharp.Extensions.Neo4j
         private async Task FetchSPLQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
         {
             while (await resultCursor.FetchAsync())
+            {
                 if (RDFQueryUtilities.ParseRDFPatternMember(resultCursor.Current.Get<string>("literal")) is RDFLiteral literal)
                     store.AddQuadruple(new RDFQuadruple(
                         new RDFContext(resultCursor.Current.Get<string>("context")),
                         new RDFResource(resultCursor.Current.Get<string>("subject")),
                         new RDFResource(resultCursor.Current.Get<string>("predicate")),
                         literal));
+            }
         }
 
         /// <summary>

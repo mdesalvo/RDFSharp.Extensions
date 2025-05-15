@@ -37,13 +37,13 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         private TableServiceClient ServiceClient { get; set; }
@@ -86,7 +86,7 @@ namespace RDFSharp.Extensions.AzureTable
                 throw new RDFStoreException("Cannot create Azure Table store because: " + ex.Message, ex);
             }
         }
-        
+
         /// <summary>
         /// Destroys the Azure Table store instance
         /// </summary>
@@ -95,13 +95,13 @@ namespace RDFSharp.Extensions.AzureTable
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the Azure Table store 
+        /// Gives the string representation of the Azure Table store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|ACCOUNT-NAME=", Client.AccountName, ";TABLE-NAME=", Client.Name);
+            => $"{base.ToString()}|ACCOUNT-NAME={Client.AccountName};TABLE-NAME={Client.Name}";
 
         /// <summary>
-        /// Disposes the Azure Table store instance 
+        /// Disposes the Azure Table store instance
         /// </summary>
         public void Dispose()
         {
@@ -212,7 +212,7 @@ namespace RDFSharp.Extensions.AzureTable
                 try
                 {
                     //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent => 
+                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
                         string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()));
 
                     //Execute the remove operation as a set of delete batches
@@ -1056,11 +1056,12 @@ namespace RDFSharp.Extensions.AzureTable
             List<TableTransactionAction> batch = new List<TableTransactionAction>(100);
             foreach (RDFTriple triple in graph)
             {
-                batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace, 
+                batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace,
                     new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, triple))));
                 if (batch.Count == 100)
                 {
                     yield return batch;
+
                     batch = new List<TableTransactionAction>(100);
                 }
             }
@@ -1081,6 +1082,7 @@ namespace RDFSharp.Extensions.AzureTable
                 if (batch.Count == 100)
                 {
                     yield return batch;
+
                     batch = new List<TableTransactionAction>(100);
                 }
             }

@@ -35,13 +35,13 @@ namespace RDFSharp.Extensions.Firebird
         /// <summary>
         /// Count of the Firebird database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the Firebird service quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -125,13 +125,13 @@ namespace RDFSharp.Extensions.Firebird
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the Firebird store 
+        /// Gives the string representation of the Firebird store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the Firebird store instance 
+        /// Disposes the Firebird store instance
         /// </summary>
         public void Dispose()
         {
@@ -206,7 +206,7 @@ namespace RDFSharp.Extensions.Firebird
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1520,7 +1520,7 @@ namespace RDFSharp.Extensions.Firebird
                     SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
                     SelectCommand.Parameters.Clear();
                     SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
-                    SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));                    
+                    SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
                     SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
@@ -1531,7 +1531,7 @@ namespace RDFSharp.Extensions.Firebird
                     SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.Integer));
                     SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;                    
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CS":
                     //C->S->->
@@ -1782,7 +1782,7 @@ namespace RDFSharp.Extensions.Firebird
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the Firebird database quadruples
         /// </summary>
@@ -1872,7 +1872,7 @@ namespace RDFSharp.Extensions.Firebird
                 Connection.Close();
 
                 //Return the diagnostics state
-                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound 
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
                                    : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
@@ -1935,7 +1935,7 @@ namespace RDFSharp.Extensions.Firebird
                     throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the given datasource.");
             }
         }
-        #endregion        
+        #endregion
 
         #endregion
     }

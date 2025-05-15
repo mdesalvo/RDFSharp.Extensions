@@ -34,13 +34,13 @@ namespace RDFSharp.Extensions.SQLServer
         /// <summary>
         /// Count of the SQL Server database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the SQL Server database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace RDFSharp.Extensions.SQLServer
             //Perform initial diagnostics
             InitializeStore();
         }
-        
+
         /// <summary>
         /// Destroys the SQL Server store instance
         /// </summary>
@@ -105,13 +105,13 @@ namespace RDFSharp.Extensions.SQLServer
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the SQL Server store 
+        /// Gives the string representation of the SQL Server store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the SQL Server store instance 
+        /// Disposes the SQL Server store instance
         /// </summary>
         public void Dispose()
         {
@@ -186,7 +186,7 @@ namespace RDFSharp.Extensions.SQLServer
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1762,7 +1762,7 @@ namespace RDFSharp.Extensions.SQLServer
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the SQL Server database quadruples
         /// </summary>

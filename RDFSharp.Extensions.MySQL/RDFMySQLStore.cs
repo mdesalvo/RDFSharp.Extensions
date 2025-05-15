@@ -33,13 +33,13 @@ namespace RDFSharp.Extensions.MySQL
         /// <summary>
         /// Count of the MySQL database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the MySQL database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -104,13 +104,13 @@ namespace RDFSharp.Extensions.MySQL
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the MySQL store 
+        /// Gives the string representation of the MySQL store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the MySQL store instance 
+        /// Disposes the MySQL store instance
         /// </summary>
         public void Dispose()
         {
@@ -185,7 +185,7 @@ namespace RDFSharp.Extensions.MySQL
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1449,7 +1449,7 @@ namespace RDFSharp.Extensions.MySQL
         {
             RDFMemoryStore result = new RDFMemoryStore();
             StringBuilder queryFilters = new StringBuilder();
-            
+
             //Filter by Context
             if (ctx != null)
                 queryFilters.Append('C');
@@ -1760,7 +1760,7 @@ namespace RDFSharp.Extensions.MySQL
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the MySQL database quadruples
         /// </summary>

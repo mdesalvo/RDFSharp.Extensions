@@ -32,13 +32,13 @@ namespace RDFSharp.Extensions.Oracle
         /// <summary>
         /// Count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
-            => GetQuadruplesCount(); 
+        public override long QuadruplesCount
+            => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the Oracle database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace RDFSharp.Extensions.Oracle
         /// <summary>
         /// Utility for getting fields of the connection
         /// </summary>
-        private OracleConnectionStringBuilder ConnectionBuilder { get; set; }
+        private OracleConnectionStringBuilder ConnectionBuilder { get; }
 
         /// <summary>
         /// Command to execute SELECT queries on the Oracle database
@@ -100,7 +100,7 @@ namespace RDFSharp.Extensions.Oracle
             //Perform initial diagnostics
             InitializeStore();
         }
-        
+
         /// <summary>
         /// Destroys the Oracle store instance
         /// </summary>
@@ -109,13 +109,13 @@ namespace RDFSharp.Extensions.Oracle
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the Oracle store 
+        /// Gives the string representation of the Oracle store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the Oracle store instance 
+        /// Disposes the Oracle store instance
         /// </summary>
         public void Dispose()
         {
@@ -190,7 +190,7 @@ namespace RDFSharp.Extensions.Oracle
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = (int)triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1766,7 +1766,7 @@ namespace RDFSharp.Extensions.Oracle
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the Oracle database quadruples
         /// </summary>

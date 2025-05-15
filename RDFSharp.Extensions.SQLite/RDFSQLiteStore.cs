@@ -34,13 +34,13 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Count of the SQLite database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount 
+        public override long QuadruplesCount
             => GetQuadruplesCount();
 
         /// <summary>
         /// Asynchronous count of the SQLite database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync 
+        public Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         /// <summary>
@@ -124,13 +124,13 @@ namespace RDFSharp.Extensions.SQLite
 
         #region Interfaces
         /// <summary>
-        /// Gives the string representation of the SQLite store 
+        /// Gives the string representation of the SQLite store
         /// </summary>
         public override string ToString()
-            => string.Concat(base.ToString(), "|SERVER=", Connection.DataSource, ";DATABASE=", Connection.Database);
+            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
 
         /// <summary>
-        /// Disposes the SQLite store instance 
+        /// Disposes the SQLite store instance
         /// </summary>
         public void Dispose()
         {
@@ -205,7 +205,7 @@ namespace RDFSharp.Extensions.SQLite
                     foreach (RDFTriple triple in graph)
                     {
                         //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash(string.Concat(graphCtx, " ", triple.Subject, " ", triple.Predicate, " ", triple.Object));
+                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
                         InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
                         InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
                         InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
@@ -1044,7 +1044,6 @@ namespace RDFSharp.Extensions.SQLite
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
-
                 }
             }
             return this;
@@ -1445,7 +1444,7 @@ namespace RDFSharp.Extensions.SQLite
                 SelectCommand.Prepare();
 
                 //Execute command
-                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());                
+                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
 
                 //Close connection
                 Connection.Close();
@@ -1520,7 +1519,7 @@ namespace RDFSharp.Extensions.SQLite
                     SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
                     SelectCommand.Parameters.Clear();
                     SelectCommand.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
-                    SelectCommand.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));                    
+                    SelectCommand.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = obj.PatternMemberID;
                     SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
                     break;
@@ -1531,7 +1530,7 @@ namespace RDFSharp.Extensions.SQLite
                     SelectCommand.Parameters.Add(new SqliteParameter("OBJID", SqliteType.Integer));
                     SelectCommand.Parameters.Add(new SqliteParameter("TFV", SqliteType.Integer));
                     SelectCommand.Parameters["OBJID"].Value = lit.PatternMemberID;
-                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;                    
+                    SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
                     break;
                 case "CS":
                     //C->S->->
@@ -1782,7 +1781,7 @@ namespace RDFSharp.Extensions.SQLite
 
             return result;
         }
-        
+
         /// <summary>
         /// Counts the SQLite database quadruples
         /// </summary>
@@ -1845,7 +1844,7 @@ namespace RDFSharp.Extensions.SQLite
                 Connection.Close();
 
                 //Return the diagnostics state
-                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound 
+                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound
                                    : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
             }
             catch
@@ -1896,7 +1895,7 @@ namespace RDFSharp.Extensions.SQLite
                     throw new RDFStoreException("Cannot initialize SQLite store because: unable to open the database.");
             }
         }
-        #endregion        
+        #endregion
 
         #region Optimize
         /// <summary>
