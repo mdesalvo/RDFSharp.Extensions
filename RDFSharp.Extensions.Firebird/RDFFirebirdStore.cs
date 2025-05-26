@@ -72,7 +72,7 @@ namespace RDFSharp.Extensions.Firebird
 
         #region Ctors
         /// <summary>
-        /// Default-ctor to build a Firebird store instance (with eventual options)
+        /// Default-ctor to build a Firebird store instance
         /// </summary>
         public RDFFirebirdStore(string firebirdConnectionString, RDFFirebirdStoreOptions firebirdStoreOptions=null)
         {
@@ -100,7 +100,7 @@ namespace RDFSharp.Extensions.Firebird
                 try
                 {
                     Assembly firebird = Assembly.GetExecutingAssembly();
-                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Extensions.Firebird.Template.RDFFirebirdTemplateODS" + (int)firebirdStoreOptions.DefaultFirebirdVersion + ".fdb"))
+                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Extensions.Firebird.Template.RDFFirebirdTemplate" + (int)firebirdStoreOptions.FirebirdVersion + ".fdb"))
                     {
                         using (FileStream targetDB = new FileStream(Connection.Database, FileMode.Create, FileAccess.ReadWrite))
                             templateDB.CopyTo(targetDB);
@@ -1951,13 +1951,17 @@ namespace RDFSharp.Extensions.Firebird
         public enum RDFFirebirdVersion
         {
             /// <summary>
-            /// Firebird 3 (ODS=12)
+            /// Firebird 3
             /// </summary>
-            Firebird3 = 12,
+            Firebird3 = 3,
             /// <summary>
-            /// Firebird 4 (ODS=13)
+            /// Firebird 4
             /// </summary>
-            Firebird4 = 13
+            Firebird4 = 4,
+            /// <summary>
+            /// Firebird 5
+            /// </summary>
+            Firebird5 = 5
         }
     }
 
@@ -1968,9 +1972,9 @@ namespace RDFSharp.Extensions.Firebird
     {
         #region Properties
         /// <summary>
-        /// Indicates the Firebird ODS used when creating new databases (default: Firebird4)
+        /// Indicates the Firebird version of the template used for creating new databases (default: Firebird5)
         /// </summary>
-        public RDFFirebirdStoreEnums.RDFFirebirdVersion DefaultFirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
+        public RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird5;
 
         /// <summary>
         /// Timeout in seconds for SELECT queries executed on the Firebird store (default: 120)
