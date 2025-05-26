@@ -48,9 +48,6 @@
 		<EmbeddedResource Include="Template\Firebird4.fdb">
 			<Visible>True</Visible>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Template\Firebird5.fdb">
-			<Visible>True</Visible>
-		</EmbeddedResource>
 	</ItemGroup>
     <ItemGroup>
         <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.*" />

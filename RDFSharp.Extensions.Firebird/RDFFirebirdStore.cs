@@ -1957,11 +1957,7 @@ namespace RDFSharp.Extensions.Firebird
             /// <summary>
             /// Firebird 4
             /// </summary>
-            Firebird4 = 4,
-            /// <summary>
-            /// Firebird 5
-            /// </summary>
-            Firebird5 = 5
+            Firebird4 = 4
         }
     }
 
@@ -1972,9 +1968,9 @@ namespace RDFSharp.Extensions.Firebird
     {
         #region Properties
         /// <summary>
-        /// Indicates the Firebird version of the template used for creating new databases (default: Firebird5)
+        /// Indicates the Firebird version of the template used for creating new databases (default: Firebird4)
         /// </summary>
-        public RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird5;
+        public RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
 
         /// <summary>
         /// Timeout in seconds for SELECT queries executed on the Firebird store (default: 120)
