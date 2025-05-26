@@ -209,7 +209,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    InsertCommand.Transaction.Rollback();
+                    InsertCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -277,7 +277,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    InsertCommand.Transaction.Rollback();
+                    InsertCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -329,7 +329,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -379,7 +379,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -429,7 +429,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -479,7 +479,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -531,7 +531,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -583,7 +583,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -635,7 +635,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -687,7 +687,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -741,7 +741,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -795,7 +795,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -849,7 +849,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -905,7 +905,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -961,7 +961,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1017,7 +1017,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1073,7 +1073,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1125,7 +1125,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1179,7 +1179,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1233,7 +1233,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1287,7 +1287,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1341,7 +1341,7 @@ namespace RDFSharp.Extensions.MySQL
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1385,7 +1385,7 @@ namespace RDFSharp.Extensions.MySQL
             catch (Exception ex)
             {
                 //Rollback transaction
-                DeleteCommand.Transaction.Rollback();
+                DeleteCommand.Transaction?.Rollback();
 
                 //Close connection
                 Connection.Close();

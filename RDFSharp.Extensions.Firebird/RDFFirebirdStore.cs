@@ -100,7 +100,7 @@ namespace RDFSharp.Extensions.Firebird
                 try
                 {
                     Assembly firebird = Assembly.GetExecutingAssembly();
-                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Extensions.Firebird.Template.RDFFirebirdTemplate" + (int)firebirdStoreOptions.FirebirdVersion + ".fdb"))
+                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Extensions.Firebird.Template.Firebird" + (int)firebirdStoreOptions.FirebirdVersion + ".fdb"))
                     {
                         using (FileStream targetDB = new FileStream(Connection.Database, FileMode.Create, FileAccess.ReadWrite))
                             templateDB.CopyTo(targetDB);
@@ -230,7 +230,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    InsertCommand.Transaction.Rollback();
+                    InsertCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -298,7 +298,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    InsertCommand.Transaction.Rollback();
+                    InsertCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -350,7 +350,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -400,7 +400,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -450,7 +450,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -500,7 +500,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -552,7 +552,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -604,7 +604,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -656,7 +656,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -708,7 +708,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -762,7 +762,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -816,7 +816,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -870,7 +870,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -926,7 +926,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -982,7 +982,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1038,7 +1038,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1094,7 +1094,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1146,7 +1146,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1200,7 +1200,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1254,7 +1254,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1308,7 +1308,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1362,7 +1362,7 @@ namespace RDFSharp.Extensions.Firebird
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    DeleteCommand.Transaction.Rollback();
+                    DeleteCommand.Transaction?.Rollback();
 
                     //Close connection
                     Connection.Close();
@@ -1406,7 +1406,7 @@ namespace RDFSharp.Extensions.Firebird
             catch (Exception ex)
             {
                 //Rollback transaction
-                DeleteCommand.Transaction.Rollback();
+                DeleteCommand.Transaction?.Rollback();
 
                 //Close connection
                 Connection.Close();

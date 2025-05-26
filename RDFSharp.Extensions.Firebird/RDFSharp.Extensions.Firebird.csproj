@@ -42,13 +42,13 @@
         <Optimize>true</Optimize>
     </PropertyGroup>
 	<ItemGroup>
-		<EmbeddedResource Include="Template\RDFFirebirdTemplate3.fdb">
+		<EmbeddedResource Include="Template\Firebird3.fdb">
 			<Visible>True</Visible>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Template\RDFFirebirdTemplate4.fdb">
+		<EmbeddedResource Include="Template\Firebird4.fdb">
 			<Visible>True</Visible>
 		</EmbeddedResource>
-		<EmbeddedResource Include="Template\RDFFirebirdTemplate5.fdb">
+		<EmbeddedResource Include="Template\Firebird5.fdb">
 			<Visible>True</Visible>
 		</EmbeddedResource>
 	</ItemGroup>
