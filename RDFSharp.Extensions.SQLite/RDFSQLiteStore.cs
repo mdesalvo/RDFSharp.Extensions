@@ -99,7 +99,7 @@ namespace RDFSharp.Extensions.SQLite
                 if (!File.Exists(sqliteDatabasePath))
                 {
                     Assembly sqlite = Assembly.GetExecutingAssembly();
-                    using (Stream templateDB = sqlite.GetManifestResourceStream("RDFSharp.Extensions.SQLite.Template.RDFSQLiteTemplate.db"))
+                    using (Stream templateDB = sqlite.GetManifestResourceStream("RDFSharp.Extensions.SQLite.Template.SQLite.db"))
                     {
                         using (FileStream targetDB = new FileStream(sqliteDatabasePath, FileMode.Create, FileAccess.ReadWrite))
                             templateDB.CopyTo(targetDB);
