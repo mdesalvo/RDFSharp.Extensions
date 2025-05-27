@@ -108,7 +108,9 @@ namespace RDFSharp.Extensions.SQLite
 
                 //File exists => execute diagnostics and initialization
                 else
+                {
                     InitializeStore();
+                }
             }
             catch (Exception ex)
             {

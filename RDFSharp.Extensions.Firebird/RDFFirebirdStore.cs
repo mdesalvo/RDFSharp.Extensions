@@ -114,7 +114,9 @@ namespace RDFSharp.Extensions.Firebird
 
             //Perform initial diagnostics
             else
+            {
                 InitializeStore();
+            }
         }
 
         /// <summary>
