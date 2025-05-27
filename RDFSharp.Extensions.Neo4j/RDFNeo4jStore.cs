@@ -1594,11 +1594,13 @@ namespace RDFSharp.Extensions.Neo4j
             while (await resultCursor.FetchAsync())
             {
                 if (RDFQueryUtilities.ParseRDFPatternMember(resultCursor.Current.Get<string>("literal")) is RDFLiteral literal)
+                {
                     store.AddQuadruple(new RDFQuadruple(
                         new RDFContext(resultCursor.Current.Get<string>("context")),
                         new RDFResource(resultCursor.Current.Get<string>("subject")),
                         new RDFResource(resultCursor.Current.Get<string>("predicate")),
                         literal));
+                }
             }
         }
 
