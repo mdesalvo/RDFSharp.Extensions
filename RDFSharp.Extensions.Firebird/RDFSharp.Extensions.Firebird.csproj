@@ -3,7 +3,7 @@
         <AssemblyTitle>RDFSharp.Extensions.Firebird</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.Firebird</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.16.2</Version>
+        <Version>3.20.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extension for storage and query of RDF data on Firebird</Description>

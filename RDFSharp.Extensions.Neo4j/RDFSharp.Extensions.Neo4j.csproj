@@ -3,7 +3,7 @@
         <AssemblyTitle>RDFSharp.Extensions.Neo4j</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.Neo4j</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.16.2</Version>
+        <Version>3.20.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on Neo4j</Description>
