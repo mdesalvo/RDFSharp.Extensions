@@ -47,6 +47,6 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.20.0" />
-        <PackageReference Include="Neo4j.Driver" Version="5.28.2" />
+        <PackageReference Include="Neo4j.Driver" Version="5.28.*" />
     </ItemGroup>
 </Project>
