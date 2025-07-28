@@ -50,11 +50,11 @@
 		</EmbeddedResource>
 	</ItemGroup>
     <ItemGroup>
-        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.*" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.20.0" />
+        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.*" />
     </ItemGroup>
 </Project>

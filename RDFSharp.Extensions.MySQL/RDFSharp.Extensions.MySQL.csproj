@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyTitle>RDFSharp.Extensions.MySQL</AssemblyTitle>
     <AssemblyName>RDFSharp.Extensions.MySQL</AssemblyName>
@@ -46,7 +46,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MySql.Data" Version="9.3.0" />
     <PackageReference Include="RDFSharp" Version="3.20.0" />
+    <PackageReference Include="MySql.Data" Version="9.*" />
   </ItemGroup>
 </Project>
