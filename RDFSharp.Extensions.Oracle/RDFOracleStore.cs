@@ -1453,7 +1453,7 @@ namespace RDFSharp.Extensions.Oracle
         public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            StringBuilder queryFilters = new StringBuilder();
+            StringBuilder queryFilters = new StringBuilder(5);
 
             //Filter by Context
             if (ctx != null)

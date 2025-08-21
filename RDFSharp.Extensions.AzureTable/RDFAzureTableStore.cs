@@ -826,7 +826,7 @@ namespace RDFSharp.Extensions.AzureTable
         public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            StringBuilder queryFilters = new StringBuilder();
+            StringBuilder queryFilters = new StringBuilder(5);
 
             //Filter by Context
             if (ctx != null)
@@ -1003,8 +1003,8 @@ namespace RDFSharp.Extensions.AzureTable
         {
             try
             {
-                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(
+                    qent => string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
 
                 //Return the quadruples count
                 return quadruples.LongCount();
