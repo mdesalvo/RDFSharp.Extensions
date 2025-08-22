@@ -1574,7 +1574,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Asynchronously fetches the SPO quadruples from the given result cursor and adds them to the given store
         /// </summary>
-        private async Task FetchSPOQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
+        private static async Task FetchSPOQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
         {
             while (await resultCursor.FetchAsync())
             {
@@ -1589,7 +1589,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Asynchronously fetches the SPL quadruples from the given result cursor and adds them to the given store
         /// </summary>
-        private async Task FetchSPLQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
+        private static async Task FetchSPLQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
         {
             while (await resultCursor.FetchAsync())
             {
