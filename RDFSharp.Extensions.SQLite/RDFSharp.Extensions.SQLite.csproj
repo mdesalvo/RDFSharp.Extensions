@@ -7,7 +7,7 @@
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on SQLite</Description>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
         <SignAssembly>false</SignAssembly>
         <Product>RDFSharp</Product>
         <PackageId>RDFSharp.Extensions.SQLite</PackageId>
