@@ -50,7 +50,7 @@ namespace RDFSharp.Extensions.AzureTable
         private TableClient Client { get; set; }
         private bool Disposed { get; set; }
 
-        private static readonly string[] SelectColumns = { "RowKey" };
+        private static readonly string[] SelectColumns = ["RowKey"];
         #endregion
 
         #region Ctors
@@ -826,7 +826,7 @@ namespace RDFSharp.Extensions.AzureTable
         public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
         {
             RDFMemoryStore result = new RDFMemoryStore();
-            StringBuilder queryFilters = new StringBuilder(5);
+            StringBuilder queryFilters = new StringBuilder(4);
 
             //Filter by Context
             if (ctx != null)
@@ -851,130 +851,58 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 //Intersect the filters
-                Pageable<RDFAzureTableQuadruple> quadruples;
-                switch (queryFilters.ToString())
-                {
-                    case "C":
-                        //C->->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()));
-                        break;
-                    case "S":
-                        //->S->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()));
-                        break;
-                    case "P":
-                        //->->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()));
-                        break;
-                    case "O":
-                        //->->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "L":
-                        //->->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "CS":
-                        //C->S->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()));
-                        break;
-                    case "CP":
-                        //C->->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()));
-                        break;
-                    case "CO":
-                        //C->->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "CL":
-                        //C->->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "CSP":
-                        //C->S->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()));
-                        break;
-                    case "CSO":
-                        //C->S->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "CSL":
-                        //C->S->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "CPO":
-                        //C->->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "CPL":
-                        //C->->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "CSPO":
-                        //C->S->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "CSPL":
-                        //C->S->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "SP":
-                        //->S->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()));
-                        break;
-                    case "SO":
-                        //->S->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "SL":
-                        //->S->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "PO":
-                        //->->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "PL":
-                        //->->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "SPO":
-                        //->S->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "SPL":
-                        //->S->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    default:
-                        //->->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP"));
-                        break;
-                }
+                Pageable<RDFAzureTableQuadruple>
+                    quadruples = queryFilters.ToString() switch
+                    {
+                        "C" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString())),
+                        "S" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString())),
+                        "P" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString())),
+                        "O" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "L" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "CS" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString())),
+                        "CP" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString())),
+                        "CO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "CL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "CSP" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString())),
+                        "CSO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "CSL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "CPO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "CPL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "CSPO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "CSPL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "SP" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString())),
+                        "SO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "SL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "PO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "PL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        "SPO" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO),
+                        "SPL" => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL),
+                        _ => Client.Query<RDFAzureTableQuadruple>(qent =>
+                                    string.Equals(qent.PartitionKey, "RDFSHARP")),
+                    };
 
                 //Transform fetched query entities into quadruples
                 foreach (RDFAzureTableQuadruple quadruple in quadruples.AsEnumerable())

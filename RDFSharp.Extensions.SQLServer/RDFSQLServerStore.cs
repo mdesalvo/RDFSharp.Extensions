@@ -81,8 +81,7 @@ namespace RDFSharp.Extensions.SQLServer
             #endregion
 
             //Initialize options
-            if (sqlserverStoreOptions == null)
-                sqlserverStoreOptions = new RDFSQLServerStoreOptions();
+            sqlserverStoreOptions ??= new RDFSQLServerStoreOptions();
 
             //Initialize store structures
             StoreType = "SQLSERVER";

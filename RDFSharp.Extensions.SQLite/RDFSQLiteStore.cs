@@ -81,8 +81,7 @@ namespace RDFSharp.Extensions.SQLite
             #endregion
 
             //Initialize options
-            if (sqliteStoreOptions == null)
-                sqliteStoreOptions = new RDFSQLiteStoreOptions();
+            sqliteStoreOptions ??= new RDFSQLiteStoreOptions();
 
             //Initialize store
             StoreType = "SQLITE";

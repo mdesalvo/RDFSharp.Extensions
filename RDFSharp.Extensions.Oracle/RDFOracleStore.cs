@@ -84,8 +84,7 @@ namespace RDFSharp.Extensions.Oracle
             #endregion
 
             //Initialize options
-            if (oracleStoreOptions == null)
-                oracleStoreOptions = new RDFOracleStoreOptions();
+            oracleStoreOptions ??= new RDFOracleStoreOptions();
 
             //Initialize store structures
             StoreType = "ORACLE";

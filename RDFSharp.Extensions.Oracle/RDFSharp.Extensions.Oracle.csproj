@@ -3,11 +3,11 @@
         <AssemblyTitle>RDFSharp.Extensions.Oracle</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.Oracle</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>3.22.0</Version>
+        <Version>4.0.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on Oracle</Description>
-        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+        <TargetFramework>net8.0</TargetFramework>
         <SignAssembly>false</SignAssembly>
         <Product>RDFSharp</Product>
         <PackageId>RDFSharp.Extensions.Oracle</PackageId>
@@ -47,11 +47,6 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.21.0" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-        <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.*" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
         <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.9.*" />
     </ItemGroup>
 </Project>
