@@ -82,7 +82,8 @@ namespace RDFSharp.Extensions.Firebird
             #endregion
 
             //Initialize options
-            firebirdStoreOptions ??= new RDFFirebirdStoreOptions();
+            if (firebirdStoreOptions == null)
+                firebirdStoreOptions = new RDFFirebirdStoreOptions();
 
             //Initialize store structures
             StoreType = "FIREBIRD";

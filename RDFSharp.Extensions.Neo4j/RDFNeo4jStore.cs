@@ -1615,7 +1615,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
-            await using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1650,7 +1650,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task InitializeStoreAsync()
         {
-            await using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
             {
                 try
                 {

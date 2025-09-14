@@ -81,7 +81,8 @@ namespace RDFSharp.Extensions.PostgreSQL
             #endregion
 
             //Initialize options
-            pgsqlStoreOptions ??= new RDFPostgreSQLStoreOptions();
+            if (pgsqlStoreOptions == null)
+                pgsqlStoreOptions = new RDFPostgreSQLStoreOptions();
 
             //Initialize store structures
             StoreType = "POSTGRESQL";

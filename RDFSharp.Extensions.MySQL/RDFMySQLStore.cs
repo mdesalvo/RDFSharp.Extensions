@@ -80,7 +80,8 @@ namespace RDFSharp.Extensions.MySQL
             #endregion
 
             //Initialize options
-            mysqlStoreOptions ??= new RDFMySQLStoreOptions();
+            if (mysqlStoreOptions == null)
+                mysqlStoreOptions = new RDFMySQLStoreOptions();
 
             //Initialize store structures
             StoreType = "MYSQL";

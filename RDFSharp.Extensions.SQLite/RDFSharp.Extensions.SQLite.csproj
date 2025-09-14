@@ -3,11 +3,11 @@
         <AssemblyTitle>RDFSharp.Extensions.SQLite</AssemblyTitle>
         <AssemblyName>RDFSharp.Extensions.SQLite</AssemblyName>
         <AssemblyVersion>$(Version)</AssemblyVersion>
-        <Version>4.0.0</Version>
+        <Version>3.22.0</Version>
         <Authors>Marco De Salvo</Authors>
         <Copyright>Marco De Salvo</Copyright>
         <Description>RDFSharp extensions for storage and query of RDF data on SQLite</Description>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
         <SignAssembly>false</SignAssembly>
         <Product>RDFSharp</Product>
         <PackageId>RDFSharp.Extensions.SQLite</PackageId>
@@ -52,6 +52,11 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.21.0" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="2.3.*" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
         <PackageReference Include="Microsoft.Data.Sqlite" Version="8.*" />
     </ItemGroup>
 </Project>
