@@ -31,19 +31,23 @@ namespace RDFSharp.Extensions.AzureTable
     /// <summary>
     /// RDFAzureTableStore represents a RDFStore backed on Azure Table service
     /// </summary>
+    #if NET8_0_OR_GREATER
+    public sealed class RDFAzureTableStore : RDFStore, IDisposable, IAsyncDisposable
+    #else
     public sealed class RDFAzureTableStore : RDFStore, IDisposable
+    #endif
     {
         #region Properties
         /// <summary>
         /// Count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
         public override long QuadruplesCount
-            => GetQuadruplesCount();
+            => GetQuadruplesCountAsync().GetAwaiter().GetResult();
 
         /// <summary>
         /// Asynchronous count of the Azure Table service quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync
+        public override Task<long> QuadruplesCountAsync
             => GetQuadruplesCountAsync();
 
         private TableServiceClient ServiceClient { get; set; }
@@ -90,7 +94,8 @@ namespace RDFSharp.Extensions.AzureTable
         /// <summary>
         /// Destroys the Azure Table store instance
         /// </summary>
-        ~RDFAzureTableStore() => Dispose(false);
+        ~RDFAzureTableStore()
+            => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -101,7 +106,7 @@ namespace RDFSharp.Extensions.AzureTable
             => $"{base.ToString()}|ACCOUNT-NAME={Client.AccountName};TABLE-NAME={Client.Name}";
 
         /// <summary>
-        /// Disposes the Azure Table store instance
+        /// Disposes the Azure Table store instance (IDisposable)
         /// </summary>
         public void Dispose()
         {
@@ -109,6 +114,18 @@ namespace RDFSharp.Extensions.AzureTable
             GC.SuppressFinalize(this);
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Asynchronously disposes the Azure Table store (IAsyncDisposable)
+        /// </summary>
+        ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+            return ValueTask.CompletedTask;
+        }
+#endif
+        
         /// <summary>
         /// Disposes the Azure Table store instance  (business logic of resources disposal)
         /// </summary>
@@ -134,6 +151,12 @@ namespace RDFSharp.Extensions.AzureTable
         /// Merges the given graph into the store
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
+            => MergeGraphAsync(graph).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously merges the given graph into the store
+        /// </summary>
+        public override async Task<RDFStore> MergeGraphAsync(RDFGraph graph)
         {
             if (graph != null)
             {
@@ -142,7 +165,7 @@ namespace RDFSharp.Extensions.AzureTable
                     //Execute the merge operation as a set of upsert batches
                     foreach (IEnumerable<TableTransactionAction> batch in PrepareUpsertBatch(graph))
                     {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+                        Response<IReadOnlyList<Response>> transactionResponse = await Client.SubmitTransactionAsync(batch);
 
                         if (transactionResponse.GetRawResponse().IsError)
                             throw new Exception(transactionResponse.ToString());
@@ -160,12 +183,18 @@ namespace RDFSharp.Extensions.AzureTable
         /// Adds the given quadruple to the store
         /// </summary>
         public override RDFStore AddQuadruple(RDFQuadruple quadruple)
+            => AddQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously adds the given quadruple to the store
+        /// </summary>
+        public override async Task<RDFStore> AddQuadrupleAsync(RDFQuadruple quadruple)
         {
             if (quadruple != null)
             {
                 try
                 {
-                    Response response = Client.UpsertEntity(new RDFAzureTableQuadruple(quadruple));
+                    Response response = await Client.UpsertEntityAsync(new RDFAzureTableQuadruple(quadruple));
 
                     if (response.IsError)
                         throw new Exception(response.ToString());
@@ -184,12 +213,18 @@ namespace RDFSharp.Extensions.AzureTable
         /// Removes the given quadruple from the store
         /// </summary>
         public override RDFStore RemoveQuadruple(RDFQuadruple quadruple)
+            => RemoveQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously removes the given quadruple from the store
+        /// </summary>
+        public override async Task<RDFStore> RemoveQuadrupleAsync(RDFQuadruple quadruple)
         {
             if (quadruple != null)
             {
                 try
                 {
-                    Response response = Client.DeleteEntity("RDFSHARP", quadruple.QuadrupleID.ToString());
+                    Response response = await Client.DeleteEntityAsync("RDFSHARP", quadruple.QuadrupleID.ToString());
 
                     if (response.IsError && response.Status != (int)HttpStatusCode.NotFound)
                         throw new Exception(response.ToString());
@@ -203,572 +238,122 @@ namespace RDFSharp.Extensions.AzureTable
         }
 
         /// <summary>
-        /// Removes the quadruples with the given context
+        /// Removes the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFStore RemoveQuadruplesByContext(RDFContext contextResource)
-        {
-            if (contextResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
+        public override RDFStore RemoveQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
+            => RemoveQuadruplesAsync(c, s, p, o, l).GetAwaiter().GetResult();
+        
         /// <summary>
-        /// Removes the quadruples with the given subject
+        /// Asynchronously removes the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFStore RemoveQuadruplesBySubject(RDFResource subjectResource)
+        public override async Task<RDFStore> RemoveQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
-            if (subjectResource != null)
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
+            //Build filters
+            StringBuilder queryFilters = new StringBuilder();
+            if (c != null) queryFilters.Append('C');
+            if (s != null) queryFilters.Append('S');
+            if (p != null) queryFilters.Append('P');
+            if (o != null) queryFilters.Append('O');
+            if (l != null) queryFilters.Append('L');
+
+            try
             {
-                try
+                //Fetch entities for deletion
+                Pageable<RDFAzureTableQuadruple> quadruples=null;
+                switch (queryFilters.ToString())
                 {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subjectResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
+                    case "C":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()));
+                        break;
+                    case "S":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()));
+                        break;
+                    case "P":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()));
+                        break;
+                    case "O":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "L":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "CS":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()));
+                        break;
+                    case "CP":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()));
+                        break;
+                    case "CO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "CL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "CSP":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()));
+                        break;
+                    case "CSO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "CSL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "CPO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "CPL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "CSPO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "CSPL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "SP":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()));
+                        break;
+                    case "SO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "SL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "SPO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "SPL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
+                    case "PO":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "PL":
+                        quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        break;
                 }
-                catch (Exception ex)
+
+                //Execute the operation as a set of delete batches
+                foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
                 {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
+                    Response<IReadOnlyList<Response>> transactionResponse = await Client.SubmitTransactionAsync(batch);
+
+                    if (transactionResponse.GetRawResponse().IsError)
+                        throw new Exception(transactionResponse.ToString());
                 }
             }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicate(RDFResource predicateResource)
-        {
-            if (predicateResource != null)
+            catch (Exception ex)
             {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable < RDFAzureTableQuadruple > quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, predicateResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
+                throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
             }
-            return this;
-        }
 
-        /// <summary>
-        /// Removes the quadruples with the given resource as object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByObject(RDFResource objectResource)
-        {
-            if (objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given literal as object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByLiteral(RDFLiteral literalObject)
-        {
-            if (literalObject != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, literalObject.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and subject
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubject(RDFContext contextResource, RDFResource subjectResource)
-        {
-            if (contextResource != null && subjectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.S, subjectResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicate(RDFContext contextResource, RDFResource predicateResource)
-        {
-            if (contextResource != null && predicateResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.P, predicateResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextObject(RDFContext contextResource, RDFResource objectResource)
-        {
-            if (contextResource != null && objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextLiteral(RDFContext contextResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && objectLiteral != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.O, objectLiteral.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectPredicate(RDFContext contextResource, RDFResource subjectResource, RDFResource predicateResource)
-        {
-            if (contextResource != null && subjectResource != null && predicateResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.P, predicateResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectObject(RDFContext contextResource, RDFResource subjectResource, RDFResource objectResource)
-        {
-            if (contextResource != null && subjectResource != null && objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectLiteral(RDFContext contextResource, RDFResource subjectResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && subjectResource != null && objectLiteral != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.O, objectLiteral.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, predicate and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicateObject(RDFContext contextResource, RDFResource predicateResource, RDFResource objectResource)
-        {
-            if (contextResource != null && predicateResource != null && objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.P, predicateResource.ToString()) && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, predicate and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicateLiteral(RDFContext contextResource, RDFResource predicateResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && predicateResource != null && objectLiteral != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, contextResource.ToString()) && string.Equals(qent.P, predicateResource.ToString()) && string.Equals(qent.O, objectLiteral.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectPredicate(RDFResource subjectResource, RDFResource predicateResource)
-        {
-            if (subjectResource != null && predicateResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.P, predicateResource.ToString()));
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectObject(RDFResource subjectResource, RDFResource objectResource)
-        {
-            if (subjectResource != null && objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectLiteral(RDFResource subjectResource, RDFLiteral objectLiteral)
-        {
-            if (subjectResource != null && objectLiteral != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subjectResource.ToString()) && string.Equals(qent.O, objectLiteral.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given predicate and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicateObject(RDFResource predicateResource, RDFResource objectResource)
-        {
-            if (predicateResource != null && objectResource != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, predicateResource.ToString()) && string.Equals(qent.O, objectResource.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given predicate and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicateLiteral(RDFResource predicateResource, RDFLiteral objectLiteral)
-        {
-            if (predicateResource != null && objectLiteral != null)
-            {
-                try
-                {
-                    //Fetch entities candidates for deletion
-                    Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                        string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, predicateResource.ToString()) && string.Equals(qent.O, objectLiteral.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-
-                    //Execute the remove operation as a set of delete batches
-                    foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
-                    {
-                        Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
-
-                        if (transactionResponse.GetRawResponse().IsError)
-                            throw new Exception(transactionResponse.ToString());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot delete batch data from Azure Table store because: " + ex.Message, ex);
-                }
-            }
             return this;
         }
 
@@ -776,17 +361,22 @@ namespace RDFSharp.Extensions.AzureTable
         /// Clears the quadruples of the store
         /// </summary>
         public override void ClearQuadruples()
+            => ClearQuadruplesAsync().GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously clears the quadruples of the store
+        /// </summary>
+        public override async Task ClearQuadruplesAsync()
         {
             try
             {
                 //Fetch entities candidates for deletion
-                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"));
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP"));
 
                 //Execute the remove operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
                 {
-                    Response<IReadOnlyList<Response>> transactionResponse = Client.SubmitTransaction(batch);
+                    Response<IReadOnlyList<Response>> transactionResponse = await Client.SubmitTransactionAsync(batch);
 
                     if (transactionResponse.GetRawResponse().IsError)
                         throw new Exception(transactionResponse.ToString());
@@ -800,10 +390,17 @@ namespace RDFSharp.Extensions.AzureTable
         #endregion
 
         #region Select
+
         /// <summary>
         /// Checks if the given quadruple is found in the store
         /// </summary>
         public override bool ContainsQuadruple(RDFQuadruple quadruple)
+            => ContainsQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously checks if the given quadruple is found in the store
+        /// </summary>
+        public override async Task<bool> ContainsQuadrupleAsync(RDFQuadruple quadruple)
         {
             //Guard against tricky input
             if (quadruple == null)
@@ -811,7 +408,7 @@ namespace RDFSharp.Extensions.AzureTable
 
             try
             {
-                NullableResponse<RDFAzureTableQuadruple> response = Client.GetEntityIfExists<RDFAzureTableQuadruple>("RDFSHARP", quadruple.QuadrupleID.ToString());
+                NullableResponse<RDFAzureTableQuadruple> response = await Client.GetEntityIfExistsAsync<RDFAzureTableQuadruple>("RDFSHARP", quadruple.QuadrupleID.ToString());
                 return response.HasValue;
             }
             catch (Exception ex)
@@ -821,169 +418,116 @@ namespace RDFSharp.Extensions.AzureTable
         }
 
         /// <summary>
-        /// Gets a memory store containing quadruples satisfying the given pattern
+        /// Selects the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
+        /// <exception cref="RDFStoreException"></exception>
+        public override List<RDFQuadruple> SelectQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
+            => SelectQuadruplesAsync(c,s,p,o,l).GetAwaiter().GetResult();
+        
+        /// <summary>
+        /// Asynchronously selects the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
+        /// </summary>
+        /// <exception cref="RDFStoreException"></exception>
+        public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
-            RDFMemoryStore result = new RDFMemoryStore();
-            StringBuilder queryFilters = new StringBuilder(5);
+            List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Filter by Context
-            if (ctx != null)
-                queryFilters.Append('C');
-
-            //Filter by Subject
-            if (subj != null)
-                queryFilters.Append('S');
-
-            //Filter by Predicate
-            if (pred != null)
-                queryFilters.Append('P');
-
-            //Filter by Object
-            if (obj != null)
-                queryFilters.Append('O');
-
-            //Filter by Literal
-            if (lit != null)
-                queryFilters.Append('L');
+            //Build filters
+            StringBuilder queryFilters = new StringBuilder();
+            if (c != null) queryFilters.Append('C');
+            if (s != null) queryFilters.Append('S');
+            if (p != null) queryFilters.Append('P');
+            if (o != null) queryFilters.Append('O');
+            if (l != null) queryFilters.Append('L');
 
             try
             {
-                //Intersect the filters
-                Pageable<RDFAzureTableQuadruple> quadruples;
+                //Fetch entities for retrieval
+                AsyncPageable<RDFAzureTableQuadruple> quadruples=null;
                 switch (queryFilters.ToString())
                 {
                     case "C":
-                        //C->->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()));
                         break;
                     case "S":
-                        //->S->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()));
                         break;
                     case "P":
-                        //->->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()));
                         break;
                     case "O":
-                        //->->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "L":
-                        //->->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "CS":
-                        //C->S->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()));
                         break;
                     case "CP":
-                        //C->->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()));
                         break;
                     case "CO":
-                        //C->->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "CL":
-                        //C->->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "CSP":
-                        //C->S->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()));
                         break;
                     case "CSO":
-                        //C->S->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "CSL":
-                        //C->S->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "CPO":
-                        //C->->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "CPL":
-                        //C->->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "CSPO":
-                        //C->S->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "CSPL":
-                        //C->S->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.C, ctx.ToString()) && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.C, c.ToString()) && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "SP":
-                        //->S->P->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()));
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()));
                         break;
                     case "SO":
-                        //->S->->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "SL":
-                        //->S->->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
-                        break;
-                    case "PO":
-                        //->->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
-                        break;
-                    case "PL":
-                        //->->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                     case "SPO":
-                        //->S->P->O
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, obj.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
                         break;
                     case "SPL":
-                        //->S->P->L
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP") && string.Equals(qent.S, subj.ToString()) && string.Equals(qent.P, pred.ToString()) && string.Equals(qent.O, lit.ToString()) && qent.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.S, s.ToString()) && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
-                    default:
-                        //->->->
-                        quadruples = Client.Query<RDFAzureTableQuadruple>(qent =>
-                            string.Equals(qent.PartitionKey, "RDFSHARP"));
+                    case "PO":
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPO);
+                        break;
+                    case "PL":
+                        quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(q => string.Equals(q.PartitionKey, "RDFSHARP") && string.Equals(q.P, p.ToString()) && string.Equals(q.O, o.ToString()) && q.F == (int)RDFModelEnums.RDFTripleFlavors.SPL);
                         break;
                 }
 
-                //Transform fetched query entities into quadruples
-                foreach (RDFAzureTableQuadruple quadruple in quadruples.AsEnumerable())
+                //Transform entities into quadruples
+                IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
+                while (await quadruplesEnum.MoveNextAsync())
                 {
-                    RDFContext qContext = new RDFContext(quadruple.C);
-                    RDFPatternMember qSubject = RDFQueryUtilities.ParseRDFPatternMember(quadruple.S);
-                    RDFPatternMember qPredicate = RDFQueryUtilities.ParseRDFPatternMember(quadruple.P);
-                    RDFPatternMember qObject = RDFQueryUtilities.ParseRDFPatternMember(quadruple.O);
-                    result.AddQuadruple(quadruple.F == (int)RDFModelEnums.RDFTripleFlavors.SPO
+                    RDFContext qContext = new RDFContext(quadruplesEnum.Current.C);
+                    RDFPatternMember qSubject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.S);
+                    RDFPatternMember qPredicate = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.P);
+                    RDFPatternMember qObject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.O);
+                    result.Add(quadruplesEnum.Current.F == (int)RDFModelEnums.RDFTripleFlavors.SPO
                         ? new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFResource)qObject)
                         : new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFLiteral)qObject));
                 }
@@ -997,34 +541,14 @@ namespace RDFSharp.Extensions.AzureTable
         }
 
         /// <summary>
-        /// Counts the Azure Table service quadruples
-        /// </summary>
-        private long GetQuadruplesCount()
-        {
-            try
-            {
-                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(
-                    qent => string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
-
-                //Return the quadruples count
-                return quadruples.LongCount();
-            }
-            catch
-            {
-                //Return the quadruples count (-1 to indicate error)
-                return -1;
-            }
-        }
-
-        /// <summary>
         /// Asynchronously counts the Azure Table service quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
             try
             {
-                AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(qent =>
-                    string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
+                AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(
+                    qent => string.Equals(qent.PartitionKey, "RDFSHARP"), select: SelectColumns);
 
                 long quadruplesCount = 0;
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
