@@ -1,0 +1,192 @@
+/* This is the official test suite of RDFAzureTableStore. It uses Azurite on local development account */
+
+using RDFSharp.Extensions.AzureTable;
+using RDFSharp.Model;
+using RDFSharp.Store;
+using Xunit;
+
+//Setup
+RDFAzureTableStore azStore = new RDFAzureTableStore();
+Assert.NotNull(azStore);
+Assert.Equal("AZURE-TABLE", azStore.StoreType);
+
+//Clear
+if (new Random().NextDouble() >= 0.50)
+    await azStore.ClearQuadruplesAsync();
+else
+    azStore.ClearQuadruples();
+
+Assert.Equal(0, azStore.QuadruplesCount);
+Assert.Equal(0, await azStore.QuadruplesCountAsync);
+
+//Load
+for (int i = 1; i <= 250; i++)
+{
+    azStore.AddQuadruple(new RDFQuadruple(
+            new RDFContext(new Uri($"ex:ctx{i}")),
+            new RDFResource($"ex:subj{i}"),
+            new RDFResource($"ex:pred{i}"),
+            new RDFResource($"ex:obj{i}")));
+        await azStore.AddQuadrupleAsync(new RDFQuadruple(
+            new RDFContext(new Uri($"ex:ctx{i}")),
+            new RDFResource($"ex:subj{i}"),
+            new RDFResource($"ex:pred{i}"),
+            new RDFPlainLiteral($"{i}")));
+}
+Assert.Equal(500, azStore.QuadruplesCount);
+Assert.Equal(500, await azStore.QuadruplesCountAsync);
+azStore.AddQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))); //Already existing
+Assert.Equal(500, azStore.QuadruplesCount);
+Assert.Equal(500, await azStore.QuadruplesCountAsync);
+RDFGraph graph1 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFPlainLiteral("251")),
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFResource("ex:obj251"))]);
+azStore.MergeGraph(graph1);
+Assert.Equal(502, azStore.QuadruplesCount);
+Assert.Equal(502, await azStore.QuadruplesCountAsync);
+RDFGraph graph2 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFPlainLiteral("252")),
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFResource("ex:obj252"))]);
+await azStore.MergeGraphAsync(graph2);
+Assert.Equal(504, azStore.QuadruplesCount);
+Assert.Equal(504, await azStore.QuadruplesCountAsync);
+
+//Remove
+azStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj252"),
+    new RDFResource("ex:pred252"),
+    new RDFResource("ex:obj252")));
+Assert.Equal(503, azStore.QuadruplesCount);
+Assert.Equal(503, await azStore.QuadruplesCountAsync);
+azStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj254"),
+    new RDFResource("ex:pred254"),
+    new RDFResource("ex:obj254"))); //unexisting
+Assert.Equal(503, azStore.QuadruplesCount);
+Assert.Equal(503, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext());
+Assert.Equal(500, azStore.QuadruplesCount);
+Assert.Equal(500, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj250"));
+Assert.Equal(498, azStore.QuadruplesCount);
+Assert.Equal(498, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred249"));
+Assert.Equal(496, azStore.QuadruplesCount);
+Assert.Equal(496, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(o:new RDFResource("ex:obj248"));
+Assert.Equal(495, azStore.QuadruplesCount);
+Assert.Equal(495, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(l:new RDFPlainLiteral("247"));
+Assert.Equal(494, azStore.QuadruplesCount);
+Assert.Equal(494, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx246")),s:new RDFResource("ex:subj246"));
+Assert.Equal(492, azStore.QuadruplesCount);
+Assert.Equal(492, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx245")),p:new RDFResource("ex:pred245"));
+Assert.Equal(490, azStore.QuadruplesCount);
+Assert.Equal(490, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx244")),o:new RDFResource("ex:obj244"));
+Assert.Equal(489, azStore.QuadruplesCount);
+Assert.Equal(489, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx243")),l:new RDFPlainLiteral("243"));
+Assert.Equal(488, azStore.QuadruplesCount);
+Assert.Equal(488, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx242")),s:new RDFResource("ex:subj242"),p:new RDFResource("ex:pred242"));
+Assert.Equal(486, azStore.QuadruplesCount);
+Assert.Equal(486, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx241")),s:new RDFResource("ex:subj241"),o:new RDFResource("ex:obj241"));
+Assert.Equal(485, azStore.QuadruplesCount);
+Assert.Equal(485, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx240")),s:new RDFResource("ex:subj240"),l:new RDFPlainLiteral("240"));
+Assert.Equal(484, azStore.QuadruplesCount);
+Assert.Equal(484, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx239")),s:new RDFResource("ex:subj239"),p:new RDFResource("ex:pred239"),o:new RDFResource("ex:obj239"));
+Assert.Equal(483, azStore.QuadruplesCount);
+Assert.Equal(483, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx238")),s:new RDFResource("ex:subj238"),p:new RDFResource("ex:pred238"),l:new RDFPlainLiteral("238"));
+Assert.Equal(482, azStore.QuadruplesCount);
+Assert.Equal(482, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj237"),p:new RDFResource("ex:pred237"));
+Assert.Equal(480, azStore.QuadruplesCount);
+Assert.Equal(480, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj236"),o:new RDFResource("ex:obj236"));
+Assert.Equal(479, azStore.QuadruplesCount);
+Assert.Equal(479, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj235"),l:new RDFPlainLiteral("235"));
+Assert.Equal(478, azStore.QuadruplesCount);
+Assert.Equal(478, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj234"),p:new RDFResource("ex:pred234"),o:new RDFResource("ex:obj234"));
+Assert.Equal(477, azStore.QuadruplesCount);
+Assert.Equal(477, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj233"),p:new RDFResource("ex:pred233"),l:new RDFPlainLiteral("233"));
+Assert.Equal(476, azStore.QuadruplesCount);
+Assert.Equal(476, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred232"),o:new RDFResource("ex:obj232"));
+Assert.Equal(475, azStore.QuadruplesCount);
+Assert.Equal(475, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231"));
+Assert.Equal(474, azStore.QuadruplesCount);
+Assert.Equal(474, await azStore.QuadruplesCountAsync);
+await azStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231")); //no more existing
+Assert.Equal(474, azStore.QuadruplesCount);
+Assert.Equal(474, await azStore.QuadruplesCountAsync);
+
+//Query
+Assert.True(azStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.True(await azStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(azStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(await azStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.Equal(2, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200"))).Count);
+Assert.Equal(2, azStore.SelectQuadruples(s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, azStore.SelectQuadruples(p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, azStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, azStore.SelectQuadruples(p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(0, azStore.SelectQuadruples(p: new RDFResource("ex:pred200786537"), l: new RDFPlainLiteral("200")).Count); //unexisting
+
+//Query (Full Selectors + Accessors)
+Assert.True(azStore.SelectQuadruples().Count > 100);
+Assert.Equal(1, azStore[p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")].QuadruplesCount);
+Assert.True(azStore[null, null, null, null, null].QuadruplesCount > 100);
+await azStore.RemoveQuadruplesAsync();
+Assert.Equal(0, azStore.QuadruplesCount);
+Assert.Equal(0, await azStore.QuadruplesCountAsync);
+Assert.True(azStore.SelectQuadruples().Count == 0);
+Assert.True(azStore[null, null, null, null, null].QuadruplesCount == 0);
