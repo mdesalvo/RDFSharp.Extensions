@@ -21,6 +21,7 @@ using RDFSharp.Model;
 using RDFSharp.Store;
 using Azure;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Linq;
 using RDFSharp.Query;
@@ -224,7 +225,7 @@ namespace RDFSharp.Extensions.AzureTable
             {
                 try
                 {
-                    Response response = await Client.DeleteEntityAsync("RDFSHARP", quadruple.QuadrupleID.ToString());
+                    Response response = await Client.DeleteEntityAsync("RDFSHARP", quadruple.QuadrupleID.ToString(CultureInfo.InvariantCulture));
 
                     if (response.IsError && response.Status != (int)HttpStatusCode.NotFound)
                         throw new Exception(response.ToString());
@@ -408,7 +409,7 @@ namespace RDFSharp.Extensions.AzureTable
 
             try
             {
-                NullableResponse<RDFAzureTableQuadruple> response = await Client.GetEntityIfExistsAsync<RDFAzureTableQuadruple>("RDFSHARP", quadruple.QuadrupleID.ToString());
+                NullableResponse<RDFAzureTableQuadruple> response = await Client.GetEntityIfExistsAsync<RDFAzureTableQuadruple>("RDFSHARP", quadruple.QuadrupleID.ToString(CultureInfo.InvariantCulture));
                 return response.HasValue;
             }
             catch (Exception ex)

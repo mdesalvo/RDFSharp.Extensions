@@ -18,6 +18,7 @@ using Azure;
 using Azure.Data.Tables;
 using RDFSharp.Store;
 using System;
+using System.Globalization;
 
 namespace RDFSharp.Extensions.AzureTable
 {
@@ -92,7 +93,7 @@ namespace RDFSharp.Extensions.AzureTable
                 throw new RDFStoreException("Cannot create Azure Table quadruple because given \"quadruple\" parameter is null");
             #endregion
 
-            RowKey = quadruple.QuadrupleID.ToString();
+            RowKey = quadruple.QuadrupleID.ToString(CultureInfo.InvariantCulture);
             C = quadruple.Context.ToString();
             S = quadruple.Subject.ToString();
             P = quadruple.Predicate.ToString();
