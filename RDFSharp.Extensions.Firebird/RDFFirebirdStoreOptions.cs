@@ -23,11 +23,6 @@ namespace RDFSharp.Extensions.Firebird
     {
         #region Properties
         /// <summary>
-        /// Indicates the Firebird version of the template used for creating new databases (default: Firebird4)
-        /// </summary>
-        public RDFFirebirdStoreEnums.RDFFirebirdVersion FirebirdVersion { get; set; } = RDFFirebirdStoreEnums.RDFFirebirdVersion.Firebird4;
-
-        /// <summary>
         /// Timeout in seconds for SELECT queries executed on the Firebird store (default: 120)
         /// </summary>
         public int SelectTimeout { get; set; } = 120;

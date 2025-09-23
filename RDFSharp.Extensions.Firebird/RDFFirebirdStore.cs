@@ -16,8 +16,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
+using System.Data;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,34 +90,22 @@ namespace RDFSharp.Extensions.Firebird
                 firebirdStoreOptions = new RDFFirebirdStoreOptions();
 
             //Initialize store structures
-            StoreType = "FIREBIRD";
-            Connection = new FbConnection(firebirdConnectionString);
-            SelectCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.SelectTimeout };
-            DeleteCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.DeleteTimeout };
-            InsertCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.InsertTimeout };
-            StoreID = RDFModelUtilities.CreateHash(ToString());
-            Disposed = false;
-
-            //Perform initial diagnostics
-            if (File.Exists(Connection.Database))
-                InitializeStoreAsync().GetAwaiter().GetResult();
-
-            //Clone internal store template
-            else
+            try
             {
-                try
-                {
-                    Assembly firebird = Assembly.GetExecutingAssembly();
-                    using (Stream templateDB = firebird.GetManifestResourceStream("RDFSharp.Extensions.Firebird.Template.Firebird" + (int)firebirdStoreOptions.FirebirdVersion + ".fdb"))
-                    {
-                        using (FileStream targetDB = new FileStream(Connection.Database, FileMode.Create, FileAccess.ReadWrite))
-                            templateDB.CopyTo(targetDB);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new RDFStoreException("Cannot create Firebird store because: " + ex.Message, ex);
-                }
+                RDFFirebirdStoreManager fbStoreManager = new RDFFirebirdStoreManager(firebirdConnectionString);
+                fbStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
+
+                StoreType = "FIREBIRD";
+                Connection = fbStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
+                SelectCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.SelectTimeout };
+                DeleteCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.DeleteTimeout };
+                InsertCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.InsertTimeout };
+                StoreID = RDFModelUtilities.CreateHash(ToString());
+                Disposed = false;
+            }
+            catch (Exception ex)
+            {
+                throw new RDFStoreException("Cannot create Firebird store because: " + ex.Message, ex);
             }
         }
 
@@ -218,7 +205,7 @@ namespace RDFSharp.Extensions.Firebird
                 try
                 {
                     //Open connection
-                    await Connection.OpenAsync();
+                    await EnsureConnectionIsOpenAsync();
 
                     //Prepare command
                     await InsertCommand.PrepareAsync();
@@ -309,7 +296,7 @@ namespace RDFSharp.Extensions.Firebird
                 try
                 {
                     //Open connection
-                    await Connection.OpenAsync();
+                    await EnsureConnectionIsOpenAsync();
 
                     //Prepare command
                     await InsertCommand.PrepareAsync();
@@ -368,7 +355,7 @@ namespace RDFSharp.Extensions.Firebird
                 try
                 {
                     //Open connection
-                    await Connection.OpenAsync();
+                    await EnsureConnectionIsOpenAsync();
 
                     //Prepare command
                     await DeleteCommand.PrepareAsync();
@@ -667,7 +654,7 @@ namespace RDFSharp.Extensions.Firebird
                 }
                 
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Prepare command
                 await DeleteCommand.PrepareAsync();
@@ -718,7 +705,7 @@ namespace RDFSharp.Extensions.Firebird
             try
             {
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Prepare command
                 await DeleteCommand.PrepareAsync();
@@ -776,7 +763,7 @@ namespace RDFSharp.Extensions.Firebird
             try
             {
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Prepare command
                 await SelectCommand.PrepareAsync();
@@ -1066,7 +1053,7 @@ namespace RDFSharp.Extensions.Firebird
                 }
 
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Execute command
                 using (FbDataReader quadruples = await SelectCommand.ExecuteReaderAsync())
@@ -1098,7 +1085,7 @@ namespace RDFSharp.Extensions.Firebird
             try
             {
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Create command
                 SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
@@ -1124,88 +1111,20 @@ namespace RDFSharp.Extensions.Firebird
         }
         #endregion
 
-        #region Diagnostics
-        /// <summary>
-        /// Asynchronously performs the diagnostic checks on the given Firebird database
-        /// </summary>
-        private async Task<RDFStoreEnums.RDFStoreSQLErrors> DiagnosticsAsync()
+        #region Utilities
+        private async Task EnsureConnectionIsOpenAsync()
         {
-            try
+            switch (Connection.State)
             {
-                //Open connection
-                await Connection.OpenAsync();
-
-                //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM RDB$RELATIONS WHERE RDB$RELATION_NAME = 'QUADRUPLES'";
-                SelectCommand.Parameters.Clear();
-
-                //Execute command
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
-
-                //Close connection
-                await Connection.CloseAsync();
-
-                //Return the diagnostics state
-                return result == 0 ? RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound : RDFStoreEnums.RDFStoreSQLErrors.NoErrors;
-            }
-            catch
-            {
-                //Close connection
-                await Connection.CloseAsync();
-
-                //Return the diagnostics state
-                return RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource;
-            }
-        }
-
-        /// <summary>
-        /// Asynchronously initializes the underlying Firebird database
-        /// </summary>
-        private async Task InitializeStoreAsync()
-        {
-            switch (await DiagnosticsAsync())
-            {
-                //Prepare the database if diagnostics has not found the "Quadruples" table
-                case RDFStoreEnums.RDFStoreSQLErrors.QuadruplesTableNotFound:
-                    try
-                    {
-                        //Open connection
-                        await Connection.OpenAsync();
-
-                        //Create & Execute command
-                        FbCommand createCommand = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", Connection) { CommandTimeout = 120 };
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_ContextID ON Quadruples(ContextID)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_SubjectID ON Quadruples(SubjectID)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_PredicateID ON Quadruples(PredicateID)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_ObjectID ON Quadruples(ObjectID,TripleFlavor)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples(SubjectID,PredicateID)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples(SubjectID,ObjectID,TripleFlavor)";
-                        await createCommand.ExecuteNonQueryAsync();
-                        createCommand.CommandText = "CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples(PredicateID,ObjectID,TripleFlavor)";
-                        await createCommand.ExecuteNonQueryAsync();
-
-                        //Close connection
-                        await Connection.CloseAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        //Close connection
-                        await Connection.CloseAsync();
-
-                        //Propagate exception
-                        throw new RDFStoreException("Cannot prepare Firebird store because: " + ex.Message, ex);
-                    }
+                case ConnectionState.Closed:
+                    await Connection.OpenAsync();
                     break;
 
-                //Otherwise, an exception must be thrown because it has not been possible to connect to the database
-                case RDFStoreEnums.RDFStoreSQLErrors.InvalidDataSource:
-                    throw new RDFStoreException("Cannot prepare Firebird store because: unable to open the given datasource");
+                case ConnectionState.Broken:
+                case ConnectionState.Connecting:
+                    await Connection.CloseAsync();
+                    await Connection.OpenAsync();
+                    break;
             }
         }
         #endregion

@@ -41,20 +41,12 @@
         <DebugSymbols>true</DebugSymbols>
         <Optimize>true</Optimize>
     </PropertyGroup>
-	<ItemGroup>
-		<EmbeddedResource Include="Template\Firebird3.fdb">
-			<Visible>True</Visible>
-		</EmbeddedResource>
-		<EmbeddedResource Include="Template\Firebird4.fdb">
-			<Visible>True</Visible>
-		</EmbeddedResource>
-	</ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.*" />
+        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.3" />
         <PackageReference Include="RDFSharp" Version="3.22.0" />
     </ItemGroup>
 </Project>
