@@ -1,4 +1,4 @@
-/* This is the official test suite of RDFFirebirdStore. It uses Firebird4 on local instance with SYSDBA:masterkey */
+/* This is the official test suite of RDFFirebirdStore. It uses a temporary Linux database (/tmp) on localhost with SYSDBA:sysdba */
 
 using RDFSharp.Extensions.Firebird;
 using RDFSharp.Model;
@@ -6,7 +6,7 @@ using RDFSharp.Store;
 using Xunit;
 
 //Setup
-RDFFirebirdStore fbStore = new RDFFirebirdStore("User=SYSDBA;Password=masterkey;Database=/home/marcolinux/Desktop/SampleDatabase.fdb;DataSource=localhost;Port=3050;Dialect=3;Charset=NONE;Role=;ServerType=0;");
+RDFFirebirdStore fbStore = new RDFFirebirdStore("User=SYSDBA;Password=sysdba;Database=/tmp/SampleDatabase.fdb;DataSource=localhost;Port=3050;Charset=NONE;Dialect=3;ServerType=0;");
 Assert.NotNull(fbStore);
 Assert.Equal("FIREBIRD", fbStore.StoreType);
 
@@ -27,11 +27,11 @@ for (int i = 1; i <= 250; i++)
             new RDFResource($"ex:subj{i}"),
             new RDFResource($"ex:pred{i}"),
             new RDFResource($"ex:obj{i}")));
-        await fbStore.AddQuadrupleAsync(new RDFQuadruple(
-            new RDFContext(new Uri($"ex:ctx{i}")),
-            new RDFResource($"ex:subj{i}"),
-            new RDFResource($"ex:pred{i}"),
-            new RDFPlainLiteral($"{i}")));
+    await fbStore.AddQuadrupleAsync(new RDFQuadruple(
+        new RDFContext(new Uri($"ex:ctx{i}")),
+        new RDFResource($"ex:subj{i}"),
+        new RDFResource($"ex:pred{i}"),
+        new RDFPlainLiteral($"{i}")));
 }
 Assert.Equal(500, fbStore.QuadruplesCount);
 Assert.Equal(500, await fbStore.QuadruplesCountAsync);
