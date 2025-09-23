@@ -79,7 +79,7 @@ namespace RDFSharp.Extensions.Firebird
                     return Convert.ToInt32(result) > 0;
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
