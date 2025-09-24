@@ -96,7 +96,7 @@ namespace RDFSharp.Extensions.MySQL
                 mySqlStoreManager.EnsureQuadruplesTableExistsAsync().GetAwaiter().GetResult();
 
                 StoreType = "MYSQL";
-                Connection = mySqlStoreManager.GetConnectionAsync().GetAwaiter().GetResult();;
+                Connection = mySqlStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
                 SelectCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.SelectTimeout };
                 DeleteCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.DeleteTimeout };
                 InsertCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.InsertTimeout };
