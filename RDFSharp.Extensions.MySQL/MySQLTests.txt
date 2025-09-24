@@ -181,6 +181,9 @@ Assert.Equal(1, mySqlStore.SelectQuadruples(p: new RDFResource("ex:pred200"), o:
 Assert.Equal(1, mySqlStore.SelectQuadruples(p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
 Assert.Equal(0, mySqlStore.SelectQuadruples(p: new RDFResource("ex:pred200786537"), l: new RDFPlainLiteral("200")).Count); //unexisting
 
+//Optimize
+await mySqlStore.OptimizeAsync();
+
 //Query (Full Selectors + Accessors)
 Assert.True(mySqlStore.SelectQuadruples().Count > 100);
 Assert.Equal(1, mySqlStore[p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")].QuadruplesCount);

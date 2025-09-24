@@ -1115,14 +1115,14 @@ namespace RDFSharp.Extensions.MySQL
 
         #region Optimize
         /// <summary>
-        /// Executes a special command to optimize MySQL store
+        /// Asynchronously optimizes "Quadruples" table of MySQL store
         /// </summary>
-        public async Task OptimizeStoreAsync()
+        public async Task OptimizeAsync()
         {
             try
             {
                 //Open connection
-                await Connection.OpenAsync();
+                await EnsureConnectionIsOpenAsync();
 
                 //Create command
                 MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection);
