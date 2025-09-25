@@ -1,4 +1,4 @@
-/* This is the official test suite of RDFMySQLStore. It uses a test database on localhost with test:test */
+/* This is the official test suite of RDFMySQLStore. It uses a local test database (SampleDatabase) on MariaDB/MySQL with test:test */
 
 using RDFSharp.Extensions.MySQL;
 using RDFSharp.Model;

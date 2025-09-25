@@ -63,25 +63,29 @@ namespace RDFSharp.Extensions.MySQL
         
         private async Task CreateQuadruplesTableAsync(MySqlConnection connection)
         {
-            MySqlCommand createCommand = new MySqlCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INT NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL) ENGINE=InnoDB;", connection);
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD UNIQUE INDEX IDX_QuadrupleID_UNIQUE(QuadrupleID)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_ContextID(ContextID)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_SubjectID(SubjectID)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_PredicateID(PredicateID)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_ObjectID(ObjectID,TripleFlavor)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor)";
-            await createCommand.ExecuteNonQueryAsync();
-            createCommand.CommandText = "ALTER TABLE Quadruples ADD INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor)";
-            await createCommand.ExecuteNonQueryAsync();
-            await createCommand.DisposeAsync();
+            using (MySqlCommand createCommand = new MySqlCommand(
+                "CREATE TABLE IF NOT EXISTS Quadruples (" +
+                "QuadrupleID BIGINT NOT NULL PRIMARY KEY, " +
+                "TripleFlavor INT NOT NULL, " +
+                "Context VARCHAR(1000) NOT NULL, " +
+                "ContextID BIGINT NOT NULL, " +
+                "Subject VARCHAR(1000) NOT NULL, " +
+                "SubjectID BIGINT NOT NULL, " +
+                "Predicate VARCHAR(1000) NOT NULL, " +
+                "PredicateID BIGINT NOT NULL, " +
+                "Object VARCHAR(1000) NOT NULL, " +
+                "ObjectID BIGINT NOT NULL, " +
+                "INDEX IDX_ContextID(ContextID), " +
+                "INDEX IDX_SubjectID(SubjectID), " +
+                "INDEX IDX_PredicateID(PredicateID), " +
+                "INDEX IDX_ObjectID(ObjectID,TripleFlavor), " +
+                "INDEX IDX_SubjectID_PredicateID(SubjectID,PredicateID), " +
+                "INDEX IDX_SubjectID_ObjectID(SubjectID,ObjectID,TripleFlavor), " +
+                "INDEX IDX_PredicateID_ObjectID(PredicateID,ObjectID,TripleFlavor)" +
+                ") ENGINE=InnoDB;", connection))
+            {
+                await createCommand.ExecuteNonQueryAsync();
+            }
         }
 
         public async Task<MySqlConnection> GetConnectionAsync()
