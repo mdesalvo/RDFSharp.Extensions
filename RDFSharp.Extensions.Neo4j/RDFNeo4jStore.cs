@@ -15,30 +15,37 @@
 */
 
 using Neo4j.Driver;
+using RDFSharp.Model;
+using RDFSharp.Query;
+using RDFSharp.Store;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using RDFSharp.Model;
-using RDFSharp.Store;
-using RDFSharp.Query;
 
 namespace RDFSharp.Extensions.Neo4j
 {
     /// <summary>
     /// RDFNeo4jStore represents a RDFStore backed on Neo4j engine
     /// </summary>
+#if NET8_0_OR_GREATER
+    public sealed class RDFNeo4jStore : RDFStore, IDisposable, IAsyncDisposable
+#else
     public sealed class RDFNeo4jStore : RDFStore, IDisposable
+#endif
     {
         #region Properties
         /// <summary>
         /// Count of the Neo4j database quadruples (-1 in case of errors)
         /// </summary>
-        public override long QuadruplesCount => GetQuadruplesCount();
+        public override long QuadruplesCount
+            => GetQuadruplesCountAsync().GetAwaiter().GetResult();
 
         /// <summary>
         /// Asynchronous count of the Neo4j database quadruples (-1 in case of errors)
         /// </summary>
-        public Task<long> QuadruplesCountAsync => GetQuadruplesCountAsync();
+        public override Task<long> QuadruplesCountAsync
+            => GetQuadruplesCountAsync();
 
         /// <summary>
         /// Driver to handle underlying Neo4j database
@@ -100,7 +107,8 @@ namespace RDFSharp.Extensions.Neo4j
         /// <summary>
         /// Destroys the Neo4j store instance
         /// </summary>
-        ~RDFNeo4jStore() => Dispose(false);
+        ~RDFNeo4jStore()
+            => Dispose(false);
         #endregion
 
         #region Interfaces
@@ -119,6 +127,18 @@ namespace RDFSharp.Extensions.Neo4j
             GC.SuppressFinalize(this);
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Asynchronously disposes the MySQL store (IAsyncDisposable)
+        /// </summary>
+        ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+            return ValueTask.CompletedTask;
+        }
+#endif
+
         /// <summary>
         /// Disposes the Neo4j store instance (business logic of resources disposal)
         /// </summary>
@@ -130,7 +150,7 @@ namespace RDFSharp.Extensions.Neo4j
             if (disposing)
             {
                 //Dispose
-                Driver.Dispose();
+                Driver?.Dispose();
                 //Remove
                 Driver = null;
                 ServerInfo = null;
@@ -147,12 +167,18 @@ namespace RDFSharp.Extensions.Neo4j
         /// Merges the given graph into the store
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
+            => MergeGraphAsync(graph).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously merges the given graph into the store
+        /// </summary>
+        public override async Task<RDFStore> MergeGraphAsync(RDFGraph graph)
         {
             if (graph != null)
             {
                 RDFContext graphContext = new RDFContext(graph.Context);
                 foreach (RDFTriple triple in graph)
-                    AddQuadruple(new RDFQuadruple(graphContext, triple));
+                    await AddQuadrupleAsync(new RDFQuadruple(graphContext, triple));
             }
             return this;
         }
@@ -161,14 +187,20 @@ namespace RDFSharp.Extensions.Neo4j
         /// Adds the given quadruple to the store
         /// </summary>
         public override RDFStore AddQuadruple(RDFQuadruple quadruple)
+            => AddQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously adds the given quadruple to the store
+        /// </summary>
+        public override async Task<RDFStore> AddQuadrupleAsync(RDFQuadruple quadruple)
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
                 {
                     try
                     {
-                        neo4jSession.ExecuteWriteAsync(
+                        await neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
                                 switch (quadruple.TripleFlavor)
@@ -197,12 +229,12 @@ namespace RDFSharp.Extensions.Neo4j
                                             });
                                         break;
                                 }
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                            });
+                        await neo4jSession.CloseAsync();
                     }
                     catch (Exception ex)
                     {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        await neo4jSession.CloseAsync();
 
                         throw new RDFStoreException("Cannot insert data into Neo4j store because: " + ex.Message, ex);
                     }
@@ -217,14 +249,20 @@ namespace RDFSharp.Extensions.Neo4j
         /// Removes the given quadruple from the store
         /// </summary>
         public override RDFStore RemoveQuadruple(RDFQuadruple quadruple)
+            => RemoveQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously removes the given quadruple from the store
+        /// </summary>
+        public override async Task<RDFStore> RemoveQuadrupleAsync(RDFQuadruple quadruple)
         {
             if (quadruple != null)
             {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+                using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
                 {
                     try
                     {
-                        neo4jSession.ExecuteWriteAsync(
+                        await neo4jSession.ExecuteWriteAsync(
                             async tx =>
                             {
                                 switch (quadruple.TripleFlavor)
@@ -232,7 +270,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     case RDFModelEnums.RDFTripleFlavors.SPO:
                                         await tx.RunAsync(
                                             "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                            "DELETE p",
+                                            "DELETE p;",
                                             new
                                             {
                                                 subj = quadruple.Subject.ToString(),
@@ -245,7 +283,7 @@ namespace RDFSharp.Extensions.Neo4j
                                     case RDFModelEnums.RDFTripleFlavors.SPL:
                                         await tx.RunAsync(
                                             "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                            "DELETE p",
+                                            "DELETE p;",
                                             new
                                             {
                                                 subj = quadruple.Subject.ToString(),
@@ -255,12 +293,12 @@ namespace RDFSharp.Extensions.Neo4j
                                             });
                                         break;
                                 }
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                            });
+                        await neo4jSession.CloseAsync();
                     }
                     catch (Exception ex)
                     {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        await neo4jSession.CloseAsync();
 
                         throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
                     }
@@ -270,686 +308,148 @@ namespace RDFSharp.Extensions.Neo4j
         }
 
         /// <summary>
-        /// Removes the quadruples with the given context
+        /// Removes the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFStore RemoveQuadruplesByContext(RDFContext contextResource)
-        {
-            if (contextResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        ctx = contextResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
+        public override RDFStore RemoveQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
+            => RemoveQuadruplesAsync(c, s, p, o, l).GetAwaiter().GetResult();
 
         /// <summary>
-        /// Removes the quadruples with the given subject
+        /// Asynchronously removes the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFStore RemoveQuadruplesBySubject(RDFResource subjectResource)
+        public override async Task<RDFStore> RemoveQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
-            if (subjectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
 
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
+            //Build filters
+            StringBuilder queryFilters = new StringBuilder();
+            if (c != null) queryFilters.Append('C');
+            if (s != null) queryFilters.Append('S');
+            if (p != null) queryFilters.Append('P');
+            if (o != null) queryFilters.Append('O');
+            if (l != null) queryFilters.Append('L');
+
+            (string query, object parameters) neo4jQuery = (string.Empty, null);
+            switch (queryFilters.ToString())
+            {
+                case "C":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->() DELETE p";
+                    neo4jQuery.parameters = new { ctx = c.ToString() };
+                    break;
+                case "S":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->() DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString() };
+                    break;
+                case "P":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->() DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString() };
+                    break;
+                case "O":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { obj = o.ToString() };
+                    break;
+                case "L":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { val = l.ToString() };
+                    break;
+                case "CS":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString() };
+                    break;
+                case "CP":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString() };
+                    break;
+                case "CO":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CL":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CSP":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString() };
+                    break;
+                case "CSO":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CSL":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CPO":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CPL":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CSPO":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CSPL":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "SP":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->() DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString() };
+                    break;
+                case "SO":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), obj = o.ToString() };
+                    break;
+                case "SL":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), val = l.ToString() };
+                    break;
+                case "SPO":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), obj = o.ToString() };
+                    break;
+                case "SPL":
+                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), val = l.ToString() };
+                    break;
+                case "PO":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString(), obj = o.ToString() };
+                    break;
+                case "PL":
+                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) DELETE p";
+                    neo4jQuery.parameters = new { pred = p.ToString(), val = l.ToString() };
+                    break;
+                //SELECT *
+                default:
+                    neo4jQuery.query = "MATCH (n) DETACH DELETE (n)";
+                    break;
+            }
+
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
+            {
+                try
+                {
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx => await tx.RunAsync(neo4jQuery.query, neo4jQuery.parameters));
+                    await neo4jSession.CloseAsync();
+                }
+                catch (Exception ex)
+                {
+                    await neo4jSession.CloseAsync();
+
+                    throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
                 }
             }
-            return this;
-        }
 
-        /// <summary>
-        /// Removes the quadruples with the given predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicate(RDFResource predicateResource)
-        {
-            if (predicateResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given resource as object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByObject(RDFResource objectResource)
-        {
-            if (objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given literal as object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByLiteral(RDFLiteral literalObject)
-        {
-            if (literalObject != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        val = literalObject.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and subject
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubject(RDFContext contextResource, RDFResource subjectResource)
-        {
-            if (contextResource != null && subjectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        ctx = contextResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicate(RDFContext contextResource, RDFResource predicateResource)
-        {
-            if (contextResource != null && predicateResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString(),
-                                        ctx = contextResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextObject(RDFContext contextResource, RDFResource objectResource)
-        {
-            if (contextResource != null && objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        ctx = contextResource.ToString(),
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextLiteral(RDFContext contextResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && objectLiteral != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        ctx = contextResource.ToString(),
-                                        val = objectLiteral.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectPredicate(RDFContext contextResource, RDFResource subjectResource, RDFResource predicateResource)
-        {
-            if (contextResource != null && subjectResource != null && predicateResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        pred = predicateResource.ToString(),
-                                        ctx = contextResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectObject(RDFContext contextResource, RDFResource subjectResource, RDFResource objectResource)
-        {
-            if (contextResource != null && subjectResource != null && objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        ctx = contextResource.ToString(),
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, subject and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextSubjectLiteral(RDFContext contextResource, RDFResource subjectResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && subjectResource != null && objectLiteral != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        ctx = contextResource.ToString(),
-                                        val = objectLiteral.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, predicate and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicateObject(RDFContext contextResource, RDFResource predicateResource, RDFResource objectResource)
-        {
-            if (contextResource != null && predicateResource != null && objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString(),
-                                        ctx = contextResource.ToString(),
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given context, predicate and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByContextPredicateLiteral(RDFContext contextResource, RDFResource predicateResource, RDFLiteral objectLiteral)
-        {
-            if (contextResource != null && predicateResource != null && objectLiteral != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString(),
-                                        ctx = contextResource.ToString(),
-                                        val = objectLiteral.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and predicate
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectPredicate(RDFResource subjectResource, RDFResource predicateResource)
-        {
-            if (subjectResource != null && predicateResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->() " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        pred = predicateResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectObject(RDFResource subjectResource, RDFResource objectResource)
-        {
-            if (subjectResource != null && objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given subject and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesBySubjectLiteral(RDFResource subjectResource, RDFLiteral objectLiteral)
-        {
-            if (subjectResource != null && objectLiteral != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        subj = subjectResource.ToString(),
-                                        val = objectLiteral.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given predicate and object
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicateObject(RDFResource predicateResource, RDFResource objectResource)
-        {
-            if (predicateResource != null && objectResource != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString(),
-                                        obj = objectResource.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// Removes the quadruples with the given predicate and literal
-        /// </summary>
-        public override RDFStore RemoveQuadruplesByPredicateLiteral(RDFResource predicateResource, RDFLiteral objectLiteral)
-        {
-            if (predicateResource != null && objectLiteral != null)
-            {
-                using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
-                {
-                    try
-                    {
-                        neo4jSession.ExecuteWriteAsync(
-                            async tx =>
-                            {
-                                await tx.RunAsync(
-                                    "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) " +
-                                    "DELETE p",
-                                    new
-                                    {
-                                        pred = predicateResource.ToString(),
-                                        val = objectLiteral.ToString()
-                                    });
-                            }).GetAwaiter().GetResult();
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch (Exception ex)
-                    {
-                        neo4jSession.CloseAsync().GetAwaiter().GetResult();
-
-                        throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
-                    }
-                }
-            }
             return this;
         }
 
@@ -957,17 +457,24 @@ namespace RDFSharp.Extensions.Neo4j
         /// Clears the quadruples of the store
         /// </summary>
         public override void ClearQuadruples()
+            => ClearQuadruplesAsync().GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously clears the quadruples of the store
+        /// </summary>
+        public override async Task ClearQuadruplesAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
             {
                 try
                 {
-                    neo4jSession.ExecuteWriteAsync(tx => tx.RunAsync("MATCH (n) DETACH DELETE (n)", null)).GetAwaiter().GetResult();
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    await neo4jSession.ExecuteWriteAsync(
+                        async tx => await tx.RunAsync("MATCH (n) DETACH DELETE (n)", null));
+                    await neo4jSession.CloseAsync();
                 }
                 catch (Exception ex)
                 {
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    await neo4jSession.CloseAsync();
 
                     throw new RDFStoreException("Cannot remove data from Neo4j store because: " + ex.Message, ex);
                 }
@@ -980,18 +487,24 @@ namespace RDFSharp.Extensions.Neo4j
         /// Checks if the given quadruple is found in the store
         /// </summary>
         public override bool ContainsQuadruple(RDFQuadruple quadruple)
+            => ContainsQuadrupleAsync(quadruple).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously checks if the given quadruple is found in the store
+        /// </summary>
+        public override async Task<bool> ContainsQuadrupleAsync(RDFQuadruple quadruple)
         {
             //Guard against tricky input
             if (quadruple == null)
                 return false;
 
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
             {
                 try
                 {
                     bool result = false;
 
-                    neo4jSession.ExecuteReadAsync(
+                    await neo4jSession.ExecuteReadAsync(
                         async tx =>
                         {
                             switch (quadruple.TripleFlavor)
@@ -1026,14 +539,14 @@ namespace RDFSharp.Extensions.Neo4j
                                     result = matchSPLRecord.Get<bool>("checkExists");
                                     break;
                             }
-                        }).GetAwaiter().GetResult();
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                        });
+                    await neo4jSession.CloseAsync();
 
                     return result;
                 }
                 catch (Exception ex)
                 {
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    await neo4jSession.CloseAsync();
 
                     throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
                 }
@@ -1041,581 +554,200 @@ namespace RDFSharp.Extensions.Neo4j
         }
 
         /// <summary>
-        /// Gets a memory store containing quadruples satisfying the given pattern
+        /// Selects the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
         /// </summary>
-        public override RDFMemoryStore SelectQuadruples(RDFContext ctx, RDFResource subj, RDFResource pred, RDFResource obj, RDFLiteral lit)
+        /// <exception cref="RDFStoreException"></exception>
+        public override List<RDFQuadruple> SelectQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
+            => SelectQuadruplesAsync(c, s, p, o, l).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Asynchronously selects the quadruples which satisfy the given combination of CSPOL accessors<br/>
+        /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
+        /// </summary>
+        /// <exception cref="RDFStoreException"></exception>
+        public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
-            RDFMemoryStore store = new RDFMemoryStore();
-            StringBuilder queryFilters = new StringBuilder(5);
+            List<RDFQuadruple> result = new List<RDFQuadruple>();
 
-            //Filter by Context
-            if (ctx != null)
-                queryFilters.Append('C');
+            //Build filters
+            StringBuilder queryFilters = new StringBuilder();
+            if (c != null) queryFilters.Append('C');
+            if (s != null) queryFilters.Append('S');
+            if (p != null) queryFilters.Append('P');
+            if (o != null) queryFilters.Append('O');
+            if (l != null) queryFilters.Append('L');
 
-            //Filter by Subject
-            if (subj != null)
-                queryFilters.Append('S');
+            string oQuery = null, lQuery = null;
+            object parameters = null;
+            switch (queryFilters.ToString())
+            {
+                case "C":
+                    oQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { ctx = c.ToString() };
+                    break;
+                case "S":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString() };
+                    break;
+                case "P":
+                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { pred = p.ToString() };
+                    break;
+                case "O":
+                    oQuery = "MATCH (s:Resource)-[p:Property]->(o:Resource{ uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { obj = o.ToString() };
+                    break;
+                case "L":
+                    lQuery = "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { val = l.ToString() };
+                    break;
+                case "CS":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), ctx = c.ToString() };
+                    break;
+                case "CP":
+                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { pred = p.ToString(), ctx = c.ToString() };
+                    break;
+                case "CO":
+                    oQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CL":
+                    lQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CSP":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString() };
+                    break;
+                case "CSO":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { subj = s.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CSL":
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CPO":
+                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CPL":
+                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "CSPO":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
+                    break;
+                case "CSPL":
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
+                    break;
+                case "SP":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), pred = p.ToString() };
+                    break;
+                case "SO":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { subj = s.ToString(), obj = o.ToString() };
+                    break;
+                case "SL":
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), val = l.ToString() };
+                    break;
+                case "SPO":
+                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { subj = s.ToString(), pred = p.ToString(), obj = o.ToString() };
+                    break;
+                case "SPL":
+                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { subj = s.ToString(), pred = p.ToString(), val = l.ToString() };
+                    break;
+                case "PO":
+                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    parameters = new { pred = p.ToString(), obj = o.ToString() };
+                    break;
+                case "PL":
+                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    parameters = new { pred = p.ToString(), val = l.ToString() };
+                    break;
+                //SELECT *
+                default:
+                    oQuery = "MATCH (s:Resource)-[p:Property]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+                    lQuery = "MATCH (s:Resource)-[p:Property]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+                    break;
+            }
 
-            //Filter by Predicate
-            if (pred != null)
-                queryFilters.Append('P');
-
-            //Filter by Object
-            if (obj != null)
-                queryFilters.Append('O');
-
-            //Filter by Literal
-            if (lit != null)
-                queryFilters.Append('L');
-
-            //Intersect the filters
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
             {
                 try
                 {
-                    switch (queryFilters.ToString())
+                    if (!string.IsNullOrEmpty(oQuery))
                     {
-                        case "C":
-                            //C->->->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
+                        await neo4jSession.ExecuteReadAsync(
+                            async tx =>
+                            {
+                                IResultCursor oQueryResult = await tx.RunAsync(oQuery, parameters);
+                                while (await oQueryResult.FetchAsync())
                                 {
-                                    IResultCursor matchCResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "S":
-                            //->S->->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchSResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchSResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "P":
-                            //->->P->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            pred = pred.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchPResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            pred = pred.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchPResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "O":
-                            //->->->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property]->(o:Resource{ uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "L":
-                            //->->->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CS":
-                            //C->S->->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCSResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCSResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CP":
-                            //C->->P->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCPResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCPResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CO":
-                            //C->->->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            ctx = ctx.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CL":
-                            //C->->->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            ctx = ctx.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CSP":
-                            //C->S->P->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCSPResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCSPResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CSO":
-                            //C->S->->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            ctx = ctx.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCSOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CSL":
-                            //C->S->->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            ctx = ctx.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCSLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CPO":
-                            //C->->P->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCPOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCPOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CPL":
-                            //C->->P->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCPLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCPLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CSPO":
-                            //C->S->P->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSPOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchCSPOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "CSPL":
-                            //C->S->P->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchCSPLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            ctx = ctx.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchCSPLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "SP":
-                            //->S->P->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchSPResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSPResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchSPResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "SO":
-                            //->S->->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchSOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "SL":
-                            //->S->->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchSLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "PO":
-                            //->->P->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchPOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchPOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "PL":
-                            //->->P->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchPLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            pred = pred.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchPLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "SPO":
-                            //->S->P->O
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSPOResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            obj = obj.ToString()
-                                        });
-                                    await FetchSPOQuadruplesAsync(matchSPOResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        case "SPL":
-                            //->S->P->L
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchSPLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal",
-                                        new
-                                        {
-                                            subj = subj.ToString(),
-                                            pred = pred.ToString(),
-                                            val = lit.ToString()
-                                        });
-                                    await FetchSPLQuadruplesAsync(matchSPLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
-                        default:
-                            //->->->
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchALLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property]->(o:Resource) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object", null);
-                                    await FetchSPOQuadruplesAsync(matchALLResult, store);
-                                }).GetAwaiter().GetResult();
-                            neo4jSession.ExecuteReadAsync(
-                                async tx =>
-                                {
-                                    IResultCursor matchALLResult = await tx.RunAsync(
-                                        "MATCH (s:Resource)-[p:Property]->(l:Literal) " +
-                                        "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal", null);
-                                    await FetchSPLQuadruplesAsync(matchALLResult, store);
-                                }).GetAwaiter().GetResult();
-                            break;
+                                    result.Add(new RDFQuadruple(
+                                        new RDFContext(oQueryResult.Current.Get<string>("context")),
+                                        new RDFResource(oQueryResult.Current.Get<string>("subject")),
+                                        new RDFResource(oQueryResult.Current.Get<string>("predicate")),
+                                        new RDFResource(oQueryResult.Current.Get<string>("object"))));
+                                }
+                            });
                     }
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+
+                    if (!string.IsNullOrEmpty(lQuery))
+                    {
+                        await neo4jSession.ExecuteReadAsync(
+                            async tx =>
+                            {
+                                IResultCursor lQueryResult = await tx.RunAsync(lQuery, parameters);
+                                while (await lQueryResult.FetchAsync())
+                                {
+                                    if (RDFQueryUtilities.ParseRDFPatternMember(lQueryResult.Current.Get<string>("literal")) is RDFLiteral literal)
+                                    {
+                                        result.Add(new RDFQuadruple(
+                                            new RDFContext(lQueryResult.Current.Get<string>("context")),
+                                            new RDFResource(lQueryResult.Current.Get<string>("subject")),
+                                            new RDFResource(lQueryResult.Current.Get<string>("predicate")),
+                                            literal));
+                                    }
+                                }
+                            });
+                    }
+
+                    await neo4jSession.CloseAsync();
                 }
                 catch (Exception ex)
                 {
-                    neo4jSession.CloseAsync().GetAwaiter().GetResult();
+                    await neo4jSession.CloseAsync();
 
                     throw new RDFStoreException("Cannot read data from Neo4j store because: " + ex.Message, ex);
                 }
             }
 
-            return store;
+            return result;
         }
-
-        /// <summary>
-        /// Asynchronously fetches the SPO quadruples from the given result cursor and adds them to the given store
-        /// </summary>
-        private static async Task FetchSPOQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
-        {
-            while (await resultCursor.FetchAsync())
-            {
-                store.AddQuadruple(new RDFQuadruple(
-                    new RDFContext(resultCursor.Current.Get<string>("context")),
-                    new RDFResource(resultCursor.Current.Get<string>("subject")),
-                    new RDFResource(resultCursor.Current.Get<string>("predicate")),
-                    new RDFResource(resultCursor.Current.Get<string>("object"))));
-            }
-        }
-
-        /// <summary>
-        /// Asynchronously fetches the SPL quadruples from the given result cursor and adds them to the given store
-        /// </summary>
-        private static async Task FetchSPLQuadruplesAsync(IResultCursor resultCursor, RDFMemoryStore store)
-        {
-            while (await resultCursor.FetchAsync())
-            {
-                if (RDFQueryUtilities.ParseRDFPatternMember(resultCursor.Current.Get<string>("literal")) is RDFLiteral literal)
-                {
-                    store.AddQuadruple(new RDFQuadruple(
-                        new RDFContext(resultCursor.Current.Get<string>("context")),
-                        new RDFResource(resultCursor.Current.Get<string>("subject")),
-                        new RDFResource(resultCursor.Current.Get<string>("predicate")),
-                        literal));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Counts the Neo4j database quadruples
-        /// </summary>
-        private long GetQuadruplesCount()
-            => GetQuadruplesCountAsync().GetAwaiter().GetResult();
 
         /// <summary>
         /// Asynchronously counts the Neo4j database quadruples
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
             {
                 try
                 {
@@ -1650,7 +782,7 @@ namespace RDFSharp.Extensions.Neo4j
         /// </summary>
         private async Task InitializeStoreAsync()
         {
-            using (IAsyncSession neo4jSession = Driver.AsyncSession(s => s.WithDatabase(DatabaseName)))
+            using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
             {
                 try
                 {
