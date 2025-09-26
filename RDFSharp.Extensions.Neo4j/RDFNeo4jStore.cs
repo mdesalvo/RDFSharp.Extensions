@@ -129,7 +129,7 @@ namespace RDFSharp.Extensions.Neo4j
 
 #if NET8_0_OR_GREATER
         /// <summary>
-        /// Asynchronously disposes the MySQL store (IAsyncDisposable)
+        /// Asynchronously disposes the Neo4j store (IAsyncDisposable)
         /// </summary>
         ValueTask IAsyncDisposable.DisposeAsync()
         {
