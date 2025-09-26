@@ -1,0 +1,194 @@
+/* This is the official test suite of RDFNeo4jStore. It uses a local Neo4j instance */
+
+using RDFSharp.Extensions.Neo4j;
+using RDFSharp.Model;
+using RDFSharp.Store;
+using Xunit;
+
+//Setup
+RDFNeo4jStore neo4jStore = new RDFNeo4jStore("neo4j://127.0.0.1:7687", "neo4j", "neo4j123", "neo4j");
+Assert.NotNull(neo4jStore);
+Assert.Equal("NEO4J", neo4jStore.StoreType);
+
+//Clear
+if (new Random().NextDouble() >= 0.50)
+    await neo4jStore.ClearQuadruplesAsync();
+else
+    neo4jStore.ClearQuadruples();
+
+Assert.Equal(0, neo4jStore.QuadruplesCount);
+Assert.Equal(0, await neo4jStore.QuadruplesCountAsync);
+
+//Load
+for (int i = 1; i <= 250; i++)
+{
+    neo4jStore.AddQuadruple(new RDFQuadruple(
+            new RDFContext(new Uri($"ex:ctx{i}")),
+            new RDFResource($"ex:subj{i}"),
+            new RDFResource($"ex:pred{i}"),
+            new RDFResource($"ex:obj{i}")));
+    await neo4jStore.AddQuadrupleAsync(new RDFQuadruple(
+        new RDFContext(new Uri($"ex:ctx{i}")),
+        new RDFResource($"ex:subj{i}"),
+        new RDFResource($"ex:pred{i}"),
+        new RDFPlainLiteral($"{i}")));
+}
+Assert.Equal(500, neo4jStore.QuadruplesCount);
+Assert.Equal(500, await neo4jStore.QuadruplesCountAsync);
+neo4jStore.AddQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))); //Already existing
+Assert.Equal(500, neo4jStore.QuadruplesCount);
+Assert.Equal(500, await neo4jStore.QuadruplesCountAsync);
+RDFGraph graph1 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFPlainLiteral("251")),
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFResource("ex:obj251"))]);
+neo4jStore.MergeGraph(graph1);
+Assert.Equal(502, neo4jStore.QuadruplesCount);
+Assert.Equal(502, await neo4jStore.QuadruplesCountAsync);
+RDFGraph graph2 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFPlainLiteral("252")),
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFResource("ex:obj252"))]);
+await neo4jStore.MergeGraphAsync(graph2);
+Assert.Equal(504, neo4jStore.QuadruplesCount);
+Assert.Equal(504, await neo4jStore.QuadruplesCountAsync);
+
+//Remove
+neo4jStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj252"),
+    new RDFResource("ex:pred252"),
+    new RDFResource("ex:obj252")));
+Assert.Equal(503, neo4jStore.QuadruplesCount);
+Assert.Equal(503, await neo4jStore.QuadruplesCountAsync);
+neo4jStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj254"),
+    new RDFResource("ex:pred254"),
+    new RDFResource("ex:obj254"))); //unexisting
+Assert.Equal(503, neo4jStore.QuadruplesCount);
+Assert.Equal(503, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext());
+Assert.Equal(500, neo4jStore.QuadruplesCount);
+Assert.Equal(500, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj250"));
+Assert.Equal(498, neo4jStore.QuadruplesCount);
+Assert.Equal(498, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred249"));
+Assert.Equal(496, neo4jStore.QuadruplesCount);
+Assert.Equal(496, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(o:new RDFResource("ex:obj248"));
+Assert.Equal(495, neo4jStore.QuadruplesCount);
+Assert.Equal(495, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(l:new RDFPlainLiteral("247"));
+Assert.Equal(494, neo4jStore.QuadruplesCount);
+Assert.Equal(494, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx246")),s:new RDFResource("ex:subj246"));
+Assert.Equal(492, neo4jStore.QuadruplesCount);
+Assert.Equal(492, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx245")),p:new RDFResource("ex:pred245"));
+Assert.Equal(490, neo4jStore.QuadruplesCount);
+Assert.Equal(490, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx244")),o:new RDFResource("ex:obj244"));
+Assert.Equal(489, neo4jStore.QuadruplesCount);
+Assert.Equal(489, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx243")),l:new RDFPlainLiteral("243"));
+Assert.Equal(488, neo4jStore.QuadruplesCount);
+Assert.Equal(488, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx242")),s:new RDFResource("ex:subj242"),p:new RDFResource("ex:pred242"));
+Assert.Equal(486, neo4jStore.QuadruplesCount);
+Assert.Equal(486, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx241")),s:new RDFResource("ex:subj241"),o:new RDFResource("ex:obj241"));
+Assert.Equal(485, neo4jStore.QuadruplesCount);
+Assert.Equal(485, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx240")),s:new RDFResource("ex:subj240"),l:new RDFPlainLiteral("240"));
+Assert.Equal(484, neo4jStore.QuadruplesCount);
+Assert.Equal(484, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx239")),s:new RDFResource("ex:subj239"),p:new RDFResource("ex:pred239"),o:new RDFResource("ex:obj239"));
+Assert.Equal(483, neo4jStore.QuadruplesCount);
+Assert.Equal(483, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx238")),s:new RDFResource("ex:subj238"),p:new RDFResource("ex:pred238"),l:new RDFPlainLiteral("238"));
+Assert.Equal(482, neo4jStore.QuadruplesCount);
+Assert.Equal(482, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj237"),p:new RDFResource("ex:pred237"));
+Assert.Equal(480, neo4jStore.QuadruplesCount);
+Assert.Equal(480, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj236"),o:new RDFResource("ex:obj236"));
+Assert.Equal(479, neo4jStore.QuadruplesCount);
+Assert.Equal(479, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj235"),l:new RDFPlainLiteral("235"));
+Assert.Equal(478, neo4jStore.QuadruplesCount);
+Assert.Equal(478, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj234"),p:new RDFResource("ex:pred234"),o:new RDFResource("ex:obj234"));
+Assert.Equal(477, neo4jStore.QuadruplesCount);
+Assert.Equal(477, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj233"),p:new RDFResource("ex:pred233"),l:new RDFPlainLiteral("233"));
+Assert.Equal(476, neo4jStore.QuadruplesCount);
+Assert.Equal(476, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred232"),o:new RDFResource("ex:obj232"));
+Assert.Equal(475, neo4jStore.QuadruplesCount);
+Assert.Equal(475, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231"));
+Assert.Equal(474, neo4jStore.QuadruplesCount);
+Assert.Equal(474, await neo4jStore.QuadruplesCountAsync);
+await neo4jStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231")); //no more existing
+Assert.Equal(474, neo4jStore.QuadruplesCount);
+Assert.Equal(474, await neo4jStore.QuadruplesCountAsync);
+
+//Query
+Assert.True(neo4jStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.True(await neo4jStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(neo4jStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(await neo4jStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.Equal(2, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200"))).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, neo4jStore.SelectQuadruples(p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(0, neo4jStore.SelectQuadruples(p: new RDFResource("ex:pred200786537"), l: new RDFPlainLiteral("200")).Count); //unexisting
+
+//Query (Full Selectors + Accessors)
+Assert.True(neo4jStore.SelectQuadruples().Count > 100);
+Assert.Equal(1, neo4jStore[p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")].QuadruplesCount);
+Assert.True(neo4jStore[null, null, null, null, null].QuadruplesCount > 100);
+await neo4jStore.RemoveQuadruplesAsync();
+Assert.Equal(0, neo4jStore.QuadruplesCount);
+Assert.Equal(0, await neo4jStore.QuadruplesCountAsync);
+Assert.True(neo4jStore.SelectQuadruples().Count == 0);
+Assert.True(neo4jStore[null, null, null, null, null].QuadruplesCount == 0);
+
+Assert.True(1==1);

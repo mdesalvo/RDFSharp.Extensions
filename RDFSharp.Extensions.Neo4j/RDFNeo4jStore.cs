@@ -757,8 +757,7 @@ namespace RDFSharp.Extensions.Neo4j
                         async tx =>
                         {
                             IResultCursor countResult = await tx.RunAsync(
-                                "MATCH (s:Resource)-[p:Property]->() " +
-                                "RETURN (COUNT(*)) AS quadruplesCount", null);
+                                "MATCH (s:Resource)-[p:Property]->() RETURN (COUNT(*)) AS quadruplesCount", null);
                             IRecord countRecord = await countResult.SingleAsync();
                             quadruplesCount = countRecord.Get<long>("quadruplesCount");
                         });
