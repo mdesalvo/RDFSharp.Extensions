@@ -1,4 +1,4 @@
-/* This is the official test suite of RDFOracleStore. It uses a local test database (SampleDatabase) on Oracle with test:test */
+/* This is the official test suite of RDFOracleStore. It uses the default database on local Oracle XE instance with SYSTEM:SYSTEMPWD */
 
 using RDFSharp.Extensions.Oracle;
 using RDFSharp.Model;
@@ -6,7 +6,7 @@ using RDFSharp.Store;
 using Xunit;
 
 //Setup
-RDFOracleStore oracleStore = new RDFOracleStore("");
+RDFOracleStore oracleStore = new RDFOracleStore("Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XE)));User Id=SYSTEM;Password=SYSTEMPWD;");
 Assert.NotNull(oracleStore);
 Assert.Equal("ORACLE", oracleStore.StoreType);
 
@@ -193,5 +193,3 @@ Assert.Equal(0, oracleStore.QuadruplesCount);
 Assert.Equal(0, await oracleStore.QuadruplesCountAsync);
 Assert.True(oracleStore.SelectQuadruples().Count == 0);
 Assert.True(oracleStore[null, null, null, null, null].QuadruplesCount == 0);
-
-Assert.True(1==1);
