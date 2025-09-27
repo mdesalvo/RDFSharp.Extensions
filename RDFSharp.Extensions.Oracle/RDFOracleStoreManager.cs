@@ -60,22 +60,22 @@ namespace RDFSharp.Extensions.Oracle
         
         private void CreateQuadruplesTable(OracleConnection connection, OracleConnectionStringBuilder connectionBuilder)
         {
-            using (OracleCommand createCommand = new OracleCommand("CREATE TABLE \"" + connectionBuilder.UserID + "\".\"QUADRUPLES\"(\"QUADRUPLEID\" NUMBER(19, 0) NOT NULL ENABLE,\"TRIPLEFLAVOR\" NUMBER(10, 0) NOT NULL ENABLE,\"CONTEXTID\" NUMBER(19, 0) NOT NULL ENABLE,\"CONTEXT\" VARCHAR2(1000) NOT NULL ENABLE,\"SUBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"SUBJECT\" VARCHAR2(1000) NOT NULL ENABLE,\"PREDICATEID\" NUMBER(19, 0) NOT NULL ENABLE,\"PREDICATE\" VARCHAR2(1000) NOT NULL ENABLE,\"OBJECTID\" NUMBER(19, 0) NOT NULL ENABLE,\"OBJECT\" VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(\"QUADRUPLEID\") ENABLE)", connection))
+            using (OracleCommand createCommand = new OracleCommand($"CREATE TABLE {connectionBuilder.UserID}.QUADRUPLES(QUADRUPLEID NUMBER(19, 0) NOT NULL ENABLE,TRIPLEFLAVOR NUMBER(10, 0) NOT NULL ENABLE,CONTEXTID NUMBER(19, 0) NOT NULL ENABLE,CONTEXT VARCHAR2(1000) NOT NULL ENABLE,SUBJECTID NUMBER(19, 0) NOT NULL ENABLE,SUBJECT VARCHAR2(1000) NOT NULL ENABLE,PREDICATEID NUMBER(19, 0) NOT NULL ENABLE,PREDICATE VARCHAR2(1000) NOT NULL ENABLE,OBJECTID NUMBER(19, 0) NOT NULL ENABLE,OBJECT VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(QUADRUPLEID) ENABLE)", connection))
             {
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_CONTEXTID\" ON \"QUADRUPLES\"(\"CONTEXTID\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_CONTEXTID ON {connectionBuilder.UserID}.QUADRUPLES(CONTEXTID)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_SUBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_SUBJECTID ON {connectionBuilder.UserID}.QUADRUPLES(SUBJECTID)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_PREDICATEID\" ON \"QUADRUPLES\"(\"PREDICATEID\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_PREDICATEID ON {connectionBuilder.UserID}.QUADRUPLES(PREDICATEID)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_OBJECTID\" ON \"QUADRUPLES\"(\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_OBJECTID ON {connectionBuilder.UserID}.QUADRUPLES(OBJECTID,TRIPLEFLAVOR)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_SUBJECTID_PREDICATEID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"PREDICATEID\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_SUBJECTID_PREDICATEID ON {connectionBuilder.UserID}.QUADRUPLES(SUBJECTID,PREDICATEID)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_SUBJECTID_OBJECTID\" ON \"QUADRUPLES\"(\"SUBJECTID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_SUBJECTID_OBJECTID ON {connectionBuilder.UserID}.QUADRUPLES(SUBJECTID,OBJECTID,TRIPLEFLAVOR)";
                 createCommand.ExecuteNonQuery();
-                createCommand.CommandText = "CREATE INDEX \"" + connectionBuilder.UserID + "\".\"IDX_PREDICATEID_OBJECTID\" ON \"QUADRUPLES\"(\"PREDICATEID\",\"OBJECTID\",\"TRIPLEFLAVOR\")";
+                createCommand.CommandText = $"CREATE INDEX {connectionBuilder.UserID}.IDX_PREDICATEID_OBJECTID ON {connectionBuilder.UserID}.QUADRUPLES(PREDICATEID,OBJECTID,TRIPLEFLAVOR)";
                 createCommand.ExecuteNonQuery();
             }
         }
