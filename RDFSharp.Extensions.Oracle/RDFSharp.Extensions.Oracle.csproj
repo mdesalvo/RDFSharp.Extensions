@@ -47,11 +47,6 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.22.0" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
         <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.*" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
-        <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.9.*" />
     </ItemGroup>
 </Project>
