@@ -1,0 +1,195 @@
+/* This is the official test suite of RDFPostgreSQLStore. It uses a local test database (SampleDatabase) on PostgreSQL with test:test */
+
+using RDFSharp.Extensions.PostgreSQL;
+using RDFSharp.Model;
+using RDFSharp.Store;
+using Xunit;
+
+//Setup
+RDFPostgreSQLStore pgsqlStore = new RDFPostgreSQLStore("");
+Assert.NotNull(pgsqlStore);
+Assert.Equal("POSTGRESQL", pgsqlStore.StoreType);
+
+//Clear
+if (new Random().NextDouble() >= 0.50)
+    await pgsqlStore.ClearQuadruplesAsync();
+else
+    pgsqlStore.ClearQuadruples();
+
+Assert.Equal(0, pgsqlStore.QuadruplesCount);
+Assert.Equal(0, await pgsqlStore.QuadruplesCountAsync);
+
+//Load
+for (int i = 1; i <= 250; i++)
+{
+    pgsqlStore.AddQuadruple(new RDFQuadruple(
+            new RDFContext(new Uri($"ex:ctx{i}")),
+            new RDFResource($"ex:subj{i}"),
+            new RDFResource($"ex:pred{i}"),
+            new RDFResource($"ex:obj{i}")));
+    await pgsqlStore.AddQuadrupleAsync(new RDFQuadruple(
+        new RDFContext(new Uri($"ex:ctx{i}")),
+        new RDFResource($"ex:subj{i}"),
+        new RDFResource($"ex:pred{i}"),
+        new RDFPlainLiteral($"{i}")));
+}
+Assert.Equal(500, pgsqlStore.QuadruplesCount);
+Assert.Equal(500, await pgsqlStore.QuadruplesCountAsync);
+pgsqlStore.AddQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))); //Already existing
+Assert.Equal(500, pgsqlStore.QuadruplesCount);
+Assert.Equal(500, await pgsqlStore.QuadruplesCountAsync);
+RDFGraph graph1 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFPlainLiteral("251")),
+    new RDFTriple(new RDFResource("ex:subj251"), new RDFResource("ex:pred251"), new RDFResource("ex:obj251"))]);
+pgsqlStore.MergeGraph(graph1);
+Assert.Equal(502, pgsqlStore.QuadruplesCount);
+Assert.Equal(502, await pgsqlStore.QuadruplesCountAsync);
+RDFGraph graph2 = new RDFGraph([
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFPlainLiteral("252")),
+    new RDFTriple(new RDFResource("ex:subj252"), new RDFResource("ex:pred252"), new RDFResource("ex:obj252"))]);
+await pgsqlStore.MergeGraphAsync(graph2);
+Assert.Equal(504, pgsqlStore.QuadruplesCount);
+Assert.Equal(504, await pgsqlStore.QuadruplesCountAsync);
+
+//Remove
+pgsqlStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj252"),
+    new RDFResource("ex:pred252"),
+    new RDFResource("ex:obj252")));
+Assert.Equal(503, pgsqlStore.QuadruplesCount);
+Assert.Equal(503, await pgsqlStore.QuadruplesCountAsync);
+pgsqlStore.RemoveQuadruple(new RDFQuadruple(
+    new RDFContext(),
+    new RDFResource("ex:subj254"),
+    new RDFResource("ex:pred254"),
+    new RDFResource("ex:obj254"))); //unexisting
+Assert.Equal(503, pgsqlStore.QuadruplesCount);
+Assert.Equal(503, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext());
+Assert.Equal(500, pgsqlStore.QuadruplesCount);
+Assert.Equal(500, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj250"));
+Assert.Equal(498, pgsqlStore.QuadruplesCount);
+Assert.Equal(498, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred249"));
+Assert.Equal(496, pgsqlStore.QuadruplesCount);
+Assert.Equal(496, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(o:new RDFResource("ex:obj248"));
+Assert.Equal(495, pgsqlStore.QuadruplesCount);
+Assert.Equal(495, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(l:new RDFPlainLiteral("247"));
+Assert.Equal(494, pgsqlStore.QuadruplesCount);
+Assert.Equal(494, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx246")),s:new RDFResource("ex:subj246"));
+Assert.Equal(492, pgsqlStore.QuadruplesCount);
+Assert.Equal(492, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx245")),p:new RDFResource("ex:pred245"));
+Assert.Equal(490, pgsqlStore.QuadruplesCount);
+Assert.Equal(490, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx244")),o:new RDFResource("ex:obj244"));
+Assert.Equal(489, pgsqlStore.QuadruplesCount);
+Assert.Equal(489, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx243")),l:new RDFPlainLiteral("243"));
+Assert.Equal(488, pgsqlStore.QuadruplesCount);
+Assert.Equal(488, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx242")),s:new RDFResource("ex:subj242"),p:new RDFResource("ex:pred242"));
+Assert.Equal(486, pgsqlStore.QuadruplesCount);
+Assert.Equal(486, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx241")),s:new RDFResource("ex:subj241"),o:new RDFResource("ex:obj241"));
+Assert.Equal(485, pgsqlStore.QuadruplesCount);
+Assert.Equal(485, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx240")),s:new RDFResource("ex:subj240"),l:new RDFPlainLiteral("240"));
+Assert.Equal(484, pgsqlStore.QuadruplesCount);
+Assert.Equal(484, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx239")),s:new RDFResource("ex:subj239"),p:new RDFResource("ex:pred239"),o:new RDFResource("ex:obj239"));
+Assert.Equal(483, pgsqlStore.QuadruplesCount);
+Assert.Equal(483, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(c:new RDFContext(new Uri("ex:ctx238")),s:new RDFResource("ex:subj238"),p:new RDFResource("ex:pred238"),l:new RDFPlainLiteral("238"));
+Assert.Equal(482, pgsqlStore.QuadruplesCount);
+Assert.Equal(482, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj237"),p:new RDFResource("ex:pred237"));
+Assert.Equal(480, pgsqlStore.QuadruplesCount);
+Assert.Equal(480, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj236"),o:new RDFResource("ex:obj236"));
+Assert.Equal(479, pgsqlStore.QuadruplesCount);
+Assert.Equal(479, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj235"),l:new RDFPlainLiteral("235"));
+Assert.Equal(478, pgsqlStore.QuadruplesCount);
+Assert.Equal(478, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj234"),p:new RDFResource("ex:pred234"),o:new RDFResource("ex:obj234"));
+Assert.Equal(477, pgsqlStore.QuadruplesCount);
+Assert.Equal(477, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(s:new RDFResource("ex:subj233"),p:new RDFResource("ex:pred233"),l:new RDFPlainLiteral("233"));
+Assert.Equal(476, pgsqlStore.QuadruplesCount);
+Assert.Equal(476, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred232"),o:new RDFResource("ex:obj232"));
+Assert.Equal(475, pgsqlStore.QuadruplesCount);
+Assert.Equal(475, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231"));
+Assert.Equal(474, pgsqlStore.QuadruplesCount);
+Assert.Equal(474, await pgsqlStore.QuadruplesCountAsync);
+await pgsqlStore.RemoveQuadruplesAsync(p:new RDFResource("ex:pred231"),l:new RDFPlainLiteral("231")); //no more existing
+Assert.Equal(474, pgsqlStore.QuadruplesCount);
+Assert.Equal(474, await pgsqlStore.QuadruplesCountAsync);
+
+//Query
+Assert.True(pgsqlStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.True(await pgsqlStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx200")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(pgsqlStore.ContainsQuadruple(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.False(await pgsqlStore.ContainsQuadrupleAsync(new RDFQuadruple(
+    new RDFContext(new Uri("ex:ctx2007787")),
+    new RDFResource("ex:subj200"),
+    new RDFResource("ex:pred200"),
+    new RDFResource("ex:obj200"))));
+Assert.Equal(2, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200"))).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200")).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(c: new RDFContext(new Uri("ex:ctx200")), s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(2, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(s: new RDFResource("ex:subj200"), p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(p: new RDFResource("ex:pred200"), o: new RDFResource("ex:obj200")).Count);
+Assert.Equal(1, pgsqlStore.SelectQuadruples(p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")).Count);
+Assert.Equal(0, pgsqlStore.SelectQuadruples(p: new RDFResource("ex:pred200786537"), l: new RDFPlainLiteral("200")).Count); //unexisting
+
+//Optimize
+await pgsqlStore.OptimizeAsync();
+
+//Query (Full Selectors + Accessors)
+Assert.True(pgsqlStore.SelectQuadruples().Count > 100);
+Assert.Equal(1, pgsqlStore[p: new RDFResource("ex:pred200"), l: new RDFPlainLiteral("200")].QuadruplesCount);
+Assert.True(pgsqlStore[null, null, null, null, null].QuadruplesCount > 100);
+await pgsqlStore.RemoveQuadruplesAsync();
+Assert.Equal(0, pgsqlStore.QuadruplesCount);
+Assert.Equal(0, await pgsqlStore.QuadruplesCountAsync);
+Assert.True(pgsqlStore.SelectQuadruples().Count == 0);
+Assert.True(pgsqlStore[null, null, null, null, null].QuadruplesCount == 0);
