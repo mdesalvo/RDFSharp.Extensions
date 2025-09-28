@@ -446,7 +446,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "L":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE objectid = @OBJID AND tripleflavor = @TFV";
@@ -454,7 +454,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CS":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID";
@@ -480,7 +480,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -490,7 +490,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CSP":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID";
@@ -512,7 +512,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CSL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -524,7 +524,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CPO":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -536,7 +536,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CPL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -548,7 +548,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CSPO":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -562,7 +562,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CSPL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -576,7 +576,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "SP":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID";
@@ -594,7 +594,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "SL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE subjectid = @SUBJID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -604,7 +604,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "SPO":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -616,7 +616,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "SPL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -628,7 +628,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "PO":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -638,7 +638,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "PL":
                         DeleteCommand.CommandText = "DELETE FROM quadruples WHERE predicateid = @PREDID AND objectid = @OBJID AND tripleflavor = @TFV";
@@ -648,7 +648,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         DeleteCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     //SELECT *
                     default:
@@ -849,7 +849,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "L":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE objectid = @OBJID AND TripleFlavor = @TFV";
@@ -857,7 +857,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CS":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID";
@@ -883,7 +883,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -893,7 +893,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CSP":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID";
@@ -915,7 +915,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CSL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -927,7 +927,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CPO":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -939,7 +939,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CPL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -951,7 +951,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CSPO":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -965,7 +965,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "CSPL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE contextid = @CTXID AND subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -979,7 +979,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "SP":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID";
@@ -997,7 +997,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "SL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE subjectid = @SUBJID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -1007,7 +1007,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "SPO":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -1019,7 +1019,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "SPL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE subjectid = @SUBJID AND predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -1031,7 +1031,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "PO":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -1041,7 +1041,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
                         break;
                     case "PL":
                         SelectCommand.CommandText = "SELECT tripleflavor, context, subject, predicate, object FROM quadruples WHERE predicateid = @PREDID AND objectid = @OBJID AND TripleFlavor = @TFV";
@@ -1051,7 +1051,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                         SelectCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
                         SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
                         SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     //SELECT *
                     default:
@@ -1123,7 +1123,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// <summary>
         /// Asynchronously executes a VACUUM command to optimize PostgreSQL store
         /// </summary>
-        public async Task OptimizeStoreAsync()
+        public async Task OptimizeAsync()
         {
             try
             {

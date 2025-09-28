@@ -1,4 +1,4 @@
-/* This is the official test suite of RDFPostgreSQLStore. It uses a local test database (SampleDatabase) on PostgreSQL with test:test */
+/* This is the official test suite of RDFPostgreSQLStore. It uses the predefined database on PostgreSQL with postgres:postgres */
 
 using RDFSharp.Extensions.PostgreSQL;
 using RDFSharp.Model;
@@ -6,7 +6,7 @@ using RDFSharp.Store;
 using Xunit;
 
 //Setup
-RDFPostgreSQLStore pgsqlStore = new RDFPostgreSQLStore("");
+RDFPostgreSQLStore pgsqlStore = new RDFPostgreSQLStore("Host=localhost;Database=postgres;Username=postgres;Password=postgres");
 Assert.NotNull(pgsqlStore);
 Assert.Equal("POSTGRESQL", pgsqlStore.StoreType);
 
