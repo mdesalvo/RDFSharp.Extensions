@@ -1,4 +1,4 @@
-/* This is the official test suite of RDFSQLServerStore. It uses a local test database on SQLServer Express with test:test */
+/* This is the official test suite of RDFSQLServerStore. It uses a local SQLServer Express instance with Windows authentication */
 
 using RDFSharp.Extensions.SQLServer;
 using RDFSharp.Model;
@@ -6,7 +6,7 @@ using RDFSharp.Store;
 using Xunit;
 
 //Setup
-RDFSQLServerStore sqlServerStore = new RDFSQLServerStore("");
+RDFSQLServerStore sqlServerStore = new RDFSQLServerStore(@"Server=LOCALHOST\SQLExpress;Integrated Security=true;Encrypt=True;TrustServerCertificate=True;");
 Assert.NotNull(sqlServerStore);
 Assert.Equal("SQLSERVER", sqlServerStore.StoreType);
 

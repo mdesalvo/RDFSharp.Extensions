@@ -38,7 +38,11 @@ namespace RDFSharp.Extensions.SQLServer
         {
             using (SqlConnection sqlServerConnection = new SqlConnection(_connectionString))
             {
+#if NET8_0_OR_GREATER
                 await sqlServerConnection.OpenAsync();
+#else
+                sqlServerConnection.Open();
+#endif
                 if (!await TableExistsAsync(sqlServerConnection, "Quadruples"))
                     await CreateQuadruplesTableAsync(sqlServerConnection);
             }
