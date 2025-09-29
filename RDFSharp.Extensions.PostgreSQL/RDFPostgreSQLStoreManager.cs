@@ -27,12 +27,12 @@ namespace RDFSharp.Extensions.PostgreSQL
     internal class RDFPostgreSQLStoreManager
     {
         private readonly string _connectionString;
-        
+
         internal RDFPostgreSQLStoreManager(string connectionString)
         {
             _connectionString = connectionString;
         }
-        
+
         internal async Task EnsureQuadruplesTableExistsAsync()
         {
             using (NpgsqlConnection pgSqlConnection = new NpgsqlConnection(_connectionString))
@@ -42,7 +42,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                     await CreateQuadruplesTableAsync(pgSqlConnection);
             }
         }
-        
+
         private async Task<bool> TableExistsAsync(NpgsqlConnection connection, string tableName)
         {
             try
@@ -58,7 +58,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                 return false;
             }
         }
-        
+
         private async Task CreateQuadruplesTableAsync(NpgsqlConnection connection)
         {
             using (NpgsqlCommand createCommand = new NpgsqlCommand("CREATE TABLE quadruples (\"quadrupleid\" BIGINT NOT NULL PRIMARY KEY, \"tripleflavor\" INTEGER NOT NULL, \"contextid\" bigint NOT NULL, \"context\" VARCHAR NOT NULL, \"subjectid\" BIGINT NOT NULL, \"subject\" VARCHAR NOT NULL, \"predicateid\" BIGINT NOT NULL, \"predicate\" VARCHAR NOT NULL, \"objectid\" BIGINT NOT NULL, \"object\" VARCHAR NOT NULL);CREATE INDEX \"idx_contextid\" ON quadruples USING btree (\"contextid\");CREATE INDEX \"idx_subjectid\" ON quadruples USING btree (\"subjectid\");CREATE INDEX \"idx_predicateid\" ON quadruples USING btree (\"predicateid\");CREATE INDEX \"idx_objectid\" ON quadruples USING btree (\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_subjectid_predicateid\" ON quadruples USING btree (\"subjectid\",\"predicateid\");CREATE INDEX \"idx_subjectid_objectid\" ON quadruples USING btree (\"subjectid\",\"objectid\",\"tripleflavor\");CREATE INDEX \"idx_predicateid_objectid\" ON quadruples USING btree (\"predicateid\",\"objectid\",\"tripleflavor\");", connection))

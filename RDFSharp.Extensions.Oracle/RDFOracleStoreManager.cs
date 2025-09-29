@@ -31,7 +31,7 @@ namespace RDFSharp.Extensions.Oracle
         {
             _connectionString = connectionString;
         }
-        
+
         internal void EnsureQuadruplesTableExists()
         {
             using (OracleConnection oracleConnection = new OracleConnection(_connectionString))
@@ -57,7 +57,7 @@ namespace RDFSharp.Extensions.Oracle
                 return false;
             }
         }
-        
+
         private void CreateQuadruplesTable(OracleConnection connection, OracleConnectionStringBuilder connectionBuilder)
         {
             using (OracleCommand createCommand = new OracleCommand($"CREATE TABLE {connectionBuilder.UserID}.QUADRUPLES(QUADRUPLEID NUMBER(19, 0) NOT NULL ENABLE,TRIPLEFLAVOR NUMBER(10, 0) NOT NULL ENABLE,CONTEXTID NUMBER(19, 0) NOT NULL ENABLE,CONTEXT VARCHAR2(1000) NOT NULL ENABLE,SUBJECTID NUMBER(19, 0) NOT NULL ENABLE,SUBJECT VARCHAR2(1000) NOT NULL ENABLE,PREDICATEID NUMBER(19, 0) NOT NULL ENABLE,PREDICATE VARCHAR2(1000) NOT NULL ENABLE,OBJECTID NUMBER(19, 0) NOT NULL ENABLE,OBJECT VARCHAR2(1000) NOT NULL ENABLE,PRIMARY KEY(QUADRUPLEID) ENABLE)", connection))

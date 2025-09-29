@@ -27,12 +27,12 @@ namespace RDFSharp.Extensions.MySQL
     internal class RDFMySQLStoreManager
     {
         private readonly string _connectionString;
-        
+
         internal RDFMySQLStoreManager(string connectionString)
         {
             _connectionString = connectionString;
         }
-        
+
         internal async Task EnsureQuadruplesTableExistsAsync()
         {
             using (MySqlConnection mySqlConnection = new MySqlConnection(_connectionString))
@@ -42,7 +42,7 @@ namespace RDFSharp.Extensions.MySQL
                     await CreateQuadruplesTableAsync(mySqlConnection);
             }
         }
-        
+
         private async Task<bool> TableExistsAsync(MySqlConnection connection, string tableName)
         {
             try
@@ -60,7 +60,7 @@ namespace RDFSharp.Extensions.MySQL
                 return false;
             }
         }
-        
+
         private async Task CreateQuadruplesTableAsync(MySqlConnection connection)
         {
             using (MySqlCommand createCommand = new MySqlCommand(

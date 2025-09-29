@@ -29,19 +29,19 @@ namespace RDFSharp.Extensions.Firebird
     {
         private readonly string _connectionString;
         private readonly string _databasePath;
-        
+
         internal RDFFirebirdStoreManager(string connectionString)
         {
             _connectionString = connectionString;
             _databasePath = ExtractDatabasePath(connectionString);
         }
-        
+
         internal async Task InitializeDatabaseAndTableAsync()
         {
             await EnsureDatabaseExistsAsync();
             await EnsureQuadruplesTableExistsAsync();
         }
-        
+
         private async Task EnsureDatabaseExistsAsync()
         {
             if (File.Exists(_databasePath))
@@ -57,7 +57,7 @@ namespace RDFSharp.Extensions.Firebird
                 await FbConnection.CreateDatabaseAsync(_connectionString);
             }
         }
-        
+
         private async Task EnsureQuadruplesTableExistsAsync()
         {
             using (FbConnection fbConnection = new FbConnection(_connectionString))
@@ -67,7 +67,7 @@ namespace RDFSharp.Extensions.Firebird
                     await CreateQuadruplesTableAsync(fbConnection);
             }
         }
-        
+
         private async Task<bool> TableExistsAsync(FbConnection connection, string tableName)
         {
             try
@@ -84,7 +84,7 @@ namespace RDFSharp.Extensions.Firebird
                 return false;
             }
         }
-        
+
         private async Task CreateQuadruplesTableAsync(FbConnection connection)
         {
             FbCommand createCommand = new FbCommand("CREATE TABLE Quadruples (QuadrupleID BIGINT NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID BIGINT NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID BIGINT NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID BIGINT NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID BIGINT NOT NULL)", connection) { CommandTimeout = 120 };
@@ -107,7 +107,7 @@ namespace RDFSharp.Extensions.Firebird
             await createCommand.ExecuteNonQueryAsync();
             createCommand.Dispose();
         }
-        
+
         private string ExtractDatabasePath(string connectionString)
         {
             foreach (string part in connectionString.Split(';'))
@@ -117,7 +117,7 @@ namespace RDFSharp.Extensions.Firebird
             }
             throw new ArgumentException("Database path not found in connection string");
         }
-        
+
         public async Task<FbConnection> GetConnectionAsync()
         {
             FbConnection connection = new FbConnection(_connectionString);

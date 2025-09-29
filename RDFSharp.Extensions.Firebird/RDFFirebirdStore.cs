@@ -178,7 +178,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override RDFStore MergeGraph(RDFGraph graph)
             => MergeGraphAsync(graph).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously merges the given graph into the store
         /// </summary>
@@ -259,7 +259,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override RDFStore AddQuadruple(RDFQuadruple quadruple)
             => AddQuadrupleAsync(quadruple).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously adds the given quadruple to the store
         /// </summary>
@@ -336,7 +336,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override RDFStore RemoveQuadruple(RDFQuadruple quadruple)
             => RemoveQuadrupleAsync(quadruple).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously removes the given quadruple from the store
         /// </summary>
@@ -394,7 +394,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override RDFStore RemoveQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
             => RemoveQuadruplesAsync(c, s, p, o, l).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously removes the quadruples which satisfy the given combination of CSPOL accessors<br/>
         /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)
@@ -652,7 +652,7 @@ namespace RDFSharp.Extensions.Firebird
                         DeleteCommand.Parameters.Clear();
                         break;
                 }
-                
+
                 //Open connection
                 await EnsureConnectionIsOpenAsync();
 
@@ -692,7 +692,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override void ClearQuadruples()
             => ClearQuadruplesAsync().GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously clears the quadruples of the store
         /// </summary>
@@ -743,7 +743,7 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override bool ContainsQuadruple(RDFQuadruple quadruple)
             => ContainsQuadrupleAsync(quadruple).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously checks if the given quadruple is found in the store
         /// </summary>
@@ -794,7 +794,7 @@ namespace RDFSharp.Extensions.Firebird
         /// <exception cref="RDFStoreException"></exception>
         public override List<RDFQuadruple> SelectQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
             => SelectQuadruplesAsync(c,s,p,o,l).GetAwaiter().GetResult();
-        
+
         /// <summary>
         /// Asynchronously selects the quadruples which satisfy the given combination of CSPOL accessors<br/>
         /// (null values are handled as * selectors. Object and Literal params, if given, must be mutually exclusive!)

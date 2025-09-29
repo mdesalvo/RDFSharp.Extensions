@@ -650,7 +650,7 @@ namespace RDFSharp.Extensions.Oracle
                         DeleteCommand.Parameters.Clear();
                         break;
                 }
-                
+
                 //Open connection
                 EnsureConnectionIsOpen();
 
@@ -1070,7 +1070,7 @@ namespace RDFSharp.Extensions.Oracle
                 Connection.Close();
 
                 //Propagate exception
-                throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
+                throw new RDFStoreException("Cannot read data from Oracle store because: " + ex.Message, ex);
             }
 
             return result;
@@ -1159,7 +1159,7 @@ namespace RDFSharp.Extensions.Oracle
             }
         }
         #endregion
-        
+
         #region Utilities
         private void EnsureConnectionIsOpen()
         {
