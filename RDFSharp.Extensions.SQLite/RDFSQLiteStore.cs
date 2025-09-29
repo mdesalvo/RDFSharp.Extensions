@@ -785,7 +785,7 @@ namespace RDFSharp.Extensions.SQLite
 #endif
 
                 //Propagate exception
-                throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
+                throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
             }
 
             return this;
