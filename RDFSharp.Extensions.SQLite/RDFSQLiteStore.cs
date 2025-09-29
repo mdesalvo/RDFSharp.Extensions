@@ -92,11 +92,11 @@ namespace RDFSharp.Extensions.SQLite
             //Initialize store structures
             try
             {
-                RDFSQLiteStoreManager sqlserverStoreManager = new RDFSQLiteStoreManager(sqliteConnectionString);
-                sqlserverStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
+                RDFSQLiteStoreManager sqliteStoreManager = new RDFSQLiteStoreManager(sqliteConnectionString);
+                sqliteStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
 
                 StoreType = "SQLITE";
-                Connection = sqlserverStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
+                Connection = sqliteStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
                 SelectCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.SelectTimeout };
                 DeleteCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.DeleteTimeout };
                 InsertCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.InsertTimeout };
