@@ -49,7 +49,7 @@ namespace RDFSharp.Extensions.SQLite
             else
             {
                 string directory = Path.GetDirectoryName(dataSource);
-                if (!Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
                 SQLiteConnection.CreateFile(dataSource);
             }

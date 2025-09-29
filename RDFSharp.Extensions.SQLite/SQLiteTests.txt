@@ -1,12 +1,12 @@
 /* This is the official test suite of RDFSQLiteStore. */
 
-using RDFSharp.Extensions.Firebird;
+using RDFSharp.Extensions.SQLite;
 using RDFSharp.Model;
 using RDFSharp.Store;
 using Xunit;
 
 //Setup
-RDFSQLiteStore sqliteStore = new RDFQLiteStore("Data Source=Example.db");
+RDFSQLiteStore sqliteStore = new RDFSQLiteStore("Data Source=Example.db");
 Assert.NotNull(sqliteStore);
 Assert.Equal("SQLITE", sqliteStore.StoreType);
 

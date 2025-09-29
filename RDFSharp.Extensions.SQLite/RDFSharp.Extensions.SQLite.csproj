@@ -47,6 +47,7 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="RDFSharp" Version="3.22.0" />
+        <PackageReference Include="SourceGear.sqlite3" Version="3.50.4.2" />
         <PackageReference Include="System.Data.SQLite" Version="2.0.2" />
     </ItemGroup>
 </Project>

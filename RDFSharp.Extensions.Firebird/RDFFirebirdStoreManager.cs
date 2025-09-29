@@ -52,7 +52,7 @@ namespace RDFSharp.Extensions.Firebird
             else
             {
                 string directory = Path.GetDirectoryName(_databasePath);
-                if (!Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
                 await FbConnection.CreateDatabaseAsync(_connectionString);
             }
