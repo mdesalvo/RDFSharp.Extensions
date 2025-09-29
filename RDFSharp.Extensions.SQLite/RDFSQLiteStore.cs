@@ -78,37 +78,28 @@ namespace RDFSharp.Extensions.SQLite
         /// <summary>
         /// Default-ctor to build a SQLite store instance (with eventual options)
         /// </summary>
-        public RDFSQLiteStore(string SQLiteDatabasePath, RDFSQLiteStoreOptions SQLiteStoreOptions=null)
+        public RDFSQLiteStore(string sqliteConnectionString, RDFSQLiteStoreOptions sqliteStoreOptions=null)
         {
             #region Guards
-            if (string.IsNullOrWhiteSpace(SQLiteDatabasePath))
-                throw new RDFStoreException("Cannot connect to SQLite store because: given \"SQLiteDatabasePath\" parameter is null or empty.");
+            if (string.IsNullOrWhiteSpace(sqliteConnectionString))
+                throw new RDFStoreException("Cannot connect to SQLite store because: given \"sqliteConnectionString\" parameter is null or empty.");
             #endregion
 
             //Initialize options
-            if (SQLiteStoreOptions == null)
-                SQLiteStoreOptions = new RDFSQLiteStoreOptions();
-
-            //Initialize store
-            StoreType = "SQLite";
-            Connection = new SQLiteConnection($"Data Source={SQLiteDatabasePath}");
-            SelectCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.SelectTimeout };
-            DeleteCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.DeleteTimeout };
-            InsertCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.InsertTimeout };
-            StoreID = RDFModelUtilities.CreateHash(ToString());
-            Disposed = false;
+            if (sqliteStoreOptions == null)
+                sqliteStoreOptions = new RDFSQLiteStoreOptions();
 
             //Initialize store structures
             try
             {
-                RDFSQLiteStoreManager sqlserverStoreManager = new RDFSQLiteStoreManager(SQLiteDatabasePath);
+                RDFSQLiteStoreManager sqlserverStoreManager = new RDFSQLiteStoreManager(sqliteConnectionString);
                 sqlserverStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
 
-                StoreType = "SQLite";
+                StoreType = "SQLITE";
                 Connection = sqlserverStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.SelectTimeout };
-                DeleteCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.DeleteTimeout };
-                InsertCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = SQLiteStoreOptions.InsertTimeout };
+                SelectCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.SelectTimeout };
+                DeleteCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.DeleteTimeout };
+                InsertCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.InsertTimeout };
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }

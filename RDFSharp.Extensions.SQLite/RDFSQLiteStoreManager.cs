@@ -17,7 +17,6 @@
 using System;
 using System.Data.SQLite;
 using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.SQLite
@@ -28,40 +27,37 @@ namespace RDFSharp.Extensions.SQLite
 
     internal class RDFSQLiteStoreManager
     {
-        private readonly string _databasePath;
+        private readonly string _connectionString;
 
-        internal RDFSQLiteStoreManager(string databasePath)
-            => _databasePath = databasePath;
+        internal RDFSQLiteStoreManager(string connectionString)
+            => _connectionString = connectionString;
 
-        internal Task InitializeDatabaseAndTableAsync()
-            => EnsureDatabaseExistsAsync();
+        internal async Task InitializeDatabaseAndTableAsync()
+        {
+            await EnsureDatabaseExistsAsync();
+            await EnsureQuadruplesTableExistsAsync();
+        }
 
         private async Task EnsureDatabaseExistsAsync()
         {
-            if (File.Exists(_databasePath))
+            string dataSource = new SQLiteConnectionStringBuilder(_connectionString).DataSource;
+            if (File.Exists(dataSource))
             {
-                await EnsureQuadruplesTableExistsAsync();
-                return;
+                using (SQLiteConnection sqliteConnection = new SQLiteConnection(_connectionString))
+                    await sqliteConnection.OpenAsync();
             }
-
-            //Template
-            string directory = Path.GetDirectoryName(_databasePath);
-            if (!Directory.Exists(directory))
-                Directory.CreateDirectory(directory);
-            using (Stream templateDB = Assembly.GetExecutingAssembly().GetManifestResourceStream("RDFSharp.Extensions.SQLite.RDFSQLiteTemplate.db"))
+            else
             {
-                using (FileStream targetDB = new FileStream(_databasePath, FileMode.Create, FileAccess.ReadWrite))
-#if NET8_0_OR_GREATER
-                    await templateDB.CopyToAsync(targetDB);
-#else
-                    templateDB.CopyTo(targetDB);
-#endif
+                string directory = Path.GetDirectoryName(dataSource);
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
+                SQLiteConnection.CreateFile(dataSource);
             }
         }
 
         private async Task EnsureQuadruplesTableExistsAsync()
         {
-            using (SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={_databasePath}"))
+            using (SQLiteConnection sqliteConnection = new SQLiteConnection(_connectionString))
             {
                 await sqliteConnection.OpenAsync();
                 if (!await TableExistsAsync(sqliteConnection, "Quadruples"))
@@ -69,26 +65,57 @@ namespace RDFSharp.Extensions.SQLite
             }
         }
 
-        private async Task<bool> TableExistsAsync(SQLiteConnection connection, string tableName)
+        private async Task<bool> TableExistsAsync(SQLiteConnection sqliteConnection, string tableName)
         {
-            using (SQLiteCommand command = new SQLiteCommand($"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{tableName}'", connection))
+            using (SQLiteCommand command = new SQLiteCommand($"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{tableName}'", sqliteConnection))
             {
                 object result = await command.ExecuteScalarAsync();
                 return Convert.ToInt32(result) > 0;
             }
         }
 
-        private async Task CreateQuadruplesTableAsync(SQLiteConnection connection)
+        private async Task CreateQuadruplesTableAsync(SQLiteConnection sqliteConnection)
         {
-            using (SQLiteCommand createCommand = new SQLiteCommand("CREATE TABLE Quadruples (QuadrupleID INTEGER NOT NULL PRIMARY KEY, TripleFlavor INTEGER NOT NULL, Context VARCHAR(1000) NOT NULL, ContextID INTEGER NOT NULL, Subject VARCHAR(1000) NOT NULL, SubjectID INTEGER NOT NULL, Predicate VARCHAR(1000) NOT NULL, PredicateID INTEGER NOT NULL, Object VARCHAR(1000) NOT NULL, ObjectID INTEGER NOT NULL);CREATE INDEX IDX_ContextID ON Quadruples (ContextID);CREATE INDEX IDX_SubjectID ON Quadruples (SubjectID);CREATE INDEX IDX_PredicateID ON Quadruples (PredicateID);CREATE INDEX IDX_ObjectID ON Quadruples (ObjectID,TripleFlavor);CREATE INDEX IDX_SubjectID_PredicateID ON Quadruples (SubjectID,PredicateID);CREATE INDEX IDX_SubjectID_ObjectID ON Quadruples (SubjectID,ObjectID,TripleFlavor);CREATE INDEX IDX_PredicateID_ObjectID ON Quadruples (PredicateID,ObjectID,TripleFlavor);", connection))
+            using (SQLiteCommand createCommand = sqliteConnection.CreateCommand())
+            {
+                createCommand.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS Quadruples (
+                        QuadrupleID INTEGER PRIMARY KEY,
+                        TripleFlavor INTEGER NOT NULL,
+                        Context TEXT,
+                        ContextID INTEGER NOT NULL,
+                        Subject TEXT,
+                        SubjectID INTEGER NOT NULL,
+                        Predicate TEXT,
+                        PredicateID INTEGER NOT NULL,
+                        Object TEXT,
+                        ObjectID INTEGER NOT NULL
+                    );";
                 await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE UNIQUE INDEX IF NOT EXISTS IX_Quadruples_QuadrupleID ON Quadruples(QuadrupleID);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_ContextID ON Quadruples(ContextID);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_SubjectID ON Quadruples(SubjectID);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_PredicateID ON Quadruples(PredicateID);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_ObjectID_TripleFlavor ON Quadruples(ObjectID, TripleFlavor);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_SubjectID_PredicateID ON Quadruples(SubjectID, PredicateID);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_SubjectID_ObjectID_TripleFlavor ON Quadruples(SubjectID, ObjectID, TripleFlavor);";
+                await createCommand.ExecuteNonQueryAsync();
+                createCommand.CommandText = "CREATE INDEX IF NOT EXISTS IX_Quadruples_PredicateID_ObjectID_TripleFlavor ON Quadruples(PredicateID, ObjectID, TripleFlavor);";
+                await createCommand.ExecuteNonQueryAsync();
+            }
         }
 
         public async Task<SQLiteConnection> GetConnectionAsync()
         {
-            SQLiteConnection connection = new SQLiteConnection($"Data Source={_databasePath}");
-            await connection.OpenAsync();
-            return connection;
+            SQLiteConnection sqliteConnection = new SQLiteConnection(_connectionString);
+            await sqliteConnection.OpenAsync();
+            return sqliteConnection;
         }
     }
 }
