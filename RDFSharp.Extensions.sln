@@ -15,8 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.Oracle"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.PostgreSQL", "RDFSharp.Extensions.PostgreSQL\RDFSharp.Extensions.PostgreSQL.csproj", "{73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}"
 EndProject
-# Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLite", "RDFSharp.Extensions.SQLite\RDFSharp.Extensions.SQLite.csproj", "{5C96900F-2B4B-446A-B02F-32BB289E21E0}"
-# EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLite", "RDFSharp.Extensions.SQLite\RDFSharp.Extensions.SQLite.csproj", "{5C96900F-2B4B-446A-B02F-32BB289E21E0}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RDFSharp.Extensions.SQLServer", "RDFSharp.Extensions.SQLServer\RDFSharp.Extensions.SQLServer.csproj", "{6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}"
 EndProject
 Global
@@ -49,10 +49,10 @@ Global
         {73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {73D109AE-673D-4EB4-8BC9-0E6DDFB3DED3}.Release|Any CPU.Build.0 = Release|Any CPU
-        #{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-        #{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-        #{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-        #{5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.Build.0 = Release|Any CPU
+        {5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {5C96900F-2B4B-446A-B02F-32BB289E21E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {5C96900F-2B4B-446A-B02F-32BB289E21E0}.Release|Any CPU.Build.0 = Release|Any CPU
         {6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
         {6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {6A7FE654-1B71-4433-B008-6DA0AB0FCBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU

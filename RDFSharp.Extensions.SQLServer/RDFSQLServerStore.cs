@@ -1366,8 +1366,8 @@ namespace RDFSharp.Extensions.SQLServer
                     break;
             }
         }
-#endregion
+        #endregion
 
-#endregion
+        #endregion
     }
 }
