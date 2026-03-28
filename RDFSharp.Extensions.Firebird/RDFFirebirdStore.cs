@@ -756,7 +756,7 @@ namespace RDFSharp.Extensions.Firebird
             //Create command
             SelectCommand.CommandText = "SELECT COUNT(1) FROM RDB$DATABASE WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)";
             SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new FbParameter("QID", FbDbType.Integer));
+            SelectCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
             SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
             //Prepare and execute command
@@ -802,6 +802,11 @@ namespace RDFSharp.Extensions.Firebird
         /// <exception cref="RDFStoreException"></exception>
         public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
             //Build filters

@@ -437,6 +437,11 @@ namespace RDFSharp.Extensions.AzureTable
         /// <exception cref="RDFStoreException"></exception>
         public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
             //Build filters
@@ -530,15 +535,22 @@ namespace RDFSharp.Extensions.AzureTable
 
                 //Transform entities into quadruples
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
-                while (await quadruplesEnum.MoveNextAsync())
+                try
                 {
-                    RDFContext qContext = new RDFContext(quadruplesEnum.Current.C);
-                    RDFPatternMember qSubject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.S);
-                    RDFPatternMember qPredicate = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.P);
-                    RDFPatternMember qObject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.O);
-                    result.Add(quadruplesEnum.Current.F == (int)RDFModelEnums.RDFTripleFlavors.SPO
-                        ? new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFResource)qObject)
-                        : new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFLiteral)qObject));
+                    while (await quadruplesEnum.MoveNextAsync())
+                    {
+                        RDFContext qContext = new RDFContext(quadruplesEnum.Current.C);
+                        RDFPatternMember qSubject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.S);
+                        RDFPatternMember qPredicate = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.P);
+                        RDFPatternMember qObject = RDFQueryUtilities.ParseRDFPatternMember(quadruplesEnum.Current.O);
+                        result.Add(quadruplesEnum.Current.F == (int)RDFModelEnums.RDFTripleFlavors.SPO
+                            ? new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFResource)qObject)
+                            : new RDFQuadruple(qContext, (RDFResource)qSubject, (RDFResource)qPredicate, (RDFLiteral)qObject));
+                    }
+                }
+                finally
+                {
+                    await quadruplesEnum.DisposeAsync();
                 }
             }
             catch (Exception ex)
@@ -561,8 +573,15 @@ namespace RDFSharp.Extensions.AzureTable
 
                 long quadruplesCount = 0;
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
-                while (await quadruplesEnum.MoveNextAsync())
-                    quadruplesCount++;
+                try
+                {
+                    while (await quadruplesEnum.MoveNextAsync())
+                        quadruplesCount++;
+                }
+                finally
+                {
+                    await quadruplesEnum.DisposeAsync();
+                }
 
                 //Return the quadruples count
                 return quadruplesCount;
@@ -589,7 +608,7 @@ namespace RDFSharp.Extensions.AzureTable
             List<TableTransactionAction> batch = new List<TableTransactionAction>(100);
             foreach (RDFTriple triple in graph)
             {
-                batch.Add(new TableTransactionAction(TableTransactionActionType.UpdateReplace,
+                batch.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace,
                     new RDFAzureTableQuadruple(new RDFQuadruple(graphContext, triple))));
                 if (batch.Count == 100)
                 {

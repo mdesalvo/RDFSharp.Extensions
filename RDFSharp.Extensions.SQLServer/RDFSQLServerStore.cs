@@ -965,6 +965,11 @@ namespace RDFSharp.Extensions.SQLServer
         /// <exception cref="RDFStoreException"></exception>
         public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple> result = new List<RDFQuadruple>();
 
             //Build filters
@@ -1310,14 +1315,15 @@ namespace RDFSharp.Extensions.SQLServer
                 await EnsureConnectionIsOpenAsync();
 
                 //Create command
-                SqlCommand optimizeCommand = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", Connection);
-
-                //Execute command
+                using (SqlCommand optimizeCommand = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", Connection))
+                {
+                    //Execute command
 #if NET8_0_OR_GREATER
-                await optimizeCommand.ExecuteNonQueryAsync();
+                    await optimizeCommand.ExecuteNonQueryAsync();
 #else
-                optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.ExecuteNonQuery();
 #endif
+                }
 
                 //Close connection
 #if NET8_0_OR_GREATER

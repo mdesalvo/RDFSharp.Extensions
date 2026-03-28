@@ -804,6 +804,11 @@ namespace RDFSharp.Extensions.MySQL
         /// <exception cref="RDFStoreException"></exception>
         public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
             //Build filters
@@ -1125,10 +1130,11 @@ namespace RDFSharp.Extensions.MySQL
                 await EnsureConnectionIsOpenAsync();
 
                 //Create command
-                MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection);
-
-                //Execute command
-                await optimizeCommand.ExecuteNonQueryAsync();
+                using (MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection))
+                {
+                    //Execute command
+                    await optimizeCommand.ExecuteNonQueryAsync();
+                }
 
                 //Close connection
                 await Connection.CloseAsync();

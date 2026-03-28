@@ -948,6 +948,11 @@ namespace RDFSharp.Extensions.SQLite
         /// <exception cref="RDFStoreException"></exception>
         public override async Task<List<RDFQuadruple>> SelectQuadruplesAsync(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple> result = new List<RDFQuadruple>();
 
             //Build filters
@@ -1293,10 +1298,11 @@ namespace RDFSharp.Extensions.SQLite
                 await EnsureConnectionIsOpenAsync();
 
                 //Create command
-                SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", Connection);
-
-                //Execute command
-                await optimizeCommand.ExecuteNonQueryAsync();
+                using (SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", Connection))
+                {
+                    //Execute command
+                    await optimizeCommand.ExecuteNonQueryAsync();
+                }
 
                 //Close connection
 #if NET8_0_OR_GREATER

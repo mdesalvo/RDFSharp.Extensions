@@ -801,6 +801,11 @@ namespace RDFSharp.Extensions.Oracle
         /// <exception cref="RDFStoreException"></exception>
         public override List<RDFQuadruple> SelectQuadruples(RDFContext c=null, RDFResource s=null, RDFResource p=null, RDFResource o=null, RDFLiteral l=null)
         {
+            #region Guards
+            if (o != null && l != null)
+                throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
+            #endregion
+
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
             //Build filters
@@ -921,7 +926,7 @@ namespace RDFSharp.Extensions.Oracle
                         SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
                         break;
                     case "CPO":
-                        SelectCommand.CommandText = $"SELECT TripleFlavor, Context, Subject, Predicate, Object FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND \"PREDID\" = :PREDID AND \"OBJID\" = :OBJID AND TRIPLEFLAVOR = :TFV";
+                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
                         SelectCommand.Parameters.Clear();
                         SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
                         SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
@@ -1131,20 +1136,22 @@ namespace RDFSharp.Extensions.Oracle
                 EnsureConnectionIsOpen();
 
                 //Create command
-                OracleCommand optimizeCommand = new OracleCommand($"ALTER INDEX {ConnectionBuilder.UserID}.IDX_CONTEXTID REBUILD", Connection);
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_PREDICATEID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_OBJECTID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID_PREDICATEID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID_OBJECTID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
-                optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_PREDICATEID_OBJECTID REBUILD";
-                optimizeCommand.ExecuteNonQuery();
+                using (OracleCommand optimizeCommand = new OracleCommand($"ALTER INDEX {ConnectionBuilder.UserID}.IDX_CONTEXTID REBUILD", Connection))
+                {
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_PREDICATEID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_OBJECTID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID_PREDICATEID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_SUBJECTID_OBJECTID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                    optimizeCommand.CommandText = $"ALTER INDEX {ConnectionBuilder.UserID}.IDX_PREDICATEID_OBJECTID REBUILD";
+                    optimizeCommand.ExecuteNonQuery();
+                }
 
                 //Close connection
                 Connection.Close();
