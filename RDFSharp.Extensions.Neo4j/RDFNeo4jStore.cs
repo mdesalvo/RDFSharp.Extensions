@@ -20,7 +20,6 @@ using RDFSharp.Query;
 using RDFSharp.Store;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.Neo4j
@@ -325,113 +324,16 @@ namespace RDFSharp.Extensions.Neo4j
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
-
-            (string query, object parameters) neo4jQuery = (string.Empty, null);
-            switch (queryFilters.ToString())
+            //Build query
+            (string query, object parameters) neo4jQuery;
+            if (c == null && s == null && p == null && o == null && l == null)
             {
-                case "C":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->() DELETE p";
-                    neo4jQuery.parameters = new { ctx = c.ToString() };
-                    break;
-                case "S":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->() DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString() };
-                    break;
-                case "P":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->() DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString() };
-                    break;
-                case "O":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { obj = o.ToString() };
-                    break;
-                case "L":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { val = l.ToString() };
-                    break;
-                case "CS":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->() DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString() };
-                    break;
-                case "CP":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->() DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString() };
-                    break;
-                case "CO":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CL":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CSP":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->() DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString() };
-                    break;
-                case "CSO":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CSL":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CPO":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CPL":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CSPO":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CSPL":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "SP":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->() DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString() };
-                    break;
-                case "SO":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), obj = o.ToString() };
-                    break;
-                case "SL":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), val = l.ToString() };
-                    break;
-                case "SPO":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), obj = o.ToString() };
-                    break;
-                case "SPL":
-                    neo4jQuery.query = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { subj = s.ToString(), pred = p.ToString(), val = l.ToString() };
-                    break;
-                case "PO":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString(), obj = o.ToString() };
-                    break;
-                case "PL":
-                    neo4jQuery.query = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) DELETE p";
-                    neo4jQuery.parameters = new { pred = p.ToString(), val = l.ToString() };
-                    break;
-                //SELECT *
-                default:
-                    neo4jQuery.query = "MATCH (n) DETACH DELETE (n)";
-                    break;
+                neo4jQuery = ("MATCH (n) DETACH DELETE (n)", new Dictionary<string, object>());
+            }
+            else
+            {
+                var built = BuildCypherMatchQuery("DELETE p", c, s, p, o, l);
+                neo4jQuery = (built.query, built.parameters);
             }
 
             using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
@@ -575,122 +477,40 @@ namespace RDFSharp.Extensions.Neo4j
 
             List<RDFQuadruple> result = new List<RDFQuadruple>();
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
-
+            //Build queries
             string oQuery = null, lQuery = null;
-            object parameters = null;
-            switch (queryFilters.ToString())
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+
+            string oAction = "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
+            string lAction = "RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
+
+            if (o != null)
             {
-                case "C":
-                    oQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { ctx = c.ToString() };
-                    break;
-                case "S":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString() };
-                    break;
-                case "P":
-                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { pred = p.ToString() };
-                    break;
-                case "O":
-                    oQuery = "MATCH (s:Resource)-[p:Property]->(o:Resource{ uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { obj = o.ToString() };
-                    break;
-                case "L":
-                    lQuery = "MATCH (s:Resource)-[p:Property]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { val = l.ToString() };
-                    break;
-                case "CS":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), ctx = c.ToString() };
-                    break;
-                case "CP":
-                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { pred = p.ToString(), ctx = c.ToString() };
-                    break;
-                case "CO":
-                    oQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CL":
-                    lQuery = "MATCH (s:Resource)-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CSP":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString() };
-                    break;
-                case "CSO":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { subj = s.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CSL":
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CPO":
-                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CPL":
-                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "CSPO":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), obj = o.ToString() };
-                    break;
-                case "CSPL":
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred, ctx:$ctx }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), pred = p.ToString(), ctx = c.ToString(), val = l.ToString() };
-                    break;
-                case "SP":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), pred = p.ToString() };
-                    break;
-                case "SO":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { subj = s.ToString(), obj = o.ToString() };
-                    break;
-                case "SL":
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), val = l.ToString() };
-                    break;
-                case "SPO":
-                    oQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { subj = s.ToString(), pred = p.ToString(), obj = o.ToString() };
-                    break;
-                case "SPL":
-                    lQuery = "MATCH (s:Resource { uri:$subj })-[p:Property { uri:$pred }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { subj = s.ToString(), pred = p.ToString(), val = l.ToString() };
-                    break;
-                case "PO":
-                    oQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(o:Resource { uri:$obj }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    parameters = new { pred = p.ToString(), obj = o.ToString() };
-                    break;
-                case "PL":
-                    lQuery = "MATCH (s:Resource)-[p:Property { uri:$pred }]->(l:Literal { value:$val }) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    parameters = new { pred = p.ToString(), val = l.ToString() };
-                    break;
-                //SELECT *
-                default:
-                    oQuery = "MATCH (s:Resource)-[p:Property]->(o:Resource) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, o.uri as object";
-                    lQuery = "MATCH (s:Resource)-[p:Property]->(l:Literal) RETURN s.uri as subject, p.uri as predicate, p.ctx as context, l.value as literal";
-                    break;
+                var built = BuildCypherMatchQuery(oAction, c, s, p, o, null);
+                oQuery = built.query;
+                parameters = built.parameters;
+            }
+            else if (l != null)
+            {
+                var built = BuildCypherMatchQuery(lAction, c, s, p, null, l);
+                lQuery = built.query;
+                parameters = built.parameters;
+            }
+            else
+            {
+                //When neither O nor L is specified, run both queries to get all flavors
+                //Build shared subject/relationship parts via helper, then compose with explicit target nodes
+                parameters = new Dictionary<string, object>();
+                string subjectPart = s != null ? "(s:Resource { uri:$subj })" : "(s:Resource)";
+                if (s != null) parameters["subj"] = s.ToString();
+                List<string> relProps = new List<string>();
+                if (p != null) { relProps.Add("uri:$pred"); parameters["pred"] = p.ToString(); }
+                if (c != null) { relProps.Add("ctx:$ctx"); parameters["ctx"] = c.ToString(); }
+                string relPart = relProps.Count > 0
+                    ? $"[p:Property {{ {string.Join(", ", relProps)} }}]"
+                    : "[p:Property]";
+                oQuery = $"MATCH {subjectPart}-{relPart}->(o:Resource) {oAction}";
+                lQuery = $"MATCH {subjectPart}-{relPart}->(l:Literal) {lAction}";
             }
 
             using (IAsyncSession neo4jSession = Driver.AsyncSession(ssn => ssn.WithDatabase(DatabaseName)))
@@ -777,6 +597,57 @@ namespace RDFSharp.Extensions.Neo4j
                     return -1;
                 }
             }
+        }
+        #endregion
+
+        #region Helpers
+        /// <summary>
+        /// Builds a parameterized Cypher MATCH query from the given CSPOL combination
+        /// </summary>
+        private static (string query, Dictionary<string, object> parameters) BuildCypherMatchQuery(string action, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
+        {
+            Dictionary<string, object> parameters = new Dictionary<string, object>();
+
+            //Subject node
+            string subjectPart = s != null ? "(s:Resource { uri:$subj })" : "(s:Resource)";
+            if (s != null)
+                parameters["subj"] = s.ToString();
+
+            //Relationship properties
+            List<string> relProps = new List<string>();
+            if (p != null)
+            {
+                relProps.Add("uri:$pred");
+                parameters["pred"] = p.ToString();
+            }
+            if (c != null)
+            {
+                relProps.Add("ctx:$ctx");
+                parameters["ctx"] = c.ToString();
+            }
+            string relPart = relProps.Count > 0
+                ? $"[p:Property {{ {string.Join(", ", relProps)} }}]"
+                : "[p:Property]";
+
+            //Target node
+            string targetPart;
+            if (o != null)
+            {
+                targetPart = "(o:Resource { uri:$obj })";
+                parameters["obj"] = o.ToString();
+            }
+            else if (l != null)
+            {
+                targetPart = "(l:Literal { value:$val })";
+                parameters["val"] = l.ToString();
+            }
+            else
+            {
+                targetPart = "()";
+            }
+
+            string query = $"MATCH {subjectPart}-{relPart}->{targetPart} {action}";
+            return (query, parameters);
         }
         #endregion
 

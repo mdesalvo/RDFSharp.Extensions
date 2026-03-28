@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FirebirdSql.Data.FirebirdClient;
@@ -406,252 +405,10 @@ namespace RDFSharp.Extensions.Firebird
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
-
             try
             {
-                switch (queryFilters.ToString())
-                {
-                    case "C":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        break;
-                    case "S":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "P":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "O":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "L":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CS":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "CP":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSP":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CSO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CPO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CPL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSPO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSPL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SP":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "SO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SPO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SPL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "PO":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "PL":
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        DeleteCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    //SELECT *
-                    default:
-                        DeleteCommand.CommandText = "DELETE FROM Quadruples";
-                        DeleteCommand.Parameters.Clear();
-                        break;
-                }
+                //Prepare command
+                PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
 
                 //Open connection
                 await EnsureConnectionIsOpenAsync();
@@ -809,253 +566,11 @@ namespace RDFSharp.Extensions.Firebird
 
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
-
             //Prepare and execute command
             try
             {
-                switch (queryFilters.ToString())
-                {
-                    case "C":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        break;
-                    case "S":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "P":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "O":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "L":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CS":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "CP":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSP":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CSO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CPO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CPL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSPO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSPL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE ContextID = @CTXID AND SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SP":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "SO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SPO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SPL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE SubjectID = @SUBJID AND PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "PO":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "PL":
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples WHERE PredicateID = @PREDID AND ObjectID = @OBJID AND TripleFlavor = @TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-                        SelectCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    //SELECT *
-                    default:
-                        SelectCommand.CommandText = "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples";
-                        SelectCommand.Parameters.Clear();
-                        break;
-                }
+                //Prepare command
+                PrepareSelectDeleteCommand(SelectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
 
                 //Open connection
                 await EnsureConnectionIsOpenAsync();
@@ -1117,6 +632,53 @@ namespace RDFSharp.Extensions.Firebird
         #endregion
 
         #region Utilities
+        private void PrepareSelectDeleteCommand(FbCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
+        {
+            command.Parameters.Clear();
+            List<string> conditions = new List<string>();
+
+            if (c != null)
+            {
+                conditions.Add("ContextID = @CTXID");
+                command.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
+                command.Parameters["CTXID"].Value = c.PatternMemberID;
+            }
+            if (s != null)
+            {
+                conditions.Add("SubjectID = @SUBJID");
+                command.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
+                command.Parameters["SUBJID"].Value = s.PatternMemberID;
+            }
+            if (p != null)
+            {
+                conditions.Add("PredicateID = @PREDID");
+                command.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
+                command.Parameters["PREDID"].Value = p.PatternMemberID;
+            }
+            if (o != null)
+            {
+                conditions.Add("ObjectID = @OBJID");
+                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
+                command.Parameters["OBJID"].Value = o.PatternMemberID;
+                conditions.Add("TripleFlavor = @TFV");
+                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPO;
+            }
+            if (l != null)
+            {
+                conditions.Add("ObjectID = @OBJID");
+                command.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
+                command.Parameters["OBJID"].Value = l.PatternMemberID;
+                conditions.Add("TripleFlavor = @TFV");
+                command.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                command.Parameters["TFV"].Value = RDFModelEnums.RDFTripleFlavors.SPL;
+            }
+
+            command.CommandText = conditions.Count > 0
+                ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
+                : baseSql;
+        }
+
         private async Task EnsureConnectionIsOpenAsync()
         {
             switch (Connection.State)

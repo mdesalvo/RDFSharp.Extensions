@@ -404,253 +404,11 @@ namespace RDFSharp.Extensions.Oracle
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
+            //Prepare command
+            PrepareSelectDeleteCommand(DeleteCommand, $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES", c, s, p, o, l);
 
             try
             {
-                switch (queryFilters.ToString())
-                {
-                    case "C":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        break;
-                    case "S":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "P":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "O":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "L":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CS":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "CP":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSP":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CSO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CPO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CPL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSPO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSPL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SP":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "SO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SPO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SPL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "PO":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "PL":
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        DeleteCommand.Parameters.Clear();
-                        DeleteCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        DeleteCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        DeleteCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        DeleteCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        DeleteCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    //SELECT *
-                    default:
-                        DeleteCommand.CommandText = $"DELETE FROM {ConnectionBuilder.UserID}.QUADRUPLES";
-                        DeleteCommand.Parameters.Clear();
-                        break;
-                }
-
                 //Open connection
                 EnsureConnectionIsOpen();
 
@@ -808,254 +566,12 @@ namespace RDFSharp.Extensions.Oracle
 
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Build filters
-            StringBuilder queryFilters = new StringBuilder();
-            if (c != null) queryFilters.Append('C');
-            if (s != null) queryFilters.Append('S');
-            if (p != null) queryFilters.Append('P');
-            if (o != null) queryFilters.Append('O');
-            if (l != null) queryFilters.Append('L');
+            //Prepare command
+            PrepareSelectDeleteCommand(SelectCommand, $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES", c, s, p, o, l);
 
             //Prepare and execute command
             try
             {
-                switch (queryFilters.ToString())
-                {
-                    case "C":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        break;
-                    case "S":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "P":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "O":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "L":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CS":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        break;
-                    case "CP":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSP":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "CSO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CPO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CPL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "CSPO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "CSPL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE CONTEXTID = :CTXID AND SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["CTXID"].Value = c.PatternMemberID;
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SP":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        break;
-                    case "SO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "SPO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "SPL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE SUBJECTID = :SUBJID AND PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["SUBJID"].Value = s.PatternMemberID;
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    case "PO":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = o.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
-                        break;
-                    case "PL":
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES WHERE PREDICATEID = :PREDID AND OBJECTID = :OBJID AND TRIPLEFLAVOR = :TFV";
-                        SelectCommand.Parameters.Clear();
-                        SelectCommand.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
-                        SelectCommand.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
-                        SelectCommand.Parameters["PREDID"].Value = p.PatternMemberID;
-                        SelectCommand.Parameters["OBJID"].Value = l.PatternMemberID;
-                        SelectCommand.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
-                        break;
-                    //SELECT *
-                    default:
-                        SelectCommand.CommandText = $"SELECT TRIPLEFLAVOR, CONTEXT, SUBJECT, PREDICATE, OBJECT FROM {ConnectionBuilder.UserID}.QUADRUPLES";
-                        SelectCommand.Parameters.Clear();
-                        break;
-                }
-
                 //Open connection
                 EnsureConnectionIsOpen();
 
@@ -1168,6 +684,53 @@ namespace RDFSharp.Extensions.Oracle
         #endregion
 
         #region Utilities
+        private void PrepareSelectDeleteCommand(OracleCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
+        {
+            command.Parameters.Clear();
+            List<string> conditions = new List<string>();
+
+            if (c != null)
+            {
+                conditions.Add("CONTEXTID = :CTXID");
+                command.Parameters.Add(new OracleParameter("CTXID", OracleDbType.Int64));
+                command.Parameters["CTXID"].Value = c.PatternMemberID;
+            }
+            if (s != null)
+            {
+                conditions.Add("SUBJECTID = :SUBJID");
+                command.Parameters.Add(new OracleParameter("SUBJID", OracleDbType.Int64));
+                command.Parameters["SUBJID"].Value = s.PatternMemberID;
+            }
+            if (p != null)
+            {
+                conditions.Add("PREDICATEID = :PREDID");
+                command.Parameters.Add(new OracleParameter("PREDID", OracleDbType.Int64));
+                command.Parameters["PREDID"].Value = p.PatternMemberID;
+            }
+            if (o != null)
+            {
+                conditions.Add("OBJECTID = :OBJID");
+                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                command.Parameters["OBJID"].Value = o.PatternMemberID;
+                conditions.Add("TRIPLEFLAVOR = :TFV");
+                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPO;
+            }
+            if (l != null)
+            {
+                conditions.Add("OBJECTID = :OBJID");
+                command.Parameters.Add(new OracleParameter("OBJID", OracleDbType.Int64));
+                command.Parameters["OBJID"].Value = l.PatternMemberID;
+                conditions.Add("TRIPLEFLAVOR = :TFV");
+                command.Parameters.Add(new OracleParameter("TFV", OracleDbType.Int32));
+                command.Parameters["TFV"].Value = (int)RDFModelEnums.RDFTripleFlavors.SPL;
+            }
+
+            command.CommandText = conditions.Count > 0
+                ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
+                : baseSql;
+        }
+
         private void EnsureConnectionIsOpen()
         {
             switch (Connection.State)
