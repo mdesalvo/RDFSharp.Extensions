@@ -7,6 +7,8 @@
 /RDFSharp.Extensions.AzureTable/obj
 /RDFSharp.Extensions.Firebird/bin
 /RDFSharp.Extensions.Firebird/obj
+/RDFSharp.Extensions.MongoDB/bin
+/RDFSharp.Extensions.MongoDB/obj
 /RDFSharp.Extensions.MySQL/bin
 /RDFSharp.Extensions.MySQL/obj
 /RDFSharp.Extensions.Neo4j/bin
