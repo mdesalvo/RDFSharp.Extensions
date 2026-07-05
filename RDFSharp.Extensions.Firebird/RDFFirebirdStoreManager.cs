@@ -117,12 +117,5 @@ namespace RDFSharp.Extensions.Firebird
             }
             throw new ArgumentException("Database path not found in connection string");
         }
-
-        public async Task<FbConnection> GetConnectionAsync()
-        {
-            FbConnection connection = new FbConnection(_connectionString);
-            await connection.OpenAsync();
-            return connection;
-        }
     }
 }

@@ -110,12 +110,5 @@ namespace RDFSharp.Extensions.SQLite
                 await createCommand.ExecuteNonQueryAsync();
             }
         }
-
-        public async Task<SQLiteConnection> GetConnectionAsync()
-        {
-            SQLiteConnection sqliteConnection = new SQLiteConnection(_connectionString);
-            await sqliteConnection.OpenAsync();
-            return sqliteConnection;
-        }
     }
 }

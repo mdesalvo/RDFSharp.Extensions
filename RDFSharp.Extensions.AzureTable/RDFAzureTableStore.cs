@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Linq;
+using System.Linq.Expressions;
 using RDFSharp.Query;
 using System.Threading.Tasks;
 
@@ -259,8 +260,8 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 //Build filter and execute query
-                string filter = BuildQuadrupleFilter(c, s, p, o, l);
-                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query<RDFAzureTableQuadruple>(filter);
+                Expression<Func<RDFAzureTableQuadruple, bool>> filter = BuildQuadrupleFilter(c, s, p, o, l);
+                Pageable<RDFAzureTableQuadruple> quadruples = Client.Query(filter);
 
                 //Execute the operation as a set of delete batches
                 foreach (IEnumerable<TableTransactionAction> batch in PrepareDeleteBatch(quadruples.AsEnumerable()))
@@ -364,8 +365,8 @@ namespace RDFSharp.Extensions.AzureTable
             try
             {
                 //Build filter and execute query
-                string filter = BuildQuadrupleFilter(c, s, p, o, l);
-                AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync<RDFAzureTableQuadruple>(filter);
+                Expression<Func<RDFAzureTableQuadruple, bool>> filter = BuildQuadrupleFilter(c, s, p, o, l);
+                AsyncPageable<RDFAzureTableQuadruple> quadruples = Client.QueryAsync(filter);
 
                 //Transform entities into quadruples
                 IAsyncEnumerator<RDFAzureTableQuadruple> quadruplesEnum = quadruples.GetAsyncEnumerator();
@@ -430,30 +431,41 @@ namespace RDFSharp.Extensions.AzureTable
 
         #endregion
 
-        private static string BuildQuadrupleFilter(RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
+        /// <summary>
+        /// Builds a LINQ filter expression for the given combination of CSPOL accessors.<br/>
+        /// (using an expression tree instead of string interpolation avoids malformed/unsafe OData
+        /// filters when RDF term values contain characters like single quotes, e.g. "O'Brien")
+        /// </summary>
+        private static Expression<Func<RDFAzureTableQuadruple, bool>> BuildQuadrupleFilter(RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            List<string> conditions = new List<string>();
-            conditions.Add("PartitionKey eq 'RDFSHARP'");
+            ParameterExpression param = Expression.Parameter(typeof(RDFAzureTableQuadruple), "q");
+            Expression body = StringEqual(param, nameof(RDFAzureTableQuadruple.PartitionKey), "RDFSHARP");
 
             if (c != null)
-                conditions.Add($"C eq '{c}'");
+                body = Expression.AndAlso(body, StringEqual(param, nameof(RDFAzureTableQuadruple.C), c.ToString()));
             if (s != null)
-                conditions.Add($"S eq '{s}'");
+                body = Expression.AndAlso(body, StringEqual(param, nameof(RDFAzureTableQuadruple.S), s.ToString()));
             if (p != null)
-                conditions.Add($"P eq '{p}'");
+                body = Expression.AndAlso(body, StringEqual(param, nameof(RDFAzureTableQuadruple.P), p.ToString()));
             if (o != null)
             {
-                conditions.Add($"O eq '{o}'");
-                conditions.Add($"F eq {(int)RDFModelEnums.RDFTripleFlavors.SPO}");
+                body = Expression.AndAlso(body, StringEqual(param, nameof(RDFAzureTableQuadruple.O), o.ToString()));
+                body = Expression.AndAlso(body, IntEqual(param, nameof(RDFAzureTableQuadruple.F), (int)RDFModelEnums.RDFTripleFlavors.SPO));
             }
             if (l != null)
             {
-                conditions.Add($"O eq '{l}'");
-                conditions.Add($"F eq {(int)RDFModelEnums.RDFTripleFlavors.SPL}");
+                body = Expression.AndAlso(body, StringEqual(param, nameof(RDFAzureTableQuadruple.O), l.ToString()));
+                body = Expression.AndAlso(body, IntEqual(param, nameof(RDFAzureTableQuadruple.F), (int)RDFModelEnums.RDFTripleFlavors.SPL));
             }
 
-            return string.Join(" and ", conditions);
+            return Expression.Lambda<Func<RDFAzureTableQuadruple, bool>>(body, param);
         }
+
+        private static Expression StringEqual(ParameterExpression param, string propertyName, string value)
+            => Expression.Equal(Expression.Property(param, propertyName), Expression.Constant(value, typeof(string)));
+
+        private static Expression IntEqual(ParameterExpression param, string propertyName, int value)
+            => Expression.Equal(Expression.Property(param, propertyName), Expression.Constant(value, typeof(int)));
 
         #region Utilities
 

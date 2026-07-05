@@ -1,5 +1,5 @@
 /*
-   Copyright 2012-2025 Marco De Salvo
+   Copyright 2012-2026 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -78,17 +78,6 @@ namespace RDFSharp.Extensions.SQLServer
                 createCommand.ExecuteNonQuery();
 #endif
             }
-        }
-
-        public async Task<SqlConnection> GetConnectionAsync()
-        {
-            SqlConnection connection = new SqlConnection(_connectionString);
-#if NET8_0_OR_GREATER
-            await connection.OpenAsync();
-#else
-            connection.Open();
-#endif
-            return connection;
         }
     }
 }

@@ -87,12 +87,5 @@ namespace RDFSharp.Extensions.MySQL
                 await createCommand.ExecuteNonQueryAsync();
             }
         }
-
-        public async Task<MySqlConnection> GetConnectionAsync()
-        {
-            MySqlConnection connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-            return connection;
-        }
     }
 }

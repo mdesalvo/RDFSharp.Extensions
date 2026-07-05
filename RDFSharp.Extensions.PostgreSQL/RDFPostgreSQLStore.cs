@@ -1,4 +1,4 @@
-﻿/*
+/*
    Copyright 2012-2025 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,24 +49,16 @@ namespace RDFSharp.Extensions.PostgreSQL
             => GetQuadruplesCountAsync();
 
         /// <summary>
-        /// Connection to the PostgreSQL database
+        /// Connection string to the PostgreSQL database (a new connection is opened for each operation,
+        /// relying on ADO.NET's own connection pooling, so that the store is safe to use concurrently
+        /// -es. as a singleton registered in an ASP.NET Core DI container)
         /// </summary>
-        private NpgsqlConnection Connection { get; set; }
+        private readonly string ConnectionString;
 
         /// <summary>
-        /// Command to execute SELECT queries on the PostgreSQL database
+        /// Options customizing the behaviour of the store
         /// </summary>
-        private NpgsqlCommand SelectCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute INSERT queries on the PostgreSQL database
-        /// </summary>
-        private NpgsqlCommand InsertCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute DELETE queries on the PostgreSQL database
-        /// </summary>
-        private NpgsqlCommand DeleteCommand { get; set; }
+        private readonly RDFPostgreSQLStoreOptions Options;
 
         /// <summary>
         /// Flag indicating that the PostgreSQL store instance has already been disposed
@@ -86,8 +78,7 @@ namespace RDFSharp.Extensions.PostgreSQL
             #endregion
 
             //Initialize options
-            if (pgsqlStoreOptions == null)
-                pgsqlStoreOptions = new RDFPostgreSQLStoreOptions();
+            Options = pgsqlStoreOptions ?? new RDFPostgreSQLStoreOptions();
 
             //Initialize store structures
             try
@@ -96,10 +87,7 @@ namespace RDFSharp.Extensions.PostgreSQL
                 pgSqlStoreManager.EnsureQuadruplesTableExistsAsync().GetAwaiter().GetResult();
 
                 StoreType = "POSTGRESQL";
-                Connection = pgSqlStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.SelectTimeout };
-                DeleteCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.DeleteTimeout };
-                InsertCommand = new NpgsqlCommand { Connection = Connection, CommandTimeout = pgsqlStoreOptions.InsertTimeout };
+                ConnectionString = pgsqlConnectionString;
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }
@@ -121,7 +109,10 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// Gives the string representation of the PostgreSQL store
         /// </summary>
         public override string ToString()
-            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
+        {
+            NpgsqlConnectionStringBuilder builder = new NpgsqlConnectionStringBuilder(ConnectionString);
+            return $"{base.ToString()}|SERVER={builder.Host};DATABASE={builder.Database}";
+        }
 
         /// <summary>
         /// Disposes the PostgreSQL store instance
@@ -148,26 +139,7 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// Disposes the PostgreSQL store instance  (business logic of resources disposal)
         /// </summary>
         private void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            if (disposing)
-            {
-                //Dispose
-                SelectCommand?.Dispose();
-                InsertCommand?.Dispose();
-                DeleteCommand?.Dispose();
-                Connection?.Dispose();
-                //Delete
-                SelectCommand = null;
-                InsertCommand = null;
-                DeleteCommand = null;
-                Connection = null;
-            }
-
-            Disposed = true;
-        }
+            => Disposed = true;
         #endregion
 
         #region Methods
@@ -188,68 +160,73 @@ namespace RDFSharp.Extensions.PostgreSQL
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
-                //Create command
-                InsertCommand.CommandText = "INSERT INTO quadruples(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM quadruples WHERE quadrupleid = @QID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("SUBJ", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("PRED", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("OBJ", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-
+                NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+                NpgsqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
-
-                    //Open transaction
-                    InsertCommand.Transaction = Connection.BeginTransaction();
-
-                    //Iterate triples
-                    foreach (RDFTriple triple in graph)
+                    //Create command
+                    using (NpgsqlCommand insertCommand = new NpgsqlCommand(
+                        "INSERT INTO quadruples(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM quadruples WHERE quadrupleid = @QID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
                     {
-                        //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
-                        InsertCommand.Parameters["TFV"].Value = (int)triple.TripleFlavor;
-                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
-                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
-                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        insertCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("SUBJ", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("PRED", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("OBJ", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
 
-                        //Execute command
-                        await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
+
+                        //Open transaction
+                        transaction = connection.BeginTransaction();
+                        insertCommand.Transaction = transaction;
+
+                        //Iterate triples
+                        foreach (RDFTriple triple in graph)
+                        {
+                            //Valorize parameters
+                            insertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
+                            insertCommand.Parameters["TFV"].Value = (int)triple.TripleFlavor;
+                            insertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                            insertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                            insertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                            insertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                            insertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                            insertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                            insertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                            insertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+
+                            //Execute command
+                            await insertCommand.ExecuteNonQueryAsync();
+                        }
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
                     }
-
-                    //Close transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.CommitAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into PostgreSQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -268,64 +245,69 @@ namespace RDFSharp.Extensions.PostgreSQL
         {
             if (quadruple != null)
             {
-                //Create command
-                InsertCommand.CommandText = "INSERT INTO quadruples(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM quadruples WHERE quadrupleid = @QID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("SUBJ", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("PRED", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("OBJ", NpgsqlDbType.Varchar, 1000));
-                InsertCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
-
-                //Valorize parameters
-                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-                InsertCommand.Parameters["TFV"].Value = (int)quadruple.TripleFlavor;
-                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
-                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
-
+                NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+                NpgsqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
+                    //Create command
+                    using (NpgsqlCommand insertCommand = new NpgsqlCommand(
+                        "INSERT INTO quadruples(quadrupleid, tripleflavor, context, contextid, subject, subjectid, predicate, predicateid, object, objectid) SELECT @QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID WHERE NOT EXISTS (SELECT 1 FROM quadruples WHERE quadrupleid = @QID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
+                    {
+                        insertCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("TFV", NpgsqlDbType.Integer));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("CTX", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("CTXID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("SUBJ", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("SUBJID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("PRED", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("PREDID", NpgsqlDbType.Bigint));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("OBJ", NpgsqlDbType.Varchar, 1000));
+                        insertCommand.Parameters.Add(new NpgsqlParameter("OBJID", NpgsqlDbType.Bigint));
 
-                    //Open transaction
-                    InsertCommand.Transaction = Connection.BeginTransaction();
+                        //Valorize parameters
+                        insertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                        insertCommand.Parameters["TFV"].Value = (int)quadruple.TripleFlavor;
+                        insertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                        insertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                        insertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                        insertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                        insertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                        insertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                        insertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                        insertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
 
-                    //Execute command
-                    await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
 
-                    //Close transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = connection.BeginTransaction();
+                        insertCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await insertCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into PostgreSQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -346,46 +328,49 @@ namespace RDFSharp.Extensions.PostgreSQL
         {
             if (quadruple != null)
             {
-                //Create command
-                DeleteCommand.CommandText = "DELETE FROM quadruples WHERE quadrupleid = @QID";
-                DeleteCommand.Parameters.Clear();
-                DeleteCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
-
-                //Valorize parameters
-                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
+                NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+                NpgsqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await DeleteCommand.PrepareAsync();
+                    //Create command
+                    using (NpgsqlCommand deleteCommand = new NpgsqlCommand("DELETE FROM quadruples WHERE quadrupleid = @QID", connection) { CommandTimeout = Options.DeleteTimeout })
+                    {
+                        deleteCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
 
-                    //Open transaction
-                    DeleteCommand.Transaction = Connection.BeginTransaction();
+                        //Valorize parameters
+                        deleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                    //Execute command
-                    await DeleteCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await deleteCommand.PrepareAsync();
 
-                    //Close transaction
-                    if (DeleteCommand.Transaction != null)
-                        await DeleteCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = connection.BeginTransaction();
+                        deleteCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await deleteCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (DeleteCommand.Transaction != null)
-                        await DeleteCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -409,41 +394,46 @@ namespace RDFSharp.Extensions.PostgreSQL
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
-            //Prepare command
-            PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM quadruples", c, s, p, o, l);
-
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+            NpgsqlTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (NpgsqlCommand deleteCommand = new NpgsqlCommand { Connection = connection, CommandTimeout = Options.DeleteTimeout })
+                {
+                    PrepareSelectDeleteCommand(deleteCommand, "DELETE FROM quadruples", c, s, p, o, l);
 
-                //Open transaction
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Open transaction
+                    transaction = connection.BeginTransaction();
+                    deleteCommand.Transaction = transaction;
 
-                //Close transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.CommitAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
 
             return this;
@@ -460,42 +450,44 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// </summary>
         public override async Task ClearQuadruplesAsync()
         {
-            //Create command
-            DeleteCommand.CommandText = "DELETE FROM quadruples";
-            DeleteCommand.Parameters.Clear();
-
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
+            NpgsqlTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (NpgsqlCommand deleteCommand = new NpgsqlCommand("DELETE FROM quadruples", connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Open transaction
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    //Open transaction
+                    transaction = connection.BeginTransaction();
+                    deleteCommand.Transaction = transaction;
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.CommitAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from PostgreSQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -516,39 +508,40 @@ namespace RDFSharp.Extensions.PostgreSQL
             if (quadruple == null)
                 return false;
 
-            //Create command
-            SelectCommand.CommandText = "SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM quadruples WHERE quadrupleid = @QID)";
-            SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
-
-            //Valorize parameters
-            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
-            //Prepare and execute command
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await SelectCommand.PrepareAsync();
+                //Create command
+                using (NpgsqlCommand selectCommand = new NpgsqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM quadruples WHERE quadrupleid = @QID)", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    selectCommand.Parameters.Add(new NpgsqlParameter("QID", NpgsqlDbType.Bigint));
 
-                //Execute command
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    //Valorize parameters
+                    selectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Prepare command
+                    await selectCommand.PrepareAsync();
 
-                //Give result
-                return result == 1;
+                    //Execute command
+                    int result = int.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
+
+                    //Give result
+                    return result == 1;
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from PostgreSQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
 
@@ -574,32 +567,35 @@ namespace RDFSharp.Extensions.PostgreSQL
 
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Prepare command
-            PrepareSelectDeleteCommand(SelectCommand, "SELECT tripleflavor, context, subject, predicate, object FROM quadruples", c, s, p, o, l);
-
-            //Prepare and execute command
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Execute command
-                using (NpgsqlDataReader quadruples = await SelectCommand.ExecuteReaderAsync(CommandBehavior.Default))
+                //Create command
+                using (NpgsqlCommand selectCommand = new NpgsqlCommand { Connection = connection, CommandTimeout = Options.SelectTimeout })
                 {
-                    while (quadruples.Read())
-                        result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
-                }
+                    PrepareSelectDeleteCommand(selectCommand, "SELECT tripleflavor, context, subject, predicate, object FROM quadruples", c, s, p, o, l);
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Execute command
+                    using (NpgsqlDataReader quadruples = await selectCommand.ExecuteReaderAsync(CommandBehavior.Default))
+                    {
+                        while (quadruples.Read())
+                            result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
+                    }
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from PostgreSQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
 
             return result;
@@ -610,31 +606,32 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM quadruples";
-                SelectCommand.Parameters.Clear();
+                using (NpgsqlCommand selectCommand = new NpgsqlCommand("SELECT COUNT(*) FROM quadruples", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    //Execute command
+                    long result = long.Parse((await selectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
-                //Execute command
-                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
-
-                //Close connection
-                await Connection.CloseAsync();
-
-                //Return the quadruples count
-                return result;
+                    //Return the quadruples count
+                    return result;
+                }
             }
             catch
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -645,28 +642,29 @@ namespace RDFSharp.Extensions.PostgreSQL
         /// </summary>
         public async Task OptimizeAsync()
         {
+            NpgsqlConnection connection = new NpgsqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                using (NpgsqlCommand optimizeCommand = new NpgsqlCommand("VACUUM ANALYZE quadruples", Connection) { CommandTimeout = 120 })
+                using (NpgsqlCommand optimizeCommand = new NpgsqlCommand("VACUUM ANALYZE quadruples", connection) { CommandTimeout = 120 })
                 {
                     //Execute command
                     await optimizeCommand.ExecuteNonQueryAsync();
                 }
-
-                //Close connection
-                await Connection.CloseAsync();
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize PostgreSQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -676,7 +674,6 @@ namespace RDFSharp.Extensions.PostgreSQL
         #region Utilities
         private void PrepareSelectDeleteCommand(NpgsqlCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            command.Parameters.Clear();
             List<string> conditions = new List<string>();
 
             if (c != null)
@@ -719,22 +716,6 @@ namespace RDFSharp.Extensions.PostgreSQL
             command.CommandText = conditions.Count > 0
                 ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
                 : baseSql;
-        }
-
-        private async Task EnsureConnectionIsOpenAsync()
-        {
-            switch (Connection.State)
-            {
-                case ConnectionState.Closed:
-                    await Connection.OpenAsync();
-                    break;
-
-                case ConnectionState.Broken:
-                case ConnectionState.Connecting:
-                    await Connection.CloseAsync();
-                    await Connection.OpenAsync();
-                    break;
-            }
         }
         #endregion
     }

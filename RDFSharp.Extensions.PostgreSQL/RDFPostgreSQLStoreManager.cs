@@ -66,12 +66,5 @@ namespace RDFSharp.Extensions.PostgreSQL
                 await createCommand.ExecuteNonQueryAsync();
             }
         }
-
-        public async Task<NpgsqlConnection> GetConnectionAsync()
-        {
-            NpgsqlConnection connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-            return connection;
-        }
     }
 }

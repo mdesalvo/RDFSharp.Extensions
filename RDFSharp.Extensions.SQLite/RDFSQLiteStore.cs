@@ -1,4 +1,4 @@
-﻿/*
+/*
    Copyright 2012-2025 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.SQLite
@@ -49,24 +48,16 @@ namespace RDFSharp.Extensions.SQLite
             => GetQuadruplesCountAsync();
 
         /// <summary>
-        /// Connection to the SQLite database
+        /// Connection string to the SQLite database (a new connection is opened for each operation,
+        /// relying on ADO.NET's own connection pooling, so that the store is safe to use concurrently
+        /// -es. as a singleton registered in an ASP.NET Core DI container)
         /// </summary>
-        private SQLiteConnection Connection { get; set; }
+        private readonly string ConnectionString;
 
         /// <summary>
-        /// Command to execute SELECT queries on the SQLite database
+        /// Options customizing the behaviour of the store
         /// </summary>
-        private SQLiteCommand SelectCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute INSERT queries on the SQLite database
-        /// </summary>
-        private SQLiteCommand InsertCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute DELETE queries on the SQLite database
-        /// </summary>
-        private SQLiteCommand DeleteCommand { get; set; }
+        private readonly RDFSQLiteStoreOptions Options;
 
         /// <summary>
         /// Flag indicating that the SQLite store instance has already been disposed
@@ -86,8 +77,7 @@ namespace RDFSharp.Extensions.SQLite
             #endregion
 
             //Initialize options
-            if (sqliteStoreOptions == null)
-                sqliteStoreOptions = new RDFSQLiteStoreOptions();
+            Options = sqliteStoreOptions ?? new RDFSQLiteStoreOptions();
 
             //Initialize store structures
             try
@@ -96,10 +86,7 @@ namespace RDFSharp.Extensions.SQLite
                 sqliteStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
 
                 StoreType = "SQLITE";
-                Connection = sqliteStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.SelectTimeout };
-                DeleteCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.DeleteTimeout };
-                InsertCommand = new SQLiteCommand { Connection = Connection, CommandTimeout = sqliteStoreOptions.InsertTimeout };
+                ConnectionString = sqliteConnectionString;
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }
@@ -121,7 +108,10 @@ namespace RDFSharp.Extensions.SQLite
         /// Gives the string representation of the SQLite store
         /// </summary>
         public override string ToString()
-            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
+        {
+            string dataSource = new SQLiteConnectionStringBuilder(ConnectionString).DataSource;
+            return $"{base.ToString()}|SERVER={dataSource};DATABASE={dataSource}";
+        }
 
         /// <summary>
         /// Disposes the SQLite store instance
@@ -148,26 +138,7 @@ namespace RDFSharp.Extensions.SQLite
         /// Disposes the SQLite store instance  (business logic of resources disposal)
         /// </summary>
         private void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            if (disposing)
-            {
-                //Dispose
-                SelectCommand?.Dispose();
-                InsertCommand?.Dispose();
-                DeleteCommand?.Dispose();
-                Connection?.Dispose();
-                //Delete
-                SelectCommand = null;
-                InsertCommand = null;
-                DeleteCommand = null;
-                Connection = null;
-            }
-
-            Disposed = true;
-        }
+            => Disposed = true;
         #endregion
 
         #region Methods
@@ -188,92 +159,93 @@ namespace RDFSharp.Extensions.SQLite
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
-                //Create command
-                InsertCommand.CommandText = "INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("TFV", DbType.Int32));
-                InsertCommand.Parameters.Add(new SQLiteParameter("CTX", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("CTXID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("SUBJ", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("SUBJID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("PRED", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("PREDID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("OBJ", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("OBJID", DbType.Int64));
-
+                SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+                SQLiteTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-#if NET8_0_OR_GREATER
-                    await InsertCommand.PrepareAsync();
-#else
-                    InsertCommand.Prepare();
-#endif
-
-                    //Open transaction
-#if NET8_0_OR_GREATER
-                    InsertCommand.Transaction = (SQLiteTransaction)await Connection.BeginTransactionAsync();
-#else
-                    InsertCommand.Transaction = Connection.BeginTransaction();
-#endif
-
-                    //Iterate triples
-                    foreach (RDFTriple triple in graph)
+                    //Create command
+                    using (SQLiteCommand insertCommand = new SQLiteCommand(
+                        "INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
                     {
-                        //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
-                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
-                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
-                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
-                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        insertCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("TFV", DbType.Int32));
+                        insertCommand.Parameters.Add(new SQLiteParameter("CTX", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("CTXID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("SUBJ", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("SUBJID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("PRED", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("PREDID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("OBJ", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("OBJID", DbType.Int64));
 
-                        //Execute command
-                        await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+#if NET8_0_OR_GREATER
+                        await insertCommand.PrepareAsync();
+#else
+                        insertCommand.Prepare();
+#endif
+
+                        //Open transaction
+#if NET8_0_OR_GREATER
+                        transaction = (SQLiteTransaction)await connection.BeginTransactionAsync();
+#else
+                        transaction = connection.BeginTransaction();
+#endif
+                        insertCommand.Transaction = transaction;
+
+                        //Iterate triples
+                        foreach (RDFTriple triple in graph)
+                        {
+                            //Valorize parameters
+                            insertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
+                            insertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                            insertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                            insertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                            insertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                            insertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                            insertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                            insertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                            insertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                            insertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+
+                            //Execute command
+                            await insertCommand.ExecuteNonQueryAsync();
+                        }
+
+                        //Commit transaction
+#if NET8_0_OR_GREATER
+                        await transaction.CommitAsync();
+#else
+                        transaction.Commit();
+#endif
                     }
-
-                    //Commit transaction
-                    if (InsertCommand.Transaction != null)
-#if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.CommitAsync();
-#else
-                        InsertCommand.Transaction.Commit();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.RollbackAsync();
+                        await transaction.RollbackAsync();
 #else
-                        InsertCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQLite store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -292,88 +264,89 @@ namespace RDFSharp.Extensions.SQLite
         {
             if (quadruple != null)
             {
-                //Create command
-                InsertCommand.CommandText = "INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("TFV", DbType.Int32));
-                InsertCommand.Parameters.Add(new SQLiteParameter("CTX", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("CTXID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("SUBJ", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("SUBJID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("PRED", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("PREDID", DbType.Int64));
-                InsertCommand.Parameters.Add(new SQLiteParameter("OBJ", DbType.String));
-                InsertCommand.Parameters.Add(new SQLiteParameter("OBJID", DbType.Int64));
-
-                //Valorize parameters
-                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
-                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
-
+                SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+                SQLiteTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
+                    //Create command
+                    using (SQLiteCommand insertCommand = new SQLiteCommand(
+                        "INSERT OR IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
+                    {
+                        insertCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("TFV", DbType.Int32));
+                        insertCommand.Parameters.Add(new SQLiteParameter("CTX", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("CTXID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("SUBJ", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("SUBJID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("PRED", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("PREDID", DbType.Int64));
+                        insertCommand.Parameters.Add(new SQLiteParameter("OBJ", DbType.String));
+                        insertCommand.Parameters.Add(new SQLiteParameter("OBJID", DbType.Int64));
+
+                        //Valorize parameters
+                        insertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                        insertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                        insertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                        insertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                        insertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                        insertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                        insertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                        insertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                        insertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                        insertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
+
+                        //Prepare command
 #if NET8_0_OR_GREATER
-                    await InsertCommand.PrepareAsync();
+                        await insertCommand.PrepareAsync();
 #else
-                    InsertCommand.Prepare();
+                        insertCommand.Prepare();
 #endif
 
-                    //Open transaction
+                        //Open transaction
 #if NET8_0_OR_GREATER
-                    InsertCommand.Transaction = (SQLiteTransaction)await Connection.BeginTransactionAsync();
+                        transaction = (SQLiteTransaction)await connection.BeginTransactionAsync();
 #else
-                    InsertCommand.Transaction = Connection.BeginTransaction();
+                        transaction = connection.BeginTransaction();
 #endif
+                        insertCommand.Transaction = transaction;
 
-                    //Execute command
-                    await InsertCommand.ExecuteNonQueryAsync();
+                        //Execute command
+                        await insertCommand.ExecuteNonQueryAsync();
 
-                    //Commit transaction
-                    if (InsertCommand.Transaction != null)
+                        //Commit transaction
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.CommitAsync();
+                        await transaction.CommitAsync();
 #else
-                        InsertCommand.Transaction.Commit();
+                        transaction.Commit();
 #endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.RollbackAsync();
+                        await transaction.RollbackAsync();
 #else
-                        InsertCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQLite store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -394,70 +367,69 @@ namespace RDFSharp.Extensions.SQLite
         {
             if (quadruple != null)
             {
-                //Create command
-                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE QuadrupleID = @QID";
-                DeleteCommand.Parameters.Clear();
-                DeleteCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
-
-                //Valorize parameters
-                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
+                SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+                SQLiteTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
+                    //Create command
+                    using (SQLiteCommand deleteCommand = new SQLiteCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", connection) { CommandTimeout = Options.DeleteTimeout })
+                    {
+                        deleteCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
+
+                        //Valorize parameters
+                        deleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+                        //Prepare command
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.PrepareAsync();
+                        await deleteCommand.PrepareAsync();
 #else
-                    DeleteCommand.Prepare();
+                        deleteCommand.Prepare();
 #endif
 
-                    //Open transaction
+                        //Open transaction
 #if NET8_0_OR_GREATER
-                    DeleteCommand.Transaction = (SQLiteTransaction)await Connection.BeginTransactionAsync();
+                        transaction = (SQLiteTransaction)await connection.BeginTransactionAsync();
 #else
-                    DeleteCommand.Transaction = Connection.BeginTransaction();
+                        transaction = connection.BeginTransaction();
 #endif
+                        deleteCommand.Transaction = transaction;
 
-                    //Execute command
-                    await DeleteCommand.ExecuteNonQueryAsync();
+                        //Execute command
+                        await deleteCommand.ExecuteNonQueryAsync();
 
-                    //Commit transaction
-                    if (DeleteCommand.Transaction != null)
+                        //Commit transaction
 #if NET8_0_OR_GREATER
-                        await DeleteCommand.Transaction.CommitAsync();
+                        await transaction.CommitAsync();
 #else
-                        DeleteCommand.Transaction.Commit();
+                        transaction.Commit();
 #endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (DeleteCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await DeleteCommand.Transaction.RollbackAsync();
+                        await transaction.RollbackAsync();
 #else
-                        DeleteCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -481,69 +453,70 @@ namespace RDFSharp.Extensions.SQLite
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
-            //Prepare command
-            PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
-
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+            SQLiteTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
+                //Create command
+                using (SQLiteCommand deleteCommand = new SQLiteCommand(connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    PrepareSelectDeleteCommand(deleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
+
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                await DeleteCommand.PrepareAsync();
+                    await deleteCommand.PrepareAsync();
 #else
-                DeleteCommand.Prepare();
+                    deleteCommand.Prepare();
 #endif
 
-                //Open transaction
+                    //Open transaction
 #if NET8_0_OR_GREATER
-                DeleteCommand.Transaction = (SQLiteTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                    transaction = (SQLiteTransaction)await connection.BeginTransactionAsync();
 #else
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    transaction = connection.BeginTransaction();
+#endif
+                    deleteCommand.Transaction = transaction;
+
+                    //Execute command
+#if NET8_0_OR_GREATER
+                    await deleteCommand.ExecuteNonQueryAsync();
+#else
+                    deleteCommand.ExecuteNonQuery();
 #endif
 
-                //Execute command
+                    //Commit transaction
 #if NET8_0_OR_GREATER
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    await transaction.CommitAsync();
 #else
-                DeleteCommand.ExecuteNonQuery();
+                    transaction.Commit();
 #endif
-
-                //Commit transaction
-                if (DeleteCommand.Transaction != null)
-#if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.CommitAsync();
-#else
-                    DeleteCommand.Transaction.Commit();
-#endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
+                if (transaction != null)
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.RollbackAsync();
+                    await transaction.RollbackAsync();
 #else
-                    DeleteCommand.Transaction.Rollback();
-#endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
+                    transaction.Rollback();
 #endif
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
 
             return this;
@@ -560,65 +533,64 @@ namespace RDFSharp.Extensions.SQLite
         /// </summary>
         public override async Task ClearQuadruplesAsync()
         {
-            //Create command
-            DeleteCommand.CommandText = "DELETE FROM Quadruples";
-            DeleteCommand.Parameters.Clear();
-
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
+            SQLiteTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
+                //Create command
+                using (SQLiteCommand deleteCommand = new SQLiteCommand("DELETE FROM Quadruples", connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                await DeleteCommand.PrepareAsync();
+                    await deleteCommand.PrepareAsync();
 #else
-                DeleteCommand.Prepare();
+                    deleteCommand.Prepare();
 #endif
 
-                //Open transaction
+                    //Open transaction
 #if NET8_0_OR_GREATER
-                DeleteCommand.Transaction = (SQLiteTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                    transaction = (SQLiteTransaction)await connection.BeginTransactionAsync();
 #else
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    transaction = connection.BeginTransaction();
 #endif
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    deleteCommand.Transaction = transaction;
 
-                //Commit transaction
-                if (DeleteCommand.Transaction != null)
-#if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.CommitAsync();
-#else
-                    DeleteCommand.Transaction.Commit();
-#endif
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close connection
+                    //Commit transaction
 #if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
+                    await transaction.CommitAsync();
 #else
-                Connection.Close();
+                    transaction.Commit();
 #endif
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
+                if (transaction != null)
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.RollbackAsync();
+                    await transaction.RollbackAsync();
 #else
-                    DeleteCommand.Transaction.Rollback();
-#endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
+                    transaction.Rollback();
 #endif
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQLite store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
         #endregion
@@ -639,55 +611,52 @@ namespace RDFSharp.Extensions.SQLite
             if (quadruple == null)
                 return false;
 
-            //Create command
-            SelectCommand.CommandText = "SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)";
-            SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
-
-            //Valorize parameters
-            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
-            //Prepare and execute command
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
+                //Create command
+                using (SQLiteCommand selectCommand = new SQLiteCommand("SELECT EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    selectCommand.Parameters.Add(new SQLiteParameter("QID", DbType.Int64));
+
+                    //Valorize parameters
+                    selectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                await SelectCommand.PrepareAsync();
+                    await selectCommand.PrepareAsync();
 #else
-                SelectCommand.Prepare();
+                    selectCommand.Prepare();
 #endif
 
-                //Execute command
+                    //Execute command
 #if NET8_0_OR_GREATER
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    int result = int.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
 #else
-                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
+                    int result = int.Parse(selectCommand.ExecuteScalar().ToString());
 #endif
 
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
-                //Give result
-                return result == 1;
+                    //Give result
+                    return result == 1;
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQLite store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
 
@@ -713,44 +682,43 @@ namespace RDFSharp.Extensions.SQLite
 
             List<RDFQuadruple> result = new List<RDFQuadruple>();
 
-            //Prepare command
-            PrepareSelectDeleteCommand(SelectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
-
-            //Prepare and execute command
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Execute command
-#if NET8_0_OR_GREATER
-                using (SQLiteDataReader quadruples = (SQLiteDataReader)await SelectCommand.ExecuteReaderAsync(CommandBehavior.Default))
-#else
-                using (SQLiteDataReader quadruples = SelectCommand.ExecuteReader(CommandBehavior.Default))
-#endif
+                //Create command
+                using (SQLiteCommand selectCommand = new SQLiteCommand(connection) { CommandTimeout = Options.SelectTimeout })
                 {
-                    while (quadruples.Read())
-                        result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
-                }
+                    PrepareSelectDeleteCommand(selectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
 
-                //Close connection
+                    //Execute command
 #if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
+                    using (SQLiteDataReader quadruples = (SQLiteDataReader)await selectCommand.ExecuteReaderAsync(CommandBehavior.Default))
 #else
-                Connection.Close();
+                    using (SQLiteDataReader quadruples = selectCommand.ExecuteReader(CommandBehavior.Default))
 #endif
+                    {
+                        while (quadruples.Read())
+                            result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
+                    }
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQLite store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
 
             return result;
@@ -761,43 +729,40 @@ namespace RDFSharp.Extensions.SQLite
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
-                SelectCommand.Parameters.Clear();
-
-                //Execute command
+                using (SQLiteCommand selectCommand = new SQLiteCommand("SELECT COUNT(*) FROM Quadruples", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    //Execute command
 #if NET8_0_OR_GREATER
-                long result = long.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    long result = long.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
 #else
-                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+                    long result = long.Parse(selectCommand.ExecuteScalar().ToString());
 #endif
 
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
-                //Return the quadruples count
-                return result;
+                    //Return the quadruples count
+                    return result;
+                }
             }
             catch
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
 #endregion
@@ -808,36 +773,33 @@ namespace RDFSharp.Extensions.SQLite
         /// </summary>
         public async Task OptimizeAsync()
         {
+            SQLiteConnection connection = new SQLiteConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                using (SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", Connection))
+                using (SQLiteCommand optimizeCommand = new SQLiteCommand("VACUUM", connection))
                 {
                     //Execute command
                     await optimizeCommand.ExecuteNonQueryAsync();
                 }
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize SQLite store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
         #endregion
@@ -845,7 +807,6 @@ namespace RDFSharp.Extensions.SQLite
         #region Utilities
         private void PrepareSelectDeleteCommand(SQLiteCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            command.Parameters.Clear();
             List<string> conditions = new List<string>();
 
             if (c != null)
@@ -888,26 +849,6 @@ namespace RDFSharp.Extensions.SQLite
             command.CommandText = conditions.Count > 0
                 ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
                 : baseSql;
-        }
-
-        private async Task EnsureConnectionIsOpenAsync()
-        {
-            switch (Connection.State)
-            {
-                case ConnectionState.Closed:
-                    await Connection.OpenAsync();
-                    break;
-
-                case ConnectionState.Broken:
-                case ConnectionState.Connecting:
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
-                    await Connection.OpenAsync();
-                    break;
-            }
         }
         #endregion
 

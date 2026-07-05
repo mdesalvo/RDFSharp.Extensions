@@ -1,5 +1,5 @@
-﻿/*
-   Copyright 2012-2025 Marco De Salvo
+/*
+   Copyright 2012-2026 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,24 +48,16 @@ namespace RDFSharp.Extensions.SQLServer
             => GetQuadruplesCountAsync();
 
         /// <summary>
-        /// Connection to the SQL Server database
+        /// Connection string to the SQL Server database (a new connection is opened for each operation,
+        /// relying on ADO.NET's own connection pooling, so that the store is safe to use concurrently
+        /// -es. as a singleton registered in an ASP.NET Core DI container)
         /// </summary>
-        private SqlConnection Connection { get; set; }
+        private readonly string ConnectionString;
 
         /// <summary>
-        /// Command to execute SELECT queries on the SQL Server database
+        /// Options customizing the behaviour of the store
         /// </summary>
-        private SqlCommand SelectCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute INSERT queries on the SQL Server database
-        /// </summary>
-        private SqlCommand InsertCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute DELETE queries on the SQL Server database
-        /// </summary>
-        private SqlCommand DeleteCommand { get; set; }
+        private readonly RDFSQLServerStoreOptions Options;
 
         /// <summary>
         /// Flag indicating that the SQL Server store instance has already been disposed
@@ -85,8 +77,7 @@ namespace RDFSharp.Extensions.SQLServer
             #endregion
 
             //Initialize options
-            if (sqlserverStoreOptions == null)
-                sqlserverStoreOptions = new RDFSQLServerStoreOptions();
+            Options = sqlserverStoreOptions ?? new RDFSQLServerStoreOptions();
 
             //Initialize store structures
             try
@@ -95,10 +86,7 @@ namespace RDFSharp.Extensions.SQLServer
                 sqlserverStoreManager.EnsureQuadruplesTableExistsAsync().GetAwaiter().GetResult();
 
                 StoreType = "SQLSERVER";
-                Connection = sqlserverStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.SelectTimeout };
-                DeleteCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.DeleteTimeout };
-                InsertCommand = new SqlCommand { Connection = Connection, CommandTimeout = sqlserverStoreOptions.InsertTimeout };
+                ConnectionString = sqlserverConnectionString;
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }
@@ -120,7 +108,10 @@ namespace RDFSharp.Extensions.SQLServer
         /// Gives the string representation of the SQL Server store
         /// </summary>
         public override string ToString()
-            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(ConnectionString);
+            return $"{base.ToString()}|SERVER={builder.DataSource};DATABASE={builder.InitialCatalog}";
+        }
 
         /// <summary>
         /// Disposes the SQL Server store instance
@@ -147,26 +138,7 @@ namespace RDFSharp.Extensions.SQLServer
         /// Disposes the SQL Server store instance  (business logic of resources disposal)
         /// </summary>
         private void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            if (disposing)
-            {
-                //Dispose
-                SelectCommand?.Dispose();
-                InsertCommand?.Dispose();
-                DeleteCommand?.Dispose();
-                Connection?.Dispose();
-                //Delete
-                SelectCommand = null;
-                InsertCommand = null;
-                DeleteCommand = null;
-                Connection = null;
-            }
-
-            Disposed = true;
-        }
+            => Disposed = true;
         #endregion
 
         #region Methods
@@ -187,96 +159,101 @@ namespace RDFSharp.Extensions.SQLServer
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
-                //Create command
-                InsertCommand.CommandText = "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                InsertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-
+                SqlConnection connection = new SqlConnection(ConnectionString);
+                SqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
-
-                    //Prepare command
 #if NET8_0_OR_GREATER
-                    await InsertCommand.PrepareAsync();
+                    await connection.OpenAsync();
 #else
-                    InsertCommand.Prepare();
+                    connection.Open();
 #endif
 
-                    //Open transaction
-#if NET8_0_OR_GREATER
-                    InsertCommand.Transaction = (SqlTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
-#else
-                    InsertCommand.Transaction = Connection.BeginTransaction();
-#endif
-
-                    //Iterate triples
-                    foreach (RDFTriple triple in graph)
+                    //Create command
+                    using (SqlCommand insertCommand = new SqlCommand(
+                        "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END",
+                        connection) { CommandTimeout = Options.InsertTimeout })
                     {
-                        //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
-                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
-                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
-                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
-                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        insertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                        insertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
 
-                        //Execute command
+                        //Prepare command
 #if NET8_0_OR_GREATER
-                        await InsertCommand.ExecuteNonQueryAsync();
+                        await insertCommand.PrepareAsync();
 #else
-                        InsertCommand.ExecuteNonQuery();
+                        insertCommand.Prepare();
+#endif
+
+                        //Open transaction
+#if NET8_0_OR_GREATER
+                        transaction = (SqlTransaction)await connection.BeginTransactionAsync(CancellationToken.None);
+#else
+                        transaction = connection.BeginTransaction();
+#endif
+                        insertCommand.Transaction = transaction;
+
+                        //Iterate triples
+                        foreach (RDFTriple triple in graph)
+                        {
+                            //Valorize parameters
+                            insertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
+                            insertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                            insertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                            insertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                            insertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                            insertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                            insertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                            insertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                            insertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                            insertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+
+                            //Execute command
+#if NET8_0_OR_GREATER
+                            await insertCommand.ExecuteNonQueryAsync();
+#else
+                            insertCommand.ExecuteNonQuery();
+#endif
+                        }
+
+                        //Commit transaction
+#if NET8_0_OR_GREATER
+                        await transaction.CommitAsync(CancellationToken.None);
+#else
+                        transaction.Commit();
 #endif
                     }
-
-                    //Close transaction
-                    if (InsertCommand.Transaction != null)
-#if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.CommitAsync(CancellationToken.None);
-#else
-                        InsertCommand.Transaction.Commit();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.RollbackAsync(CancellationToken.None);
+                        await transaction.RollbackAsync(CancellationToken.None);
 #else
-                        InsertCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQL Server store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -295,92 +272,97 @@ namespace RDFSharp.Extensions.SQLServer
         {
             if (quadruple != null)
             {
-                //Create command
-                InsertCommand.CommandText = "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
-                InsertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
-                InsertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
-
-                //Valorize parameters
-                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
-                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
-
+                SqlConnection connection = new SqlConnection(ConnectionString);
+                SqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
-
-                    //Prepare command
 #if NET8_0_OR_GREATER
-                    await InsertCommand.PrepareAsync();
+                    await connection.OpenAsync();
 #else
-                    InsertCommand.Prepare();
+                    connection.Open();
 #endif
 
-                    //Open transaction
+                    //Create command
+                    using (SqlCommand insertCommand = new SqlCommand(
+                        "IF NOT EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID) BEGIN INSERT INTO [dbo].[Quadruples]([QuadrupleID], [TripleFlavor], [Context], [ContextID], [Subject], [SubjectID], [Predicate], [PredicateID], [Object], [ObjectID]) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) END",
+                        connection) { CommandTimeout = Options.InsertTimeout })
+                    {
+                        insertCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("TFV", SqlDbType.Int));
+                        insertCommand.Parameters.Add(new SqlParameter("CTX", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("CTXID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("SUBJ", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("SUBJID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("PRED", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("PREDID", SqlDbType.BigInt));
+                        insertCommand.Parameters.Add(new SqlParameter("OBJ", SqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new SqlParameter("OBJID", SqlDbType.BigInt));
+
+                        //Valorize parameters
+                        insertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                        insertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                        insertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                        insertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                        insertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                        insertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                        insertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                        insertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                        insertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                        insertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
+
+                        //Prepare command
 #if NET8_0_OR_GREATER
-                    InsertCommand.Transaction = (SqlTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                        await insertCommand.PrepareAsync();
 #else
-                    InsertCommand.Transaction = Connection.BeginTransaction();
+                        insertCommand.Prepare();
 #endif
 
-                    //Execute command
+                        //Open transaction
 #if NET8_0_OR_GREATER
-                    await InsertCommand.ExecuteNonQueryAsync();
+                        transaction = (SqlTransaction)await connection.BeginTransactionAsync(CancellationToken.None);
 #else
-                    InsertCommand.ExecuteNonQuery();
+                        transaction = connection.BeginTransaction();
+#endif
+                        insertCommand.Transaction = transaction;
+
+                        //Execute command
+#if NET8_0_OR_GREATER
+                        await insertCommand.ExecuteNonQueryAsync();
+#else
+                        insertCommand.ExecuteNonQuery();
 #endif
 
-                    //Close transaction
-                    if (InsertCommand.Transaction != null)
+                        //Commit transaction
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.CommitAsync(CancellationToken.None);
+                        await transaction.CommitAsync(CancellationToken.None);
 #else
-                        InsertCommand.Transaction.Commit();
+                        transaction.Commit();
 #endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await InsertCommand.Transaction.RollbackAsync(CancellationToken.None);
+                        await transaction.RollbackAsync(CancellationToken.None);
 #else
-                        InsertCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into SQL Server store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -401,74 +383,77 @@ namespace RDFSharp.Extensions.SQLServer
         {
             if (quadruple != null)
             {
-                //Create command
-                DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID";
-                DeleteCommand.Parameters.Clear();
-                DeleteCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-
-                //Valorize parameters
-                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
+                SqlConnection connection = new SqlConnection(ConnectionString);
+                SqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
-
-                    //Prepare command
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.PrepareAsync();
+                    await connection.OpenAsync();
 #else
-                    DeleteCommand.Prepare();
+                    connection.Open();
 #endif
 
-                    //Open transaction
+                    //Create command
+                    using (SqlCommand deleteCommand = new SqlCommand("DELETE FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID", connection) { CommandTimeout = Options.DeleteTimeout })
+                    {
+                        deleteCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+
+                        //Valorize parameters
+                        deleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+                        //Prepare command
 #if NET8_0_OR_GREATER
-                    DeleteCommand.Transaction = (SqlTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                        await deleteCommand.PrepareAsync();
 #else
-                    DeleteCommand.Transaction = Connection.BeginTransaction();
+                        deleteCommand.Prepare();
 #endif
 
-                    //Execute command
+                        //Open transaction
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.ExecuteNonQueryAsync();
+                        transaction = (SqlTransaction)await connection.BeginTransactionAsync(CancellationToken.None);
 #else
-                    DeleteCommand.ExecuteNonQuery();
+                        transaction = connection.BeginTransaction();
+#endif
+                        deleteCommand.Transaction = transaction;
+
+                        //Execute command
+#if NET8_0_OR_GREATER
+                        await deleteCommand.ExecuteNonQueryAsync();
+#else
+                        deleteCommand.ExecuteNonQuery();
 #endif
 
-                    //Close transaction
-                    if (DeleteCommand.Transaction != null)
+                        //Commit transaction
 #if NET8_0_OR_GREATER
-                        await DeleteCommand.Transaction.CommitAsync(CancellationToken.None);
+                        await transaction.CommitAsync(CancellationToken.None);
 #else
-                        DeleteCommand.Transaction.Commit();
+                        transaction.Commit();
 #endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
-#endif
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (DeleteCommand.Transaction != null)
+                    if (transaction != null)
 #if NET8_0_OR_GREATER
-                        await DeleteCommand.Transaction.RollbackAsync(CancellationToken.None);
+                        await transaction.RollbackAsync(CancellationToken.None);
 #else
-                        DeleteCommand.Transaction.Rollback();
-#endif
-
-                    //Close connection
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-#else
-                    Connection.Close();
+                        transaction.Rollback();
 #endif
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+#if NET8_0_OR_GREATER
+                    await connection.CloseAsync();
+#else
+                    connection.Close();
+#endif
+                    connection.Dispose();
                 }
             }
             return this;
@@ -492,69 +477,74 @@ namespace RDFSharp.Extensions.SQLServer
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
+            SqlConnection connection = new SqlConnection(ConnectionString);
+            SqlTransaction transaction = null;
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM [dbo].[Quadruples]", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
-
-                //Prepare command
 #if NET8_0_OR_GREATER
-                await DeleteCommand.PrepareAsync();
+                await connection.OpenAsync();
 #else
-                DeleteCommand.Prepare();
+                connection.Open();
 #endif
 
-                //Open transaction
+                //Create command
+                using (SqlCommand deleteCommand = new SqlCommand { Connection = connection, CommandTimeout = Options.DeleteTimeout })
+                {
+                    PrepareSelectDeleteCommand(deleteCommand, "DELETE FROM [dbo].[Quadruples]", c, s, p, o, l);
+
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                DeleteCommand.Transaction = (SqlTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                    await deleteCommand.PrepareAsync();
 #else
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    deleteCommand.Prepare();
 #endif
 
-                //Execute command
+                    //Open transaction
 #if NET8_0_OR_GREATER
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    transaction = (SqlTransaction)await connection.BeginTransactionAsync(CancellationToken.None);
 #else
-                DeleteCommand.ExecuteNonQuery();
+                    transaction = connection.BeginTransaction();
+#endif
+                    deleteCommand.Transaction = transaction;
+
+                    //Execute command
+#if NET8_0_OR_GREATER
+                    await deleteCommand.ExecuteNonQueryAsync();
+#else
+                    deleteCommand.ExecuteNonQuery();
 #endif
 
-                //Close transaction
-                if (DeleteCommand.Transaction != null)
+                    //Commit transaction
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.CommitAsync();
+                    await transaction.CommitAsync();
 #else
-                    DeleteCommand.Transaction.Commit();
+                    transaction.Commit();
 #endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
+                if (transaction != null)
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.RollbackAsync();
+                    await transaction.RollbackAsync();
 #else
-                    DeleteCommand.Transaction.Rollback();
-#endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
+                    transaction.Rollback();
 #endif
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
 
             return this;
@@ -571,70 +561,72 @@ namespace RDFSharp.Extensions.SQLServer
         /// </summary>
         public override async Task ClearQuadruplesAsync()
         {
-            //Create command
-            DeleteCommand.CommandText = "DELETE FROM [dbo].[Quadruples]";
-            DeleteCommand.Parameters.Clear();
-
+            SqlConnection connection = new SqlConnection(ConnectionString);
+            SqlTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
-
-                //Prepare command
 #if NET8_0_OR_GREATER
-                await DeleteCommand.PrepareAsync();
+                await connection.OpenAsync();
 #else
-                DeleteCommand.Prepare();
+                connection.Open();
 #endif
 
-                //Open transaction
+                //Create command
+                using (SqlCommand deleteCommand = new SqlCommand("DELETE FROM [dbo].[Quadruples]", connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                DeleteCommand.Transaction = (SqlTransaction)await Connection.BeginTransactionAsync(CancellationToken.None);
+                    await deleteCommand.PrepareAsync();
 #else
-                DeleteCommand.Transaction = Connection.BeginTransaction();
+                    deleteCommand.Prepare();
 #endif
 
-                //Execute command
+                    //Open transaction
 #if NET8_0_OR_GREATER
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    transaction = (SqlTransaction)await connection.BeginTransactionAsync(CancellationToken.None);
 #else
-                DeleteCommand.ExecuteNonQuery();
+                    transaction = connection.BeginTransaction();
+#endif
+                    deleteCommand.Transaction = transaction;
+
+                    //Execute command
+#if NET8_0_OR_GREATER
+                    await deleteCommand.ExecuteNonQueryAsync();
+#else
+                    deleteCommand.ExecuteNonQuery();
 #endif
 
-                //Close transaction
-                if (DeleteCommand.Transaction != null)
+                    //Commit transaction
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.CommitAsync();
+                    await transaction.CommitAsync();
 #else
-                    DeleteCommand.Transaction.Commit();
+                    transaction.Commit();
 #endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
+                if (transaction != null)
 #if NET8_0_OR_GREATER
-                    await DeleteCommand.Transaction.RollbackAsync();
+                    await transaction.RollbackAsync();
 #else
-                    DeleteCommand.Transaction.Rollback();
-#endif
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
+                    transaction.Rollback();
 #endif
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from SQL Server store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
         #endregion
@@ -655,55 +647,56 @@ namespace RDFSharp.Extensions.SQLServer
             if (quadruple == null)
                 return false;
 
-            //Create command
-            SelectCommand.CommandText = "SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID)";
-            SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
-
-            //Valorize parameters
-            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
-            //Prepare and execute command
+            SqlConnection connection = new SqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
-
-                //Prepare command
 #if NET8_0_OR_GREATER
-                await SelectCommand.PrepareAsync();
+                await connection.OpenAsync();
 #else
-                SelectCommand.Prepare();
+                connection.Open();
 #endif
 
-                //Execute command
+                //Create command
+                using (SqlCommand selectCommand = new SqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM [dbo].[Quadruples] WHERE [QuadrupleID] = @QID)", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    selectCommand.Parameters.Add(new SqlParameter("QID", SqlDbType.BigInt));
+
+                    //Valorize parameters
+                    selectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+
+                    //Prepare command
 #if NET8_0_OR_GREATER
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    await selectCommand.PrepareAsync();
 #else
-                int result = int.Parse(SelectCommand.ExecuteScalar().ToString());
+                    selectCommand.Prepare();
 #endif
 
-                //Close connection
+                    //Execute command
 #if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
+                    int result = int.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
 #else
-                Connection.Close();
+                    int result = int.Parse(selectCommand.ExecuteScalar().ToString());
 #endif
 
-                //Give result
-                return result == 1;
+                    //Give result
+                    return result == 1;
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQLServer store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
 
@@ -729,44 +722,47 @@ namespace RDFSharp.Extensions.SQLServer
 
             List<RDFQuadruple> result = new List<RDFQuadruple>();
 
-            //Prepare and execute command
+            SqlConnection connection = new SqlConnection(ConnectionString);
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(SelectCommand, "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
-
-                //Execute command
 #if NET8_0_OR_GREATER
-                using (SqlDataReader quadruples = await SelectCommand.ExecuteReaderAsync(CommandBehavior.Default))
+                await connection.OpenAsync();
 #else
-                using (SqlDataReader quadruples = SelectCommand.ExecuteReader(CommandBehavior.Default))
+                connection.Open();
 #endif
+
+                //Create command
+                using (SqlCommand selectCommand = new SqlCommand { Connection = connection, CommandTimeout = Options.SelectTimeout })
                 {
-                    while (quadruples.Read())
-                        result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
-                }
+                    PrepareSelectDeleteCommand(selectCommand, "SELECT [TripleFlavor], [Context], [Subject], [Predicate], [Object] FROM [dbo].[Quadruples]", c, s, p, o, l);
 
-                //Close connection
+                    //Execute command
 #if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
+                    using (SqlDataReader quadruples = await selectCommand.ExecuteReaderAsync(CommandBehavior.Default))
 #else
-                Connection.Close();
+                    using (SqlDataReader quadruples = selectCommand.ExecuteReader(CommandBehavior.Default))
 #endif
+                    {
+                        while (quadruples.Read())
+                            result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
+                    }
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from SQL Server store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
 
             return result;
@@ -777,43 +773,44 @@ namespace RDFSharp.Extensions.SQLServer
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
+            SqlConnection connection = new SqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+#if NET8_0_OR_GREATER
+                await connection.OpenAsync();
+#else
+                connection.Open();
+#endif
 
                 //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM [dbo].[Quadruples]";
-                SelectCommand.Parameters.Clear();
-
-                //Execute command
+                using (SqlCommand selectCommand = new SqlCommand("SELECT COUNT(*) FROM [dbo].[Quadruples]", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    //Execute command
 #if NET8_0_OR_GREATER
-                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
+                    long result = long.Parse((await selectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 #else
-                long result = long.Parse(SelectCommand.ExecuteScalar().ToString());
+                    long result = long.Parse(selectCommand.ExecuteScalar().ToString());
 #endif
 
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
-                //Return the quadruples count
-                return result;
+                    //Return the quadruples count
+                    return result;
+                }
             }
             catch
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
 #endregion
@@ -824,13 +821,18 @@ namespace RDFSharp.Extensions.SQLServer
         /// </summary>
         public async Task OptimizeAsync()
         {
+            SqlConnection connection = new SqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+#if NET8_0_OR_GREATER
+                await connection.OpenAsync();
+#else
+                connection.Open();
+#endif
 
                 //Create command
-                using (SqlCommand optimizeCommand = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", Connection))
+                using (SqlCommand optimizeCommand = new SqlCommand("ALTER INDEX ALL ON [dbo].[Quadruples] REORGANIZE;", connection))
                 {
                     //Execute command
 #if NET8_0_OR_GREATER
@@ -839,25 +841,21 @@ namespace RDFSharp.Extensions.SQLServer
                     optimizeCommand.ExecuteNonQuery();
 #endif
                 }
-
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
             }
             catch (Exception ex)
             {
-                //Close connection
-#if NET8_0_OR_GREATER
-                await Connection.CloseAsync();
-#else
-                Connection.Close();
-#endif
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize SQL Server store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+#if NET8_0_OR_GREATER
+                await connection.CloseAsync();
+#else
+                connection.Close();
+#endif
+                connection.Dispose();
             }
         }
         #endregion
@@ -865,7 +863,6 @@ namespace RDFSharp.Extensions.SQLServer
         #region Utilities
         private void PrepareSelectDeleteCommand(SqlCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            command.Parameters.Clear();
             List<string> conditions = new List<string>();
 
             if (c != null)
@@ -908,31 +905,6 @@ namespace RDFSharp.Extensions.SQLServer
             command.CommandText = conditions.Count > 0
                 ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
                 : baseSql;
-        }
-
-        private async Task EnsureConnectionIsOpenAsync()
-        {
-            switch (Connection.State)
-            {
-                case ConnectionState.Closed:
-#if NET8_0_OR_GREATER
-                    await Connection.OpenAsync();
-#else
-                    Connection.Open();
-#endif
-                    break;
-
-                case ConnectionState.Broken:
-                case ConnectionState.Connecting:
-#if NET8_0_OR_GREATER
-                    await Connection.CloseAsync();
-                    await Connection.OpenAsync();
-#else
-                    Connection.Close();
-                    Connection.Open();
-#endif
-                    break;
-            }
         }
         #endregion
 

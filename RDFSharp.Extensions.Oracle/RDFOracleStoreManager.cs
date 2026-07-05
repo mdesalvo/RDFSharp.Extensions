@@ -79,12 +79,5 @@ namespace RDFSharp.Extensions.Oracle
                 createCommand.ExecuteNonQuery();
             }
         }
-
-        public OracleConnection GetConnection()
-        {
-            OracleConnection connection = new OracleConnection(_connectionString);
-            connection.Open();
-            return connection;
-        }
     }
 }

@@ -1,4 +1,4 @@
-﻿/*
+/*
    Copyright 2012-2025 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,24 +48,16 @@ namespace RDFSharp.Extensions.Firebird
             => GetQuadruplesCountAsync();
 
         /// <summary>
-        /// Connection to the Firebird database
+        /// Connection string to the Firebird database (a new connection is opened for each operation,
+        /// relying on ADO.NET's own connection pooling, so that the store is safe to use concurrently
+        /// -es. as a singleton registered in an ASP.NET Core DI container)
         /// </summary>
-        private FbConnection Connection { get; set; }
+        private readonly string ConnectionString;
 
         /// <summary>
-        /// Command to execute SELECT queries on the Firebird database
+        /// Options customizing the behaviour of the store
         /// </summary>
-        private FbCommand SelectCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute INSERT queries on the Firebird database
-        /// </summary>
-        private FbCommand InsertCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute DELETE queries on the Firebird database
-        /// </summary>
-        private FbCommand DeleteCommand { get; set; }
+        private readonly RDFFirebirdStoreOptions Options;
 
         /// <summary>
         /// Flag indicating that the Firebird store instance has already been disposed
@@ -85,8 +77,7 @@ namespace RDFSharp.Extensions.Firebird
             #endregion
 
             //Initialize options
-            if (firebirdStoreOptions == null)
-                firebirdStoreOptions = new RDFFirebirdStoreOptions();
+            Options = firebirdStoreOptions ?? new RDFFirebirdStoreOptions();
 
             //Initialize store structures
             try
@@ -95,10 +86,7 @@ namespace RDFSharp.Extensions.Firebird
                 fbStoreManager.InitializeDatabaseAndTableAsync().GetAwaiter().GetResult();
 
                 StoreType = "FIREBIRD";
-                Connection = fbStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.SelectTimeout };
-                DeleteCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.DeleteTimeout };
-                InsertCommand = new FbCommand { Connection = Connection, CommandTimeout = firebirdStoreOptions.InsertTimeout };
+                ConnectionString = firebirdConnectionString;
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }
@@ -120,7 +108,10 @@ namespace RDFSharp.Extensions.Firebird
         /// Gives the string representation of the Firebird store
         /// </summary>
         public override string ToString()
-            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
+        {
+            FbConnectionStringBuilder builder = new FbConnectionStringBuilder(ConnectionString);
+            return $"{base.ToString()}|SERVER={builder.DataSource};DATABASE={builder.Database}";
+        }
 
         /// <summary>
         /// Disposes the Firebird store instance
@@ -147,26 +138,7 @@ namespace RDFSharp.Extensions.Firebird
         /// Disposes the Firebird store instance  (business logic of resources disposal)
         /// </summary>
         private void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            if (disposing)
-            {
-                //Dispose
-                SelectCommand?.Dispose();
-                InsertCommand?.Dispose();
-                DeleteCommand?.Dispose();
-                Connection?.Dispose();
-                //Delete
-                SelectCommand = null;
-                InsertCommand = null;
-                DeleteCommand = null;
-                Connection = null;
-            }
-
-            Disposed = true;
-        }
+            => Disposed = true;
         #endregion
 
         #region Methods
@@ -187,67 +159,73 @@ namespace RDFSharp.Extensions.Firebird
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
-                //Create command
-                InsertCommand.CommandText = "UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                InsertCommand.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("SUBJ", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("PRED", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("OBJ", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-
+                FbConnection connection = new FbConnection(ConnectionString);
+                FbTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
-
-                    //Open transaction
-                    InsertCommand.Transaction = await Connection.BeginTransactionAsync();
-
-                    //Iterate triples
-                    foreach (RDFTriple triple in graph)
+                    //Create command
+                    using (FbCommand insertCommand = new FbCommand(
+                        "UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
                     {
-                        //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
-                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
-                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
-                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
-                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        insertCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                        insertCommand.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("SUBJ", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("PRED", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("OBJ", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
 
-                        //Execute command
-                        await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
+
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        insertCommand.Transaction = transaction;
+
+                        //Iterate triples
+                        foreach (RDFTriple triple in graph)
+                        {
+                            //Valorize parameters
+                            insertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
+                            insertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                            insertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                            insertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                            insertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                            insertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                            insertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                            insertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                            insertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                            insertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+
+                            //Execute command
+                            await insertCommand.ExecuteNonQueryAsync();
+                        }
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
                     }
-
-                    //Close transaction
-                    await InsertCommand.Transaction.CommitAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    connection.Dispose();
                 }
             }
             return this;
@@ -266,63 +244,69 @@ namespace RDFSharp.Extensions.Firebird
         {
             if (quadruple != null)
             {
-                //Create command
-                InsertCommand.CommandText = "UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
-                InsertCommand.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("SUBJ", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("PRED", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
-                InsertCommand.Parameters.Add(new FbParameter("OBJ", FbDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
-
-                //Valorize parameters
-                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
-                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
-
+                FbConnection connection = new FbConnection(ConnectionString);
+                FbTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
+                    //Create command
+                    using (FbCommand insertCommand = new FbCommand(
+                        "UPDATE OR INSERT INTO Quadruples (QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID) MATCHING (QuadrupleID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
+                    {
+                        insertCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("TFV", FbDbType.Integer));
+                        insertCommand.Parameters.Add(new FbParameter("CTX", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("CTXID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("SUBJ", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("SUBJID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("PRED", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("PREDID", FbDbType.BigInt));
+                        insertCommand.Parameters.Add(new FbParameter("OBJ", FbDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new FbParameter("OBJID", FbDbType.BigInt));
 
-                    //Open transaction
-                    InsertCommand.Transaction = await Connection.BeginTransactionAsync();
+                        //Valorize parameters
+                        insertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                        insertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                        insertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                        insertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                        insertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                        insertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                        insertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                        insertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                        insertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                        insertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
 
-                    //Execute command
-                    await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
 
-                    //Close transaction
-                    await InsertCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        insertCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await insertCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into Firebird store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    connection.Dispose();
                 }
             }
             return this;
@@ -343,45 +327,49 @@ namespace RDFSharp.Extensions.Firebird
         {
             if (quadruple != null)
             {
-                //Create command
-                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE QuadrupleID = @QID";
-                DeleteCommand.Parameters.Clear();
-                DeleteCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
-
-                //Valorize parameters
-                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
+                FbConnection connection = new FbConnection(ConnectionString);
+                FbTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await DeleteCommand.PrepareAsync();
+                    //Create command
+                    using (FbCommand deleteCommand = new FbCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", connection) { CommandTimeout = Options.DeleteTimeout })
+                    {
+                        deleteCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
 
-                    //Open transaction
-                    DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                        //Valorize parameters
+                        deleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                    //Execute command
-                    await DeleteCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await deleteCommand.PrepareAsync();
 
-                    //Close transaction
-                    await DeleteCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        deleteCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await deleteCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (DeleteCommand.Transaction != null)
-                        await DeleteCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    connection.Dispose();
                 }
             }
             return this;
@@ -405,40 +393,46 @@ namespace RDFSharp.Extensions.Firebird
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
+            FbConnection connection = new FbConnection(ConnectionString);
+            FbTransaction transaction = null;
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (FbCommand deleteCommand = new FbCommand { Connection = connection, CommandTimeout = Options.DeleteTimeout })
+                {
+                    PrepareSelectDeleteCommand(deleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
 
-                //Open transaction
-                DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Open transaction
+                    transaction = await connection.BeginTransactionAsync();
+                    deleteCommand.Transaction = transaction;
 
-                //Close transaction
-                await DeleteCommand.Transaction.CommitAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                connection.Dispose();
             }
 
             return this;
@@ -455,41 +449,44 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         public override async Task ClearQuadruplesAsync()
         {
-            //Create command
-            DeleteCommand.CommandText = "DELETE FROM Quadruples";
-            DeleteCommand.Parameters.Clear();
-
+            FbConnection connection = new FbConnection(ConnectionString);
+            FbTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (FbCommand deleteCommand = new FbCommand("DELETE FROM Quadruples", connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Open transaction
-                DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                    //Open transaction
+                    transaction = await connection.BeginTransactionAsync();
+                    deleteCommand.Transaction = transaction;
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close transaction
-                await DeleteCommand.Transaction.CommitAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from Firebird store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                connection.Dispose();
             }
         }
         #endregion
@@ -510,37 +507,38 @@ namespace RDFSharp.Extensions.Firebird
             if (quadruple == null)
                 return false;
 
-            //Create command
-            SelectCommand.CommandText = "SELECT COUNT(1) FROM RDB$DATABASE WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)";
-            SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
-            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
-            //Prepare and execute command
+            FbConnection connection = new FbConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await SelectCommand.PrepareAsync();
+                //Create command
+                using (FbCommand selectCommand = new FbCommand("SELECT COUNT(1) FROM RDB$DATABASE WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    selectCommand.Parameters.Add(new FbParameter("QID", FbDbType.BigInt));
+                    selectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                //Execute command
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    //Prepare command
+                    await selectCommand.PrepareAsync();
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Execute command
+                    int result = int.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
 
-                //Give result
-                return result == 1;
+                    //Give result
+                    return result == 1;
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                connection.Dispose();
             }
         }
 
@@ -566,32 +564,35 @@ namespace RDFSharp.Extensions.Firebird
 
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Prepare and execute command
+            FbConnection connection = new FbConnection(ConnectionString);
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(SelectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Execute command
-                using (FbDataReader quadruples = await SelectCommand.ExecuteReaderAsync())
+                //Create command
+                using (FbCommand selectCommand = new FbCommand { Connection = connection, CommandTimeout = Options.SelectTimeout })
                 {
-                    while (quadruples.Read())
-                        result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
-                }
+                    PrepareSelectDeleteCommand(selectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Execute command
+                    using (FbDataReader quadruples = await selectCommand.ExecuteReaderAsync())
+                    {
+                        while (quadruples.Read())
+                            result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
+                    }
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from Firebird store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                connection.Dispose();
             }
 
             return result;
@@ -602,31 +603,32 @@ namespace RDFSharp.Extensions.Firebird
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
+            FbConnection connection = new FbConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
-                SelectCommand.Parameters.Clear();
+                using (FbCommand selectCommand = new FbCommand("SELECT COUNT(*) FROM Quadruples", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    //Execute command
+                    long result = long.Parse((await selectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
-                //Execute command
-                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
-
-                //Close connection
-                await Connection.CloseAsync();
-
-                //Return the quadruples count
-                return  result;
+                    //Return the quadruples count
+                    return result;
+                }
             }
             catch
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                connection.Dispose();
             }
         }
         #endregion
@@ -634,7 +636,6 @@ namespace RDFSharp.Extensions.Firebird
         #region Utilities
         private void PrepareSelectDeleteCommand(FbCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            command.Parameters.Clear();
             List<string> conditions = new List<string>();
 
             if (c != null)
@@ -677,22 +678,6 @@ namespace RDFSharp.Extensions.Firebird
             command.CommandText = conditions.Count > 0
                 ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
                 : baseSql;
-        }
-
-        private async Task EnsureConnectionIsOpenAsync()
-        {
-            switch (Connection.State)
-            {
-                case ConnectionState.Closed:
-                    await Connection.OpenAsync();
-                    break;
-
-                case ConnectionState.Broken:
-                case ConnectionState.Connecting:
-                    await Connection.CloseAsync();
-                    await Connection.OpenAsync();
-                    break;
-            }
         }
         #endregion
 

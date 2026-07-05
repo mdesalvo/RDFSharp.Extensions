@@ -1,4 +1,4 @@
-﻿/*
+/*
    Copyright 2012-2025 Marco De Salvo
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,24 +48,16 @@ namespace RDFSharp.Extensions.MySQL
             => GetQuadruplesCountAsync();
 
         /// <summary>
-        /// Connection to the MySQL database
+        /// Connection string to the MySQL database (a new connection is opened for each operation,
+        /// relying on ADO.NET's own connection pooling, so that the store is safe to use concurrently
+        /// -es. as a singleton registered in an ASP.NET Core DI container)
         /// </summary>
-        private MySqlConnection Connection { get; set; }
+        private readonly string ConnectionString;
 
         /// <summary>
-        /// Command to execute SELECT queries on the MySQL database
+        /// Options customizing the behaviour of the store
         /// </summary>
-        private MySqlCommand SelectCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute INSERT queries on the MySQL database
-        /// </summary>
-        private MySqlCommand InsertCommand { get; set; }
-
-        /// <summary>
-        /// Command to execute DELETE queries on the MySQL database
-        /// </summary>
-        private MySqlCommand DeleteCommand { get; set; }
+        private readonly RDFMySQLStoreOptions Options;
 
         /// <summary>
         /// Flag indicating that the MySQL store instance has already been disposed
@@ -85,8 +77,7 @@ namespace RDFSharp.Extensions.MySQL
             #endregion
 
             //Initialize options
-            if (mysqlStoreOptions == null)
-                mysqlStoreOptions = new RDFMySQLStoreOptions();
+            Options = mysqlStoreOptions ?? new RDFMySQLStoreOptions();
 
             //Initialize store structures
             try
@@ -95,10 +86,7 @@ namespace RDFSharp.Extensions.MySQL
                 mySqlStoreManager.EnsureQuadruplesTableExistsAsync().GetAwaiter().GetResult();
 
                 StoreType = "MYSQL";
-                Connection = mySqlStoreManager.GetConnectionAsync().GetAwaiter().GetResult();
-                SelectCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.SelectTimeout };
-                DeleteCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.DeleteTimeout };
-                InsertCommand = new MySqlCommand { Connection = Connection, CommandTimeout = mysqlStoreOptions.InsertTimeout };
+                ConnectionString = mysqlConnectionString;
                 StoreID = RDFModelUtilities.CreateHash(ToString());
                 Disposed = false;
             }
@@ -120,7 +108,10 @@ namespace RDFSharp.Extensions.MySQL
         /// Gives the string representation of the MySQL store
         /// </summary>
         public override string ToString()
-            => $"{base.ToString()}|SERVER={Connection.DataSource};DATABASE={Connection.Database}";
+        {
+            MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder(ConnectionString);
+            return $"{base.ToString()}|SERVER={builder.Server};DATABASE={builder.Database}";
+        }
 
         /// <summary>
         /// Disposes the MySQL store instance
@@ -147,26 +138,7 @@ namespace RDFSharp.Extensions.MySQL
         /// Disposes the MySQL store instance  (business logic of resources disposal)
         /// </summary>
         private void Dispose(bool disposing)
-        {
-            if (Disposed)
-                return;
-
-            if (disposing)
-            {
-                //Dispose
-                SelectCommand?.Dispose();
-                InsertCommand?.Dispose();
-                DeleteCommand?.Dispose();
-                Connection?.Dispose();
-                //Delete
-                SelectCommand = null;
-                InsertCommand = null;
-                DeleteCommand = null;
-                Connection = null;
-            }
-
-            Disposed = true;
-        }
+            => Disposed = true;
         #endregion
 
         #region Methods
@@ -187,67 +159,73 @@ namespace RDFSharp.Extensions.MySQL
             {
                 RDFContext graphCtx = new RDFContext(graph.Context);
 
-                //Create command
-                InsertCommand.CommandText = "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                InsertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-
+                MySqlConnection connection = new MySqlConnection(ConnectionString);
+                MySqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
-
-                    //Open transaction
-                    InsertCommand.Transaction = await Connection.BeginTransactionAsync();
-
-                    //Iterate triples
-                    foreach (RDFTriple triple in graph)
+                    //Create command
+                    using (MySqlCommand insertCommand = new MySqlCommand(
+                        "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
                     {
-                        //Valorize parameters
-                        InsertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
-                        InsertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
-                        InsertCommand.Parameters["CTX"].Value = graphCtx.ToString();
-                        InsertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
-                        InsertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
-                        InsertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
-                        InsertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
-                        InsertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
-                        InsertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
-                        InsertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+                        insertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                        insertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
 
-                        //Execute command
-                        await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
+
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        insertCommand.Transaction = transaction;
+
+                        //Iterate triples
+                        foreach (RDFTriple triple in graph)
+                        {
+                            //Valorize parameters
+                            insertCommand.Parameters["QID"].Value = RDFModelUtilities.CreateHash($"{graphCtx} {triple.Subject} {triple.Predicate} {triple.Object}");
+                            insertCommand.Parameters["TFV"].Value = triple.TripleFlavor;
+                            insertCommand.Parameters["CTX"].Value = graphCtx.ToString();
+                            insertCommand.Parameters["CTXID"].Value = graphCtx.PatternMemberID;
+                            insertCommand.Parameters["SUBJ"].Value = triple.Subject.ToString();
+                            insertCommand.Parameters["SUBJID"].Value = triple.Subject.PatternMemberID;
+                            insertCommand.Parameters["PRED"].Value = triple.Predicate.ToString();
+                            insertCommand.Parameters["PREDID"].Value = triple.Predicate.PatternMemberID;
+                            insertCommand.Parameters["OBJ"].Value = triple.Object.ToString();
+                            insertCommand.Parameters["OBJID"].Value = triple.Object.PatternMemberID;
+
+                            //Execute command
+                            await insertCommand.ExecuteNonQueryAsync();
+                        }
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
                     }
-
-                    //Close transaction
-                    await InsertCommand.Transaction.CommitAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into MySQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -266,63 +244,69 @@ namespace RDFSharp.Extensions.MySQL
         {
             if (quadruple != null)
             {
-                //Create command
-                InsertCommand.CommandText = "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)";
-                InsertCommand.Parameters.Clear();
-                InsertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
-                InsertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
-                InsertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
-                InsertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
-
-                //Valorize parameters
-                InsertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-                InsertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
-                InsertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
-                InsertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
-                InsertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
-                InsertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
-                InsertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
-                InsertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
-                InsertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
-                InsertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
-
+                MySqlConnection connection = new MySqlConnection(ConnectionString);
+                MySqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await InsertCommand.PrepareAsync();
+                    //Create command
+                    using (MySqlCommand insertCommand = new MySqlCommand(
+                        "INSERT IGNORE INTO Quadruples(QuadrupleID, TripleFlavor, Context, ContextID, Subject, SubjectID, Predicate, PredicateID, Object, ObjectID) VALUES (@QID, @TFV, @CTX, @CTXID, @SUBJ, @SUBJID, @PRED, @PREDID, @OBJ, @OBJID)",
+                        connection) { CommandTimeout = Options.InsertTimeout })
+                    {
+                        insertCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("TFV", MySqlDbType.Int32));
+                        insertCommand.Parameters.Add(new MySqlParameter("CTX", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("CTXID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("SUBJ", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("SUBJID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("PRED", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("PREDID", MySqlDbType.Int64));
+                        insertCommand.Parameters.Add(new MySqlParameter("OBJ", MySqlDbType.VarChar, 1000));
+                        insertCommand.Parameters.Add(new MySqlParameter("OBJID", MySqlDbType.Int64));
 
-                    //Open transaction
-                    InsertCommand.Transaction = await Connection.BeginTransactionAsync();
+                        //Valorize parameters
+                        insertCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
+                        insertCommand.Parameters["TFV"].Value = quadruple.TripleFlavor;
+                        insertCommand.Parameters["CTX"].Value = quadruple.Context.ToString();
+                        insertCommand.Parameters["CTXID"].Value = quadruple.Context.PatternMemberID;
+                        insertCommand.Parameters["SUBJ"].Value = quadruple.Subject.ToString();
+                        insertCommand.Parameters["SUBJID"].Value = quadruple.Subject.PatternMemberID;
+                        insertCommand.Parameters["PRED"].Value = quadruple.Predicate.ToString();
+                        insertCommand.Parameters["PREDID"].Value = quadruple.Predicate.PatternMemberID;
+                        insertCommand.Parameters["OBJ"].Value = quadruple.Object.ToString();
+                        insertCommand.Parameters["OBJID"].Value = quadruple.Object.PatternMemberID;
 
-                    //Execute command
-                    await InsertCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await insertCommand.PrepareAsync();
 
-                    //Close transaction
-                    await InsertCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        insertCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await insertCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (InsertCommand.Transaction != null)
-                        await InsertCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot insert data into MySQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -343,45 +327,49 @@ namespace RDFSharp.Extensions.MySQL
         {
             if (quadruple != null)
             {
-                //Create command
-                DeleteCommand.CommandText = "DELETE FROM Quadruples WHERE QuadrupleID = @QID";
-                DeleteCommand.Parameters.Clear();
-                DeleteCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-
-                //Valorize parameters
-                DeleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
+                MySqlConnection connection = new MySqlConnection(ConnectionString);
+                MySqlTransaction transaction = null;
                 try
                 {
                     //Open connection
-                    await EnsureConnectionIsOpenAsync();
+                    await connection.OpenAsync();
 
-                    //Prepare command
-                    await DeleteCommand.PrepareAsync();
+                    //Create command
+                    using (MySqlCommand deleteCommand = new MySqlCommand("DELETE FROM Quadruples WHERE QuadrupleID = @QID", connection) { CommandTimeout = Options.DeleteTimeout })
+                    {
+                        deleteCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
 
-                    //Open transaction
-                    DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                        //Valorize parameters
+                        deleteCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                    //Execute command
-                    await DeleteCommand.ExecuteNonQueryAsync();
+                        //Prepare command
+                        await deleteCommand.PrepareAsync();
 
-                    //Close transaction
-                    await DeleteCommand.Transaction.CommitAsync();
+                        //Open transaction
+                        transaction = await connection.BeginTransactionAsync();
+                        deleteCommand.Transaction = transaction;
 
-                    //Close connection
-                    await Connection.CloseAsync();
+                        //Execute command
+                        await deleteCommand.ExecuteNonQueryAsync();
+
+                        //Commit transaction
+                        await transaction.CommitAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
                     //Rollback transaction
-                    if (DeleteCommand.Transaction != null)
-                        await DeleteCommand.Transaction.RollbackAsync();
-
-                    //Close connection
-                    await Connection.CloseAsync();
+                    if (transaction != null)
+                        await transaction.RollbackAsync();
 
                     //Propagate exception
                     throw new RDFStoreException("Cannot delete data from MySQL store because: " + ex.Message, ex);
+                }
+                finally
+                {
+                    //Close connection
+                    await connection.CloseAsync();
+                    await connection.DisposeAsync();
                 }
             }
             return this;
@@ -405,40 +393,46 @@ namespace RDFSharp.Extensions.MySQL
                 throw new RDFStoreException("Cannot access a store when both object and literals are given: they must be mutually exclusive!");
             #endregion
 
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
+            MySqlTransaction transaction = null;
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(DeleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (MySqlCommand deleteCommand = new MySqlCommand { Connection = connection, CommandTimeout = Options.DeleteTimeout })
+                {
+                    PrepareSelectDeleteCommand(deleteCommand, "DELETE FROM Quadruples", c, s, p, o, l);
 
-                //Open transaction
-                DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Open transaction
+                    transaction = await connection.BeginTransactionAsync();
+                    deleteCommand.Transaction = transaction;
 
-                //Close transaction
-                await DeleteCommand.Transaction.CommitAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from MySQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
 
             return this;
@@ -455,41 +449,44 @@ namespace RDFSharp.Extensions.MySQL
         /// </summary>
         public override async Task ClearQuadruplesAsync()
         {
-            //Create command
-            DeleteCommand.CommandText = "DELETE FROM Quadruples";
-            DeleteCommand.Parameters.Clear();
-
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
+            MySqlTransaction transaction = null;
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await DeleteCommand.PrepareAsync();
+                //Create command
+                using (MySqlCommand deleteCommand = new MySqlCommand("DELETE FROM Quadruples", connection) { CommandTimeout = Options.DeleteTimeout })
+                {
+                    //Prepare command
+                    await deleteCommand.PrepareAsync();
 
-                //Open transaction
-                DeleteCommand.Transaction = await Connection.BeginTransactionAsync();
+                    //Open transaction
+                    transaction = await connection.BeginTransactionAsync();
+                    deleteCommand.Transaction = transaction;
 
-                //Execute command
-                await DeleteCommand.ExecuteNonQueryAsync();
+                    //Execute command
+                    await deleteCommand.ExecuteNonQueryAsync();
 
-                //Close transaction
-                await DeleteCommand.Transaction.CommitAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                    //Commit transaction
+                    await transaction.CommitAsync();
+                }
             }
             catch (Exception ex)
             {
                 //Rollback transaction
-                if (DeleteCommand.Transaction != null)
-                    await DeleteCommand.Transaction.RollbackAsync();
-
-                //Close connection
-                await Connection.CloseAsync();
+                if (transaction != null)
+                    await transaction.RollbackAsync();
 
                 //Propagate exception
                 throw new RDFStoreException("Cannot delete data from MySQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -510,39 +507,40 @@ namespace RDFSharp.Extensions.MySQL
             if (quadruple == null)
                 return false;
 
-            //Create command
-            SelectCommand.CommandText = "SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)";
-            SelectCommand.Parameters.Clear();
-            SelectCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
-
-            //Valorize parameters
-            SelectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
-
-            //Prepare and execute command
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Prepare command
-                await SelectCommand.PrepareAsync();
+                //Create command
+                using (MySqlCommand selectCommand = new MySqlCommand("SELECT COUNT(1) WHERE EXISTS(SELECT 1 FROM Quadruples WHERE QuadrupleID = @QID)", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    selectCommand.Parameters.Add(new MySqlParameter("QID", MySqlDbType.Int64));
 
-                //Execute command
-                int result = int.Parse((await SelectCommand.ExecuteScalarAsync()).ToString());
+                    //Valorize parameters
+                    selectCommand.Parameters["QID"].Value = quadruple.QuadrupleID;
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Prepare command
+                    await selectCommand.PrepareAsync();
 
-                //Give result
-                return result == 1;
+                    //Execute command
+                    int result = int.Parse((await selectCommand.ExecuteScalarAsync()).ToString());
+
+                    //Give result
+                    return result == 1;
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from MySQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
 
@@ -568,32 +566,35 @@ namespace RDFSharp.Extensions.MySQL
 
             List<RDFQuadruple>  result = new List<RDFQuadruple>();
 
-            //Prepare and execute command
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
             try
             {
-                //Prepare command
-                PrepareSelectDeleteCommand(SelectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
-
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
-                //Execute command
-                using (MySqlDataReader quadruples = await SelectCommand.ExecuteReaderAsync(CommandBehavior.Default))
+                //Create command
+                using (MySqlCommand selectCommand = new MySqlCommand { Connection = connection, CommandTimeout = Options.SelectTimeout })
                 {
-                    while (quadruples.Read())
-                        result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
-                }
+                    PrepareSelectDeleteCommand(selectCommand, "SELECT TripleFlavor, Context, Subject, Predicate, Object FROM Quadruples", c, s, p, o, l);
 
-                //Close connection
-                await Connection.CloseAsync();
+                    //Execute command
+                    using (MySqlDataReader quadruples = await selectCommand.ExecuteReaderAsync(CommandBehavior.Default))
+                    {
+                        while (quadruples.Read())
+                            result.Add(RDFStoreUtilities.ParseQuadruple(quadruples));
+                    }
+                }
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot read data from MySQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
 
             return result;
@@ -604,31 +605,32 @@ namespace RDFSharp.Extensions.MySQL
         /// </summary>
         private async Task<long> GetQuadruplesCountAsync()
         {
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                SelectCommand.CommandText = "SELECT COUNT(*) FROM Quadruples";
-                SelectCommand.Parameters.Clear();
+                using (MySqlCommand selectCommand = new MySqlCommand("SELECT COUNT(*) FROM Quadruples", connection) { CommandTimeout = Options.SelectTimeout })
+                {
+                    //Execute command
+                    long result = long.Parse((await selectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
 
-                //Execute command
-                long result = long.Parse((await SelectCommand.ExecuteScalarAsync(CancellationToken.None)).ToString());
-
-                //Close connection
-                await Connection.CloseAsync();
-
-                //Return the quadruples count
-                return  result;
+                    //Return the quadruples count
+                    return result;
+                }
             }
             catch
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Return the quadruples count (-1 to indicate error)
                 return -1;
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -639,28 +641,29 @@ namespace RDFSharp.Extensions.MySQL
         /// </summary>
         public async Task OptimizeAsync()
         {
+            MySqlConnection connection = new MySqlConnection(ConnectionString);
             try
             {
                 //Open connection
-                await EnsureConnectionIsOpenAsync();
+                await connection.OpenAsync();
 
                 //Create command
-                using (MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", Connection))
+                using (MySqlCommand optimizeCommand = new MySqlCommand("OPTIMIZE TABLE Quadruples", connection))
                 {
                     //Execute command
                     await optimizeCommand.ExecuteNonQueryAsync();
                 }
-
-                //Close connection
-                await Connection.CloseAsync();
             }
             catch (Exception ex)
             {
-                //Close connection
-                await Connection.CloseAsync();
-
                 //Propagate exception
                 throw new RDFStoreException("Cannot optimize MySQL store because: " + ex.Message, ex);
+            }
+            finally
+            {
+                //Close connection
+                await connection.CloseAsync();
+                await connection.DisposeAsync();
             }
         }
         #endregion
@@ -668,7 +671,6 @@ namespace RDFSharp.Extensions.MySQL
         #region Utilities
         private void PrepareSelectDeleteCommand(MySqlCommand command, string baseSql, RDFContext c, RDFResource s, RDFResource p, RDFResource o, RDFLiteral l)
         {
-            command.Parameters.Clear();
             List<string> conditions = new List<string>();
 
             if (c != null)
@@ -711,22 +713,6 @@ namespace RDFSharp.Extensions.MySQL
             command.CommandText = conditions.Count > 0
                 ? $"{baseSql} WHERE {string.Join(" AND ", conditions)}"
                 : baseSql;
-        }
-
-        private async Task EnsureConnectionIsOpenAsync()
-        {
-            switch (Connection.State)
-            {
-                case ConnectionState.Closed:
-                    await Connection.OpenAsync();
-                    break;
-
-                case ConnectionState.Broken:
-                case ConnectionState.Connecting:
-                    await Connection.CloseAsync();
-                    await Connection.OpenAsync();
-                    break;
-            }
         }
         #endregion
 
