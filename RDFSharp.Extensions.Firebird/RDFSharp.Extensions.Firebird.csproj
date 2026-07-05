@@ -46,7 +46,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+        <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.*" />
         <PackageReference Include="RDFSharp" Version="4.0.0" />
     </ItemGroup>
 </Project>
