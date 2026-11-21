@@ -1,0 +1,65 @@
+name: Pack and Push NuGet Packages
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags (v4.0.1, etc.)
+  workflow_dispatch:
+
+jobs:
+  pack-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Trusted Publishing: the OIDC token NuGet/login exchanges for a short-lived API key
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up .NET
+        id: dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      # The runner image carries newer SDKs than the one installed above and without a global.json
+      # the newest one wins: the packages are built by the same SDK 10 that builds them in CI
+      - name: Pin the .NET SDK
+        run: dotnet new globaljson --sdk-version ${{ steps.dotnet.outputs.dotnet-version }} --force
+
+      # Each package takes its version from its own csproj, never from the tag: every provider must
+      # declare the version of the tag, otherwise none of them goes up under a version nobody released
+      - name: Check tag against package versions
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          FAILED=0
+          for CSPROJ in RDFSharp.Extensions.*/RDFSharp.Extensions.*.csproj; do
+            VERSION=$(dotnet msbuild "$CSPROJ" -getProperty:Version)
+            echo "$CSPROJ: $VERSION"
+            if [ "${{ github.event_name }}" = "push" ] && [ "$TAG_VERSION" != "$VERSION" ]; then
+              echo "::error::Tag ${GITHUB_REF#refs/tags/} does not match version $VERSION of $CSPROJ"
+              FAILED=1
+            fi
+          done
+          exit $FAILED
+
+      # Every provider declares GeneratePackageOnBuild, so the build itself packs them all
+      # and dotnet pack would not build at all on a fresh checkout. There are no automated tests:
+      # the *Tests.txt suites need a live backend and are run by hand before tagging
+      - name: Build and pack
+        run: dotnet build RDFSharp.Extensions.sln -c Release -p:PackageOutputPath=${{ github.workspace }}/nupkg -p:ContinuousIntegrationBuild=true
+
+      - name: Login to NuGet
+        id: nuget
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Each .nupkg carries its .snupkg along to the symbol server.
+      # Skipping duplicates lets a failed run be re-run without refusing what already went up
+      - name: Push
+        run: >
+          dotnet nuget push "${{ github.workspace }}/nupkg/*.nupkg"
+          --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
