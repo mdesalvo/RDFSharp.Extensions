@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Extensions to [RDFSharp](https://github.com/mdesalvo/RDFSharp) that implement `RDFStore` to persist and query RDF data on external backends. Each `RDFSharp.Extensions.<Provider>/` folder is an independent NuGet project for a single provider: AzureTable, Firebird, MySQL, Neo4j, Oracle, PostgreSQL, SQLite, SQLServer.
+Extensions to [RDFSharp](https://github.com/mdesalvo/RDFSharp) that implement `RDFStore` to persist and query RDF data on external backends. Each `RDFSharp.Extensions.<Provider>/` folder is an independent NuGet project for a single provider: AzureTable, Firebird, MongoDB, MySQL, Neo4j, Oracle, PostgreSQL, SQLite, SQLServer.
 
 ## Build
 
@@ -13,13 +13,15 @@ dotnet build RDFSharp.Extensions.sln                          # all projects
 dotnet build RDFSharp.Extensions.SQLite/RDFSharp.Extensions.SQLite.csproj   # single provider
 ```
 
-Targets: `netstandard2.0` and `net8.0` (multi-targeting). Conditional code `#if NET8_0_OR_GREATER` enables `IAsyncDisposable` and native async APIs (`ExecuteReaderAsync`, `Connection.CloseAsync`, etc.) only on net8.0; netstandard2.0 falls back to the sync counterparts.
+Targets: `netstandard2.0`, `net8.0` and `net10.0` (multi-targeting). Conditional code `#if NET8_0_OR_GREATER` enables `IAsyncDisposable` and native async APIs (`ExecuteReaderAsync`, `Connection.CloseAsync`, etc.) only on net8.0+; netstandard2.0 falls back to the sync counterparts.
+
+Release: pushing a `vX.Y.Z` tag runs `.github/workflows/nuget-publish.yml`, which publishes all nine packages to nuget.org through Trusted Publishing (OIDC, no stored API key). The run fails before packing unless every csproj declares the tag's version in `<Version>`, so bump all nine together. `linux.yml` and `windows.yml` only build on push to `master`.
 
 There are no test projects (no test `.csproj` in the solution). Each provider ships a `*Tests.txt` file (e.g. `SQLiteTests.txt`) described as the "official test suite": it's a top-level C# script (xUnit `Assert` calls + direct store operations) meant to be pasted into a manual runner (requires a real backend instance: local SQLite DB, Azurite, MySQL/PostgreSQL/Oracle/Firebird/SQL Server server, Neo4j instance). It is not part of the automated build/CI pipeline.
 
 ## Architecture shared across providers
 
-Every provider follows the same 3-file pattern (except Neo4j and AzureTable, which are simpler since they're non-relational/manager-less):
+Every provider follows the same 3-file pattern (except Neo4j, AzureTable and MongoDB, which are simpler since they're non-relational/manager-less):
 
 - **`RDF<Provider>Store.cs`** — `sealed` class inheriting `RDFStore` (from RDFSharp) implementing `IDisposable` (+ `IAsyncDisposable` on net8.0). Holds only the connection string (and, for relational stores, an `Options` instance) as instance fields — no shared `Connection`/`Command` fields. Every operation opens its own local connection and command, scoped to that single call, relying on the ADO.NET provider's own connection pooling; this makes store instances safe to call concurrently (e.g. as a singleton in an ASP.NET Core DI container). Implements all abstract `RDFStore` members: `AddQuadruple`, `RemoveQuadruple(s)`, `RemoveQuadruplesBy*`, `MergeGraph`, `SelectQuadruples`, `ContainsQuadruple`, `QuadruplesCount`. Every method has a sync/async pair, where the sync version is almost always a thin wrapper (`XxxAsync().GetAwaiter().GetResult()`).
 - **`RDF<Provider>StoreManager.cs`** (relational stores) — manages the connection and idempotent schema initialization (`CREATE TABLE IF NOT EXISTS Quadruples`, indexes on `ContextID`, `SubjectID`, `PredicateID`, `ObjectID`+`TripleFlavor` and combinations to optimize CSPOL patterns).
