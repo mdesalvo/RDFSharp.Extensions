@@ -43,6 +43,6 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="RDFSharp" Version="4.0.1" />
-        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.*" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.*" />
     </ItemGroup>
 </Project>
