@@ -14,10 +14,10 @@
    limitations under the License.
 */
 
+using Microsoft.Data.SqlClient;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
 
 namespace RDFSharp.Extensions.SQLServer
 {

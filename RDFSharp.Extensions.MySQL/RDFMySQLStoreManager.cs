@@ -14,9 +14,9 @@
    limitations under the License.
 */
 
+using MySql.Data.MySqlClient;
 using System;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
 
 namespace RDFSharp.Extensions.MySQL
 {

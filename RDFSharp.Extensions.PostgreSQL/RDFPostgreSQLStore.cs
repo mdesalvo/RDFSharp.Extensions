@@ -14,15 +14,15 @@
    limitations under the License.
 */
 
+using Npgsql;
+using NpgsqlTypes;
+using RDFSharp.Model;
+using RDFSharp.Store;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
-using Npgsql;
-using NpgsqlTypes;
-using RDFSharp.Model;
-using RDFSharp.Store;
 
 namespace RDFSharp.Extensions.PostgreSQL
 {

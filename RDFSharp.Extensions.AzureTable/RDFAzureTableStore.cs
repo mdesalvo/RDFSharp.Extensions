@@ -14,18 +14,17 @@
    limitations under the License.
 */
 
-using Azure.Data.Tables;
-using System;
-using System.Text;
-using RDFSharp.Model;
-using RDFSharp.Store;
 using Azure;
+using Azure.Data.Tables;
+using RDFSharp.Model;
+using RDFSharp.Query;
+using RDFSharp.Store;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Net;
 using System.Linq;
 using System.Linq.Expressions;
-using RDFSharp.Query;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace RDFSharp.Extensions.AzureTable

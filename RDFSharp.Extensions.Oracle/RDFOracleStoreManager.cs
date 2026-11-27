@@ -14,8 +14,8 @@
    limitations under the License.
 */
 
-using System;
 using Oracle.ManagedDataAccess.Client;
+using System;
 
 namespace RDFSharp.Extensions.Oracle
 {

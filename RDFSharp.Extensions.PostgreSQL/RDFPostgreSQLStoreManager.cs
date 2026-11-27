@@ -14,9 +14,9 @@
    limitations under the License.
 */
 
+using Npgsql;
 using System;
 using System.Threading.Tasks;
-using Npgsql;
 
 namespace RDFSharp.Extensions.PostgreSQL
 {

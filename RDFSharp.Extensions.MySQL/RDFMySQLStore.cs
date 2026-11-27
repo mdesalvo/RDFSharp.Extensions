@@ -14,14 +14,14 @@
    limitations under the License.
 */
 
+using MySql.Data.MySqlClient;
+using RDFSharp.Model;
+using RDFSharp.Store;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
-using RDFSharp.Model;
-using RDFSharp.Store;
 
 namespace RDFSharp.Extensions.MySQL
 {

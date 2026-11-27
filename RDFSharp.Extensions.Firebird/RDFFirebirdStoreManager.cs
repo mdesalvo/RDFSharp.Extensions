@@ -14,10 +14,10 @@
    limitations under the License.
 */
 
+using FirebirdSql.Data.FirebirdClient;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using FirebirdSql.Data.FirebirdClient;
 
 namespace RDFSharp.Extensions.Firebird
 {
